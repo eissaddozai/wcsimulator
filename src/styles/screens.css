@@ -1260,3 +1260,517 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ————— couture pass: the bracket as centerpiece ————— */
+
+/* concentric halo radiating from the trophy column */
+.bracket2 {
+  position: relative;
+}
+.bracket2::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 54%;
+  width: 1100px;
+  height: 1100px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 88px,
+    color-mix(in srgb, var(--gold) 5%, transparent) 88px 89px
+  );
+  -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 66%);
+  mask-image: radial-gradient(circle, #000 20%, transparent 66%);
+  pointer-events: none;
+}
+
+/* round headers: engraved small caps between hairlines */
+.bhead {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+}
+.bhead::before,
+.bhead::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-2));
+}
+.bhead::after {
+  background: linear-gradient(90deg, var(--line-2), transparent);
+}
+.bhead.gold-text::before {
+  background: linear-gradient(90deg, transparent, var(--gold-dim));
+}
+.bhead.gold-text::after {
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+
+/* connectors: quieter at rest, molten on the champion's road */
+.bconn.l::before,
+.bconn.l::after,
+.bconn.r::before,
+.bconn.r::after {
+  border-color: color-mix(in srgb, var(--line-2) 78%, transparent);
+}
+.bconn.won::before,
+.bconn.won::after {
+  border-color: color-mix(in srgb, var(--gold) 70%, var(--gold-dim));
+  box-shadow: 0 0 18px -5px color-mix(in srgb, var(--gold) 60%, transparent);
+}
+
+/* the nodes: jewel plates */
+.ko-node {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border-color: color-mix(in srgb, var(--line-2) 72%, var(--line-1));
+  background: linear-gradient(155deg, color-mix(in srgb, var(--bg-3) 68%, var(--bg-1)) 0%, var(--bg-1) 58%);
+  box-shadow:
+    0 10px 26px -18px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 color-mix(in srgb, var(--text-hi) 5%, transparent);
+}
+.ko-node:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-dim);
+  box-shadow:
+    0 16px 36px -18px rgba(0, 0, 0, 0.7),
+    0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--gold) 14%, transparent);
+}
+.ko-node.ghost {
+  background: color-mix(in srgb, var(--bg-1) 55%, transparent);
+  box-shadow: none;
+}
+.ko-node.done {
+  border-color: color-mix(in srgb, var(--gold) 40%, var(--line-1));
+  background: linear-gradient(155deg, color-mix(in srgb, var(--gold) 7%, var(--bg-2)) 0%, var(--bg-1) 62%);
+}
+.ko-node.done::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  width: 34%;
+  left: -55%;
+  background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--gold) 15%, transparent), transparent);
+  transform: skewX(-16deg);
+  animation: node-sheen 1100ms cubic-bezier(0.2, 0, 0, 1) 1 both;
+  pointer-events: none;
+}
+@keyframes node-sheen {
+  to {
+    left: 145%;
+  }
+}
+.ko-node.done .side:not(.winner) {
+  opacity: 0.62;
+}
+.ko-node .side.winner {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 14%, transparent), transparent 78%);
+}
+.ko-node .side.winner .score {
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+  box-shadow: 0 2px 10px -4px var(--gold);
+}
+.ko-node .score:empty {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-2) 55%, transparent);
+  height: 18px;
+  min-width: 20px;
+}
+.ko-node .meta {
+  border-top-color: color-mix(in srgb, var(--line-2) 42%, transparent);
+  padding-top: 4px;
+  letter-spacing: 0.05em;
+}
+.mtag {
+  background: transparent;
+  border-color: transparent;
+  padding: 0 2px;
+  gap: 6px;
+}
+.mtag.stage-final .mdot {
+  box-shadow: 0 0 9px -1px var(--gold);
+}
+.mtag.stage-qf .mdot,
+.mtag.stage-sf .mdot {
+  box-shadow: 0 0 9px -2px var(--pos-third);
+}
+
+/* the center: a stronger bloom, a medallion for the trophy, a gilded final plate */
+.bcenter::before {
+  inset: -4% -28%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--gold) 12%, transparent), transparent 72%);
+}
+.trophy-medal {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 2px;
+}
+.trophy-medal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  box-shadow:
+    0 0 36px -10px color-mix(in srgb, var(--gold) 45%, transparent),
+    inset 0 0 24px -14px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.trophy-medal::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--gold) 36%, transparent);
+  animation: orbit 26s linear infinite;
+}
+.trophy-medal .champ-ghost {
+  border: none;
+}
+.champ-name {
+  font-size: 26px;
+  line-height: 1.05;
+  text-align: center;
+}
+.champ-caption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.champ-caption::before,
+.champ-caption::after {
+  content: '';
+  width: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim));
+}
+.champ-caption::after {
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+.champ-caption.dim {
+  color: var(--text-low);
+}
+.final-node {
+  border-color: color-mix(in srgb, var(--gold) 52%, var(--line-2));
+  background: linear-gradient(165deg, color-mix(in srgb, var(--gold) 10%, var(--bg-2)), var(--bg-1) 64%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gold) 16%, transparent),
+    0 18px 46px -20px color-mix(in srgb, var(--gold) 45%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--gold) 22%, transparent);
+}
+
+/* match panel: floodlit hero with a gilded footline */
+.match-hero {
+  position: relative;
+  background:
+    radial-gradient(420px 180px at 50% -30%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 75%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 70%, transparent), transparent);
+}
+.match-hero::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 40%, transparent), transparent);
+}
+
+/* ————— couture pass: every other screen ————— */
+
+/* landing: a colossal engraved 26 behind the hero, a living sheen across the title */
+.landing {
+  position: relative;
+  overflow: hidden;
+}
+.landing::before {
+  content: '26';
+  position: absolute;
+  z-index: 0;
+  right: -1%;
+  top: 44%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(300px, 38vw, 560px);
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--gold) 22%, transparent);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+.landing > * {
+  position: relative;
+  z-index: 1;
+}
+.landing h1 {
+  background: linear-gradient(100deg, var(--text-hi) 42%, var(--gold-hi) 50%, var(--text-hi) 58%);
+  background-size: 230% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ink-sheen 8s ease-in-out infinite;
+}
+@keyframes ink-sheen {
+  0%,
+  100% {
+    background-position: 115% 0;
+  }
+  45%,
+  55% {
+    background-position: -15% 0;
+  }
+}
+.setup-card {
+  overflow: hidden;
+}
+.setup-card::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 250ms;
+}
+.setup-card:hover::after {
+  opacity: 0.8;
+}
+.setup-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 26px 52px -30px rgba(0, 0, 0, 0.65);
+}
+
+/* selection: cards lift, chosen squads take a gold wash, quotas glow as they fill */
+.team-card {
+  border-radius: 12px;
+  transition: background 150ms, border-color 150ms, transform 200ms cubic-bezier(0.2, 0, 0, 1), box-shadow 200ms;
+}
+.team-card:hover {
+  transform: translateY(-1px);
+}
+.team-card.on {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 10%, var(--bg-3)), var(--bg-2) 70%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--gold) 16%, transparent);
+}
+.quota .meter {
+  height: 5px;
+}
+.quota .meter i {
+  border-radius: 3px;
+}
+.quota .meter i.fill {
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  box-shadow: 0 0 8px -3px var(--gold);
+}
+
+/* seeding: pots read as engraved columns */
+.pot-col h3 {
+  border-bottom: 1px solid var(--line-1);
+  padding-bottom: 10px;
+}
+.pot-row {
+  transition: background 150ms, border-color 150ms;
+}
+.pot-row.drop-target {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent), 0 0 18px -8px var(--gold);
+}
+
+/* draw: the ball becomes an ornament, the desk gets a gilded rail */
+.reveal-ball {
+  background:
+    radial-gradient(circle at 32% 26%, color-mix(in srgb, var(--gold) 22%, var(--bg-3)), var(--bg-1) 72%);
+  box-shadow:
+    inset 0 2px 10px color-mix(in srgb, var(--text-hi) 7%, transparent),
+    0 20px 46px -22px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.reveal-ball::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
+}
+.draw-controls {
+  border-color: color-mix(in srgb, var(--gold) 22%, var(--line-2));
+  box-shadow: var(--shadow-2), inset 0 1px 0 color-mix(in srgb, var(--gold) 12%, transparent);
+}
+.group-card {
+  border-radius: 12px;
+}
+
+/* groups: cards lift to meet the cursor, fixtures answer the hover */
+.ghub-card {
+  transition: border-color 150ms, transform 200ms cubic-bezier(0.2, 0, 0, 1), box-shadow 200ms;
+}
+.ghub-card:hover {
+  border-color: color-mix(in srgb, var(--gold) 26%, var(--line-1));
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.6);
+}
+.fixture {
+  padding: 6px 6px;
+  margin: 0 -6px;
+  border-radius: 8px;
+  transition: background 150ms;
+}
+.fixture:hover {
+  background: color-mix(in srgb, var(--bg-2) 55%, transparent);
+}
+
+/* footer bar: a gold thread along its top edge */
+.footerbar {
+  box-shadow: 0 -10px 34px -24px rgba(0, 0, 0, 0.6);
+}
+.footerbar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 15%, color-mix(in srgb, var(--gold) 40%, transparent) 50%, transparent 85%);
+  pointer-events: none;
+}
+
+/* champion: slow golden rays behind the crowning */
+.champion::before {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 42%,
+    color-mix(in srgb, var(--gold) 4.5%, transparent) 0deg 5deg,
+    transparent 5deg 22deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 8%, transparent 52%);
+  mask-image: radial-gradient(circle at 50% 42%, #000 8%, transparent 52%);
+  animation: rays 140s linear infinite;
+  pointer-events: none;
+}
+@keyframes rays {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ————— couture pass, second wave: jewelry ————— */
+
+/* qualification badges become filled enamel pills */
+.badge.q {
+  background: color-mix(in srgb, var(--pos-adv) 13%, transparent);
+}
+.badge.t3 {
+  background: color-mix(in srgb, var(--pos-third) 13%, transparent);
+}
+.badge.out {
+  background: color-mix(in srgb, var(--pos-out) 12%, transparent);
+}
+
+/* match hero: engraved center plate, gradient team names */
+.match-hero .team .nm {
+  background: linear-gradient(180deg, var(--text-hi) 55%, color-mix(in srgb, var(--gold) 55%, var(--text-hi)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.match-hero > .display.low {
+  border: 1px solid color-mix(in srgb, var(--line-2) 70%, transparent);
+  border-radius: 10px;
+  padding: 8px 12px;
+  letter-spacing: 0.14em;
+  background: color-mix(in srgb, var(--bg-2) 55%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-hi) 5%, transparent);
+}
+
+/* odds card: luminous bars, scoreline chips answer the cursor */
+.odds-bar.big {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 16px -8px var(--pos-adv);
+}
+.odds-bar i {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pos-adv) 88%, #fff), var(--pos-adv));
+}
+.odds-bar i.a {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pos-third) 88%, #fff), var(--pos-third));
+}
+.scoreline-chips .chip {
+  transition: border-color 150ms, transform 150ms, background 150ms;
+}
+.scoreline-chips .chip:hover {
+  border-color: var(--gold-dim);
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--gold) 7%, var(--bg-2));
+}
+
+/* thirds panel: the qualification line burns gold */
+.thirds-line {
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, transparent, var(--gold) 40%, var(--gold)) 1;
+}
+.thirds-row {
+  transition: background 150ms;
+}
+.thirds-row:hover {
+  background: color-mix(in srgb, var(--bg-2) 60%, transparent);
+}
+
+/* laboratory: each instrument group signs its hairline in its own tint */
+.lab-group-label {
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, color-mix(in srgb, currentColor 45%, transparent), transparent 70%) 1;
+}
+
+/* boosters: lit chips glow */
+.booster-chip {
+  transition: color 150ms, border-color 150ms, background 150ms, box-shadow 150ms, transform 150ms;
+}
+.booster-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.booster-chip.on {
+  box-shadow: 0 0 16px -9px var(--gold);
+}
+.booster-chip.burden.on {
+  box-shadow: 0 0 16px -9px var(--danger);
+}
+.studio-row {
+  transition: background 150ms;
+}
+.studio-row:hover {
+  background: color-mix(in srgb, var(--bg-2) 50%, transparent);
+}
+
+/* bracket: a gold spark where the champion's road meets the next round */
+.bconn.won.l {
+  background: radial-gradient(circle at 100% 50%, var(--gold) 0 2px, transparent 3.5px);
+}
+.bconn.won.r {
+  background: radial-gradient(circle at 0% 50%, var(--gold) 0 2px, transparent 3.5px);
+}
+
+/* scrollbars warm on touch */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-dim);
+}

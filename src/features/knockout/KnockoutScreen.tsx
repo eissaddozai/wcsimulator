@@ -147,24 +147,26 @@ export function KnockoutScreen() {
             <div className="champ-slot">
               {champion ? (
                 <>
-                  <Flag id={champion} size={64} ringed />
-                  <div className="display gold-text" style={{ fontSize: 26, lineHeight: 1 }}>
-                    {NATION_BY_ID.get(champion)?.name}
+                  <div className="trophy-medal won">
+                    <Flag id={champion} size={64} ringed />
                   </div>
-                  <div className="low" style={{ fontSize: 11, letterSpacing: '0.14em' }}>CHAMPIONS</div>
+                  <div className="champ-name display">{NATION_BY_ID.get(champion)?.name}</div>
+                  <div className="champ-caption">Champions</div>
                 </>
               ) : (
                 <>
-                  <div className="champ-ghost">
-                    <Crown size={26} />
+                  <div className="trophy-medal">
+                    <div className="champ-ghost">
+                      <Crown size={26} />
+                    </div>
                   </div>
-                  <div className="low" style={{ fontSize: 11, letterSpacing: '0.14em' }}>THE TROPHY</div>
+                  <div className="champ-caption dim">The trophy</div>
                 </>
               )}
             </div>
             <KoNode node={bracket[104]!} onOpen={() => setOpenMatch(104)} final />
             <div className="bronze-wrap">
-              <div className="low" style={{ fontSize: 10, letterSpacing: '0.14em', marginBottom: 4 }}>BRONZE</div>
+              <div className="champ-caption dim" style={{ justifyContent: 'center', marginBottom: 6 }}>Bronze</div>
               <KoNode node={bracket[103]!} compact onOpen={() => setOpenMatch(103)} />
             </div>
           </div>
