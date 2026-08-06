@@ -2598,7 +2598,7 @@ tr.pos-adv .posn {
 
 /* ————— the Play-off Tournament as a ceremony: pop-up, not furniture ————— */
 .po-dialog {
-  max-width: 780px;
+  max-width: 940px;
   width: calc(100vw - 48px);
   max-height: 90vh;
   display: flex;
@@ -3317,31 +3317,113 @@ table.standings td:nth-child(7) {
 .po-entrant.seeded .pe-tag {
   color: var(--gold);
 }
-.po-grid2 {
+/* the play-off tree: semifinals flanking, the final crowned in the center */
+.po-tree {
   display: grid;
-  grid-template-columns: 1fr 30px 1fr;
-  gap: 10px 0;
-  align-items: stretch;
+  grid-template-columns: 1fr 30px 1.12fr 30px 1fr;
+  gap: 12px 0;
+  align-items: center;
 }
-.po-grid2 .po-stage {
+.po-tree .po-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.po-tree .po-stage {
   border: none;
   padding-bottom: 0;
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   color: var(--pos-third);
+  text-align: center;
 }
-.po-arrow {
-  display: grid;
-  place-items: center;
+.po-tree .po-stage.gold {
+  color: var(--gold);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--gold) 35%, transparent);
 }
-.po-arrow i {
-  width: 18px;
-  height: 18px;
+.po-link {
+  position: relative;
+  height: 2px;
+  margin-top: 14px; /* optically level with the card centers under the stage labels */
+  background: linear-gradient(90deg, transparent, var(--line-2) 30%, var(--gold-dim));
+  opacity: 0.65;
+}
+.po-link::after {
+  content: '';
+  position: absolute;
+  right: 1px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
   border-top: 2px solid var(--gold-dim);
   border-right: 2px solid var(--gold-dim);
-  transform: rotate(45deg) scale(0.7);
-  border-radius: 2px;
-  opacity: 0.8;
+  transform: rotate(45deg);
+}
+.po-link.r {
+  background: linear-gradient(270deg, transparent, var(--line-2) 30%, var(--gold-dim));
+}
+.po-link.r::after {
+  right: auto;
+  left: 1px;
+  transform: rotate(-135deg);
+}
+.po-link.won {
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, var(--gold-dim) 25%, var(--gold));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.po-link.won.r {
+  background: linear-gradient(270deg, transparent, var(--gold-dim) 25%, var(--gold));
+}
+.po-link.won::after {
+  border-color: var(--gold);
+}
+.po-link.ghost,
+.po-col.ghost {
+  background: none;
+  box-shadow: none;
+}
+.po-link.ghost::after {
+  display: none;
+}
+
+/* the final: the tie everything converges on */
+.pom.pom-final {
+  border-color: color-mix(in srgb, var(--gold) 40%, var(--line-1));
+  background:
+    radial-gradient(240px 90px at 50% -20%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 75%),
+    var(--bg-2);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--gold) 8%, transparent);
+}
+.pom.pom-final.done {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gold) 30%, transparent) inset,
+    0 8px 30px color-mix(in srgb, var(--gold) 18%, transparent);
+}
+.pom-ribbon {
+  display: block;
+  text-align: center;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, transparent, var(--gold-dim), transparent) 1;
+}
+.pom-golden {
+  margin-top: 4px;
+  padding-top: 7px;
+  border-top: 1px solid;
+  border-image: linear-gradient(90deg, transparent, var(--gold-dim), transparent) 1;
+  text-align: center;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--gold) 40%, transparent);
 }
 .pom.waiting {
   border-style: dashed;
@@ -3354,15 +3436,22 @@ table.standings td:nth-child(7) {
   margin-top: 2px;
 }
 @media (max-width: 900px) {
-  .po-grid2 {
+  .po-tree {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
-  .po-arrow {
+  .po-link,
+  .po-col.ghost {
     display: none;
   }
-  .po-grid2 .po-stage:nth-child(2) {
-    display: none;
-  }
+  /* readable stacked order: SF1, SF2, then the final(s) last */
+  .po-tree > .po-col:nth-of-type(1) { order: 1; }
+  .po-tree > .po-col.center { order: 3; }
+  .po-tree > .po-col:last-of-type { order: 2; }
+  .po-tree-48 .t48-sf1 { order: 1; }
+  .po-tree-48 .t48-sf2 { order: 2; }
+  .po-tree-48 .t48-f1 { order: 3; }
+  .po-tree-48 .t48-f2 { order: 4; }
 }
 
 /* ————— the Model Lab docks left as a drawer — tune while the odds move ————— */
@@ -4061,10 +4150,28 @@ table.standings td:nth-child(7) {
   gap: 16px;
 }
 .po64-t {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--line-1);
   border-radius: 14px;
   padding: 12px 14px 14px;
   background: color-mix(in srgb, var(--bg-2) 55%, transparent);
+}
+/* the tournament letter as an architectural watermark */
+.po64-t::before {
+  content: attr(data-letter);
+  position: absolute;
+  right: 2px;
+  bottom: -44px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 170px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--gold) 5%, transparent);
+  pointer-events: none;
+}
+.po64-t.settled::before {
+  color: color-mix(in srgb, var(--gold) 9%, transparent);
 }
 .po64-t.settled {
   border-color: color-mix(in srgb, var(--gold) 35%, var(--line-1));

@@ -105,20 +105,51 @@ function Playoff48({ onClose }: { onClose: () => void }) {
                 </span>
               ))}
           </div>
-          <div className="po-grid2">
-            <div className="po-stage">① Semifinals — one-off ties</div>
-            <div />
-            <div className="po-stage">② Finals — winner qualifies</div>
-            <PlayoffMatchCard k="sf1" home={po.sf1[0]} away={po.sf1[1]} label={PO_LABEL.sf1} matchNo={PO_NUMBER.sf1} />
-            <div className="po-arrow" aria-hidden>
+          <div className="po-tree po-tree-48">
+            <div className="po-col t48-sf1">
+              <div className="po-stage">Semifinal 1</div>
+              <PlayoffMatchCard k="sf1" home={po.sf1[0]} away={po.sf1[1]} label={PO_LABEL.sf1} matchNo={PO_NUMBER.sf1} />
+            </div>
+            <div className={`po-link${po.f1[1] ? ' won' : ''}`} aria-hidden>
               <i />
             </div>
-            <PlayoffMatchCard k="f1" home={po.f1[0]} away={po.f1[1]} label={PO_LABEL.f1} matchNo={PO_NUMBER.f1} seeded />
-            <PlayoffMatchCard k="sf2" home={po.sf2[0]} away={po.sf2[1]} label={PO_LABEL.sf2} matchNo={PO_NUMBER.sf2} />
-            <div className="po-arrow" aria-hidden>
+            <div className="po-col center t48-f1">
+              <div className="po-stage gold">Final 1</div>
+              <PlayoffMatchCard
+                k="f1"
+                home={po.f1[0]}
+                away={po.f1[1]}
+                label={PO_LABEL.f1}
+                matchNo={PO_NUMBER.f1}
+                seeded
+                final
+                ribbon="Winner qualifies for the World Cup"
+              />
+            </div>
+            <div className="po-link ghost" aria-hidden />
+            <div className="po-col ghost" aria-hidden />
+            <div className="po-col ghost" aria-hidden />
+            <div className="po-link ghost" aria-hidden />
+            <div className="po-col center t48-f2">
+              <div className="po-stage gold">Final 2</div>
+              <PlayoffMatchCard
+                k="f2"
+                home={po.f2[0]}
+                away={po.f2[1]}
+                label={PO_LABEL.f2}
+                matchNo={PO_NUMBER.f2}
+                seeded
+                final
+                ribbon="Winner qualifies for the World Cup"
+              />
+            </div>
+            <div className={`po-link r${po.f2[1] ? ' won' : ''}`} aria-hidden>
               <i />
             </div>
-            <PlayoffMatchCard k="f2" home={po.f2[0]} away={po.f2[1]} label={PO_LABEL.f2} matchNo={PO_NUMBER.f2} seeded />
+            <div className="po-col t48-sf2">
+              <div className="po-stage">Semifinal 2</div>
+              <PlayoffMatchCard k="sf2" home={po.sf2[0]} away={po.sf2[1]} label={PO_LABEL.sf2} matchNo={PO_NUMBER.sf2} />
+            </div>
           </div>
           {po.winners.length > 0 && (
             <div className="po-qualified">
@@ -253,7 +284,7 @@ function Playoff64({ onClose }: { onClose: () => void }) {
             {po.tournaments.map((t) => {
               const lo = t.id.toLowerCase()
               return (
-                <section key={t.id} className={`po64-t${t.winner ? ' settled' : ''}`}>
+                <section key={t.id} className={`po64-t${t.winner ? ' settled' : ''}`} data-letter={t.id}>
                   <header className="po64-head">
                     <span className="po64-letter display">{t.id}</span>
                     <span className="po64-title">
@@ -266,41 +297,48 @@ function Playoff64({ onClose }: { onClose: () => void }) {
                       </span>
                     )}
                   </header>
-                  <div className="po-grid2">
-                    <div className="po-stage">① Semifinals</div>
-                    <div />
-                    <div className="po-stage">② Final — berth {t.berth}</div>
-                    <PlayoffMatchCard
-                      k={`${lo}-sf1` as Playoff64Key}
-                      home={t.sf1[0]}
-                      away={t.sf1[1]}
-                      label="Semifinal 1"
-                      matchNo={PO64_NUMBER[`${lo}-sf1` as Playoff64Key]}
-                      tags={designationOf}
-                    />
-                    <div className="po-arrow" aria-hidden>
+                  <div className="po-tree">
+                    <div className="po-col">
+                      <div className="po-stage">Semifinal 1</div>
+                      <PlayoffMatchCard
+                        k={`${lo}-sf1` as Playoff64Key}
+                        home={t.sf1[0]}
+                        away={t.sf1[1]}
+                        label="Semifinal 1"
+                        matchNo={PO64_NUMBER[`${lo}-sf1` as Playoff64Key]}
+                        tags={designationOf}
+                      />
+                    </div>
+                    <div className={`po-link${t.f[0] ? ' won' : ''}`} aria-hidden>
                       <i />
                     </div>
-                    <PlayoffMatchCard
-                      k={`${lo}-f` as Playoff64Key}
-                      home={t.f[0]}
-                      away={t.f[1]}
-                      label={`Final ${t.id}`}
-                      matchNo={PO64_NUMBER[`${lo}-f` as Playoff64Key]}
-                      tags={designationOf}
-                    />
-                    <PlayoffMatchCard
-                      k={`${lo}-sf2` as Playoff64Key}
-                      home={t.sf2[0]}
-                      away={t.sf2[1]}
-                      label="Semifinal 2"
-                      matchNo={PO64_NUMBER[`${lo}-sf2` as Playoff64Key]}
-                      tags={designationOf}
-                    />
-                    <div className="po-arrow" aria-hidden>
+                    <div className="po-col center">
+                      <div className="po-stage gold">The Final</div>
+                      <PlayoffMatchCard
+                        k={`${lo}-f` as Playoff64Key}
+                        home={t.f[0]}
+                        away={t.f[1]}
+                        label={`Final ${t.id}`}
+                        matchNo={PO64_NUMBER[`${lo}-f` as Playoff64Key]}
+                        tags={designationOf}
+                        final
+                        ribbon={`Winner takes berth ${t.berth}`}
+                      />
+                    </div>
+                    <div className={`po-link r${t.f[1] ? ' won' : ''}`} aria-hidden>
                       <i />
                     </div>
-                    <div />
+                    <div className="po-col">
+                      <div className="po-stage">Semifinal 2</div>
+                      <PlayoffMatchCard
+                        k={`${lo}-sf2` as Playoff64Key}
+                        home={t.sf2[0]}
+                        away={t.sf2[1]}
+                        label="Semifinal 2"
+                        matchNo={PO64_NUMBER[`${lo}-sf2` as Playoff64Key]}
+                        tags={designationOf}
+                      />
+                    </div>
                   </div>
                 </section>
               )
@@ -354,6 +392,8 @@ function PlayoffMatchCard({
   label,
   matchNo,
   seeded = false,
+  final = false,
+  ribbon,
   tags,
 }: {
   k: PlayoffKey
@@ -362,6 +402,10 @@ function PlayoffMatchCard({
   label: string
   matchNo: number
   seeded?: boolean
+  /** the tie everything converges on — elevated gold treatment */
+  final?: boolean
+  /** short stakes line shown as the final's top ribbon */
+  ribbon?: string
   tags?: Map<string, string>
 }) {
   const r = useStore((s) => s.playoffResults[k]) ?? null
@@ -424,8 +468,8 @@ function PlayoffMatchCard({
   const as_ = r && r.score.away !== null ? String(r.score.away + (r.et?.away ?? 0)) : ''
 
   return (
-    <div className={`card pom${decided ? ' done' : ''}${!home || !away ? ' waiting' : ''}`}>
-
+    <div className={`card pom${final ? ' pom-final' : ''}${decided ? ' done' : ''}${!home || !away ? ' waiting' : ''}`}>
+      {final && ribbon && <span className="pom-ribbon">{ribbon}</span>}
       {seeded && <span className="po-bye">seed</span>}
       <div className="pom-head">
         <span className="mtag">
@@ -518,6 +562,9 @@ function PlayoffMatchCard({
             onCommit={(v) => commit({ pens: { home: r.pens?.home ?? null, away: v } })}
           />
         </div>
+      )}
+      {final && decided && (
+        <div className="pom-golden display">✦ {NATION_BY_ID.get(decided)?.name} are going to the World Cup</div>
       )}
     </div>
   )
