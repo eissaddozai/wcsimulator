@@ -4947,7 +4947,7 @@ table.standings td:nth-child(7) {
   align-items: center;
   gap: 10px;
   padding: 8px 8px 8px 14px;
-  border: 1px dashed var(--gold-dim);
+  border: 1px solid var(--gold-dim);
   border-radius: 999px;
   font-size: 12px;
   color: var(--text-mid);
@@ -5162,8 +5162,9 @@ table.standings td:nth-child(7) {
   margin-left: 2px;
   color: var(--gold);
 }
-.ko-node.compact .verdict.pens {
-  display: none;
+/* penalties always show on every node — chip and superscript together */
+.ko-node .verdict.pens {
+  display: inline-flex;
 }
 /* 69 · the unclaimed trophy slot breathes */
 .trophy-medal {
@@ -6000,7 +6001,7 @@ input:focus-visible { outline-color: color-mix(in srgb, var(--focus) 75%, transp
 .pot-row { min-height: 44px; }
 .pot-spark { align-self: center; }
 .slot { min-height: 34px; }
-.slot.empty { border-style: dashed; opacity: 0.75; }
+.slot.empty { border-style: solid; opacity: 0.6; }
 .coach-mark { margin-left: auto; margin-right: auto; }
 .draw-controls .low.tnum { min-width: 110px; text-align: right; }
 
@@ -6115,14 +6116,18 @@ body { background: var(--bg-0); }
   overflow: hidden;
   transition: transform 180ms cubic-bezier(0.2, 0, 0, 1), border-color 180ms, box-shadow 180ms;
 }
-/* the perforated ticket edge */
-.ticket::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 54px;
-  border-left: 1px dashed color-mix(in srgb, var(--line-2) 70%, transparent);
+/* everything starts at the front edge — no gutters, no stray lines */
+.ticket .tk-icon,
+.ticket .tk-copy,
+.ticket .tk-cta {
+  margin-left: 0;
+}
+.tk-index {
+  left: auto;
+  right: 16px;
+  color: color-mix(in srgb, var(--gold) 35%, var(--text-low));
+  font-size: 34px;
+  opacity: 0.55;
 }
 .ticket:hover {
   transform: translateY(-4px);
@@ -6237,3 +6242,6 @@ body { background: var(--bg-0); }
   .fr-track { animation: none; }
   .draw-controls .btn.primary::after { animation: none; }
 }
+
+/* the zoom dock: buttons and number only — no floating slider line */
+.zoom-dock .zoom-slider { display: none; }

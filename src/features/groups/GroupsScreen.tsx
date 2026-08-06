@@ -8,7 +8,7 @@ import { ScoreInput } from '../../components/ScoreInput'
 import { TeamStudio } from '../../components/TeamStudio'
 import { shortName } from '../../data/nations'
 import { staleAfter } from '../../engine/bracket'
-import { fixturesOfGroupFor, groupIdsFor, groupMatchCountFor } from '../../engine/schedule'
+import { fixturesOfGroupFor, groupIdsFor, groupMatchCountFor, koRangeFor } from '../../engine/schedule'
 import { allGroupsComplete, allStandings, contentionFor, liveThirds } from '../../engine/tournament'
 import { groupsOf, useStore } from '../../store/store'
 import { isScored, type Format, type GroupId, type MatchResult, type Position, type TieBreakRung } from '../../engine/types'
@@ -189,8 +189,10 @@ export function GroupsScreen() {
         <button
           className="btn small danger ghost"
           onClick={() => {
-            if (confirm(`Clear all ${groupMatchCount} group scores (knockout results will be set aside)?`)) {
+            if (confirm(`Clear all ${groupMatchCount} group scores? The knockout bracket is wiped with them.`)) {
               for (const g of groupIds) for (const f of fixturesOfGroupFor(g, format)) setResult(f.number, null)
+              const [koFrom, koTo] = koRangeFor(format)
+              for (let n = koFrom; n <= koTo; n++) setResult(n, null)
             }
           }}
         >

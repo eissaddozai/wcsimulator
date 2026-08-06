@@ -203,7 +203,6 @@ export default function App() {
                     </i>
                   )}
                 </span>
-                {i < STEP_ORDER.length - 1 && <i className={`step-link${done ? ' filled' : ''}`} aria-hidden />}
               </button>
             )
           })}

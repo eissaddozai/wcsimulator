@@ -112,12 +112,12 @@ export function DrawScreen() {
 
   if (!drawTrace) {
     return (
-      <div className="page" style={{ textAlign: 'center', paddingTop: 96 }}>
+      <div className="page">
         <div className="kicker serif-accent">One ceremony. Every constraint honored.</div>
         <h2 className="display" style={{ fontSize: 44, margin: '0 0 8px' }}>
           The Final Draw
         </h2>
-        <p className="muted" style={{ maxWidth: 520, margin: '0 auto 32px' }}>
+        <p className="muted" style={{ maxWidth: 560, margin: '0 0 28px' }}>
           {format === 64 ? 'Sixteen' : 'Twelve'} groups, four pots, every FIFA constraint — confederation caps, the
           UEFA one-to-two band, host anchors, and the top-four bracket split. The engine verifies every ball keeps
           the draw completable, so it can never dead-end.
