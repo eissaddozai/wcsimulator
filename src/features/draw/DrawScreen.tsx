@@ -1,3 +1,4 @@
+import confetti from 'canvas-confetti'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { FastForward, Pause, Play, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -25,16 +26,32 @@ export function DrawScreen() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // restart the reveal whenever a new draw is generated
+  const celebrated = useRef(false)
   useEffect(() => {
     setRevealed(0)
     setPhase(null)
     setAuto(false)
+    celebrated.current = false
   }, [drawRunId])
 
   const trace = drawTrace ?? []
   const total = trace.length
   const current: DrawPick | null = phase !== null && revealed < total ? trace[revealed]! : null
   const done = total > 0 && revealed >= total
+
+  // one restrained gold burst the moment the twelfth group completes
+  useEffect(() => {
+    if (!done || celebrated.current || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    celebrated.current = true
+    confetti({
+      particleCount: 90,
+      spread: 100,
+      startVelocity: 38,
+      origin: { x: 0.26, y: 0.45 },
+      colors: ['#e5c87f', '#d2b064', '#f2efe6'],
+      scalar: 0.95,
+    })
+  }, [done])
 
   const clearTimer = () => {
     if (timer.current) clearTimeout(timer.current)
@@ -119,17 +136,24 @@ export function DrawScreen() {
             <div className="pot-label display tnum">
               Drawing Pot {potOfCurrent} — {Math.min(potCount, 12)} of 12
             </div>
-            <AnimatePresence mode="wait">
-              {current ? (
-                <motion.div
-                  key={current.order}
-                  initial={{ y: 60, scale: 0.6, opacity: 0 }}
-                  animate={{ y: 0, scale: 1, opacity: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}
-                >
-                  <div className="reveal-ball">
+            <div className="pot-dots" role="img" aria-label={`${Math.min(potCount, 12)} of 12 drawn from this pot`}>
+              {Array.from({ length: 12 }, (_, i) => (
+                <i key={i} className={i < Math.min(potCount, 12) ? 'on' : ''} />
+              ))}
+            </div>
+            <div className="reveal-stage">
+              <div className="podium-rings" aria-hidden />
+              <AnimatePresence mode="wait">
+                {current ? (
+                  <motion.div
+                    key={current.order}
+                    initial={{ y: 60, scale: 0.6, opacity: 0 }}
+                    animate={{ y: 0, scale: 1, opacity: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}
+                  >
+                  <div className={`reveal-ball${phase === 'ball' ? ' thinking' : ''}`}>
                     <motion.div
                       key={phase === 'ball' ? 'b' : 'f'}
                       initial={{ rotateY: 90 }}
@@ -137,11 +161,11 @@ export function DrawScreen() {
                       transition={{ duration: 0.25 }}
                     >
                       {phase === 'ball' ? (
-                        <span className="display gold-text" style={{ fontSize: 30 }}>
+                        <span className="display gold-text" style={{ fontSize: 32 }}>
                           ?
                         </span>
                       ) : (
-                        <Flag id={current.teamId} size={84} />
+                        <Flag id={current.teamId} size={92} />
                       )}
                     </motion.div>
                   </div>
@@ -168,12 +192,13 @@ export function DrawScreen() {
                     </motion.div>
                   )}
                 </motion.div>
-              ) : (
-                <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="low">
-                  {revealed === 0 ? 'The stage is set.' : `${total - revealed} balls remain.`}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                ) : (
+                  <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="serif-accent reveal-idle">
+                    {revealed === 0 ? 'The stage is set.' : `${total - revealed} balls remain.`}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </>
         )}
         {done && (
@@ -181,14 +206,15 @@ export function DrawScreen() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
-            style={{ textAlign: 'center' }}
+            style={{ textAlign: 'center', position: 'relative' }}
           >
-            <div className="display gold-text" style={{ fontSize: 40 }}>
+            <div className="podium-rings still" aria-hidden />
+            <div className="kicker serif-accent">Twelve groups, every rule respected.</div>
+            <h2 className="display" style={{ fontSize: 44, margin: '2px 0 8px' }}>
               The draw is made
-            </div>
-            <p className="muted">
-              Twelve groups, every rule respected — and they're yours now: drag any two countries to swap their
-              slots.
+            </h2>
+            <p className="muted" style={{ maxWidth: 300, margin: '0 auto' }}>
+              It's yours now — drag any two countries to swap their slots.
             </p>
           </motion.div>
         )}
@@ -197,8 +223,9 @@ export function DrawScreen() {
       <div className="board">
         {GROUP_IDS.map((g) => {
           const skippedNow = phase === 'hold' && current?.skipped.some((s) => s.group === g)
+          const receiving = phase === 'hold' && current?.group === g
           return (
-            <div key={g} className="card group-card">
+            <div key={g} className={`card group-card${receiving ? ' receiving' : ''}`}>
               <h4 className={`display${skippedNow ? ' flash' : ''}`}>
                 <span className="gmedal tnum">{g}</span>
                 Group {g}

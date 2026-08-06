@@ -2058,3 +2058,195 @@ table.standings td:not(.team) {
   -webkit-text-fill-color: transparent;
   animation: ink-sheen 7s ease-in-out infinite;
 }
+
+/* ————— flagship pass: team selection as a command console ————— */
+
+.ring-wrap {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  align-self: center;
+}
+.ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.ring-bg {
+  fill: none;
+  stroke: var(--line-1);
+  stroke-width: 5;
+}
+.ring-fg {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold) 55%, transparent));
+  transition: stroke-dashoffset 600ms cubic-bezier(0.2, 0, 0, 1);
+}
+.ring-wrap.full .ring-fg {
+  stroke: var(--pos-adv);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--pos-adv) 60%, transparent));
+}
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+.ring-num {
+  font-size: 34px;
+  line-height: 1;
+}
+.ring-cap {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+
+/* team cards: jewel picks with a corner seal */
+.team-card {
+  padding: 11px 13px;
+}
+.team-card .pick-check {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--gold-ink);
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+  box-shadow: 0 2px 10px -3px var(--gold);
+  animation: seal-in 250ms cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes seal-in {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+.search-in {
+  border-radius: 999px;
+  transition: border-color 150ms, box-shadow 200ms;
+}
+.search-in:focus {
+  outline: none;
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 15%, transparent);
+}
+
+/* ————— flagship pass: the draw as a broadcast ceremony ————— */
+
+.reveal-stage {
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+}
+.podium-rings {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 330px;
+  height: 330px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--gold) 7%, transparent), transparent 72%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--gold) 14%, transparent),
+    inset 0 0 0 40px color-mix(in srgb, var(--gold) 3%, transparent);
+}
+.podium-rings::before {
+  content: '';
+  position: absolute;
+  inset: 26px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+}
+.podium-rings::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--gold) 22%, transparent);
+  animation: orbit 40s linear infinite;
+}
+.podium-rings.still {
+  width: 380px;
+  height: 380px;
+  z-index: -1;
+}
+.reveal-ball.thinking {
+  animation: ball-jitter 500ms ease-in-out infinite;
+}
+@keyframes ball-jitter {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+}
+.reveal-zone .pot-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.reveal-zone .pot-label::before,
+.reveal-zone .pot-label::after {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim));
+}
+.reveal-zone .pot-label::after {
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+.pot-dots {
+  display: flex;
+  gap: 5px;
+}
+.pot-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line-2);
+  transition: background 300ms, box-shadow 300ms;
+}
+.pot-dots i.on {
+  background: var(--gold);
+  box-shadow: 0 0 8px -2px var(--gold);
+}
+.reveal-name {
+  font-size: 48px;
+}
+.reveal-idle {
+  color: var(--text-mid);
+  font-size: 17px;
+}
+
+/* the receiving group lights up as the ball lands */
+.group-card {
+  transition: border-color 250ms, box-shadow 250ms, transform 250ms cubic-bezier(0.2, 0, 0, 1);
+}
+.group-card.receiving {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--line-1));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gold) 25%, transparent),
+    0 12px 34px -18px color-mix(in srgb, var(--gold) 55%, transparent);
+  transform: translateY(-2px);
+}
+.group-card.receiving h4 {
+  color: var(--gold);
+  border-bottom-color: var(--gold-dim);
+}

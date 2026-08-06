@@ -1,4 +1,5 @@
-import { Crown, Dices, Lock, Search, SlidersHorizontal } from 'lucide-react'
+import NumberFlow from '@number-flow/react'
+import { Check, Crown, Dices, Lock, Search, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { HostPicker } from '../../components/HostPicker'
@@ -44,8 +45,16 @@ export function SelectionScreen() {
     return byConfed(tab)
   }, [tab, query])
 
+  const RING_C = 2 * Math.PI * 44
+
   return (
     <div className="page">
+      <div style={{ marginBottom: 20 }}>
+        <div className="kicker serif-accent">Seven confederations. Forty-eight places.</div>
+        <h2 className="display" style={{ fontSize: 34, margin: 0 }}>
+          Team Selection
+        </h2>
+      </div>
       <div className="selection">
         <aside className="card rail">
           <div className="quota" style={{ gap: 8 }}>
@@ -65,12 +74,23 @@ export function SelectionScreen() {
               ))}
             </div>
           </div>
-          <div>
-            <div className="total display tnum">
-              {status.total} <span className="low">/ 48</span>
-            </div>
-            <div className="low" style={{ fontSize: 12 }}>
-              teams selected
+          <div className={`ring-wrap${status.complete ? ' full' : ''}`}>
+            <svg viewBox="0 0 100 100" className="ring" aria-hidden>
+              <circle className="ring-bg" cx="50" cy="50" r="44" />
+              <circle
+                className="ring-fg"
+                cx="50"
+                cy="50"
+                r="44"
+                strokeDasharray={RING_C}
+                strokeDashoffset={RING_C * (1 - Math.min(status.total / 48, 1))}
+              />
+            </svg>
+            <div className="ring-center">
+              <div className="ring-num display tnum">
+                <NumberFlow value={status.total} />
+              </div>
+              <div className="ring-cap">of 48 selected</div>
             </div>
           </div>
           {CONFEDS.map((c) => {
@@ -168,7 +188,12 @@ export function SelectionScreen() {
                   onClick={() => !isHost && toggleTeam(n.id)}
                   aria-pressed={on}
                 >
-                  <Flag id={n.id} size={24} ringed={on} />
+                  {on && (
+                    <span className="pick-check" aria-hidden>
+                      <Check size={11} strokeWidth={3} />
+                    </span>
+                  )}
+                  <Flag id={n.id} size={26} ringed={on} />
                   <span className="nm-wrap">
                     <span className="name">{n.name}</span>
                     <i className="power" style={{ width: `${Math.min(Math.max((n.rating - 1000) / 1150, 0.04), 1) * 100}%` }} />
