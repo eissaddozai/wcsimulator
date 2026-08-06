@@ -1,5 +1,6 @@
 import NumberFlow from '@number-flow/react'
 import confetti from 'canvas-confetti'
+import { motion } from 'framer-motion'
 import { Dices, FlaskConical, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
@@ -39,15 +40,15 @@ const RIGHT = {
 function sourceLabel(src: KoSource): string {
   switch (src.kind) {
     case 'winner':
-      return `1${src.group}`
+      return `Group ${src.group} winner`
     case 'runnerUp':
-      return `2${src.group}`
+      return `Group ${src.group} runner-up`
     case 'third':
-      return `3rd ${src.cands.join('/')}`
+      return `3rd · ${src.cands.join('/')}`
     case 'matchWinner':
-      return `W${src.match}`
+      return `Winner of Match ${src.match}`
     case 'matchLoser':
-      return `L${src.match}`
+      return `Loser of Match ${src.match}`
   }
 }
 
@@ -99,9 +100,12 @@ export function KnockoutScreen() {
   return (
     <div className="page">
       <div className="row spread" style={{ flexWrap: 'wrap', marginBottom: 20 }}>
-        <h2 className="display" style={{ fontSize: 32, margin: 0 }}>
-          Knockout Stage
-        </h2>
+        <div>
+          <div className="kicker serif-accent">Thirty-two remain. One lifts it.</div>
+          <h2 className="display" style={{ fontSize: 34, margin: 0 }}>
+            Knockout Stage
+          </h2>
+        </div>
         {!complete && (
           <span className="chip">Awaiting the group stage — the wings fill once all 72 scores are entered</span>
         )}
@@ -198,7 +202,14 @@ export function KnockoutScreen() {
   )
 }
 
-const STAGE_SHORT: Record<string, string> = { R32: 'R32', R16: 'R16', QF: 'QF', SF: 'SF', THIRD: 'BRZ', FINAL: 'FIN' }
+const STAGE_FULL: Record<string, string> = {
+  R32: 'Round of 32',
+  R16: 'Round of 16',
+  QF: 'Quarterfinal',
+  SF: 'Semifinal',
+  THIRD: 'Bronze Final',
+  FINAL: 'Final',
+}
 
 function scoreText(node: ResolvedKo): { home: string; away: string; note: string | null } {
   const r = node.result
@@ -225,6 +236,7 @@ function KoNode({
   const ko = KO_BY_NUMBER[node.number]!
   const { home: hs, away: as_, note } = scoreText(node)
   const ghost = !node.home || !node.away
+  const nameOf = (id: string) => NATION_BY_ID.get(id)?.name ?? id
   return (
     <button
       className={`card ko-node${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}${compact ? ' compact' : ''}${final ? ' final-node' : ''}`}
@@ -232,36 +244,43 @@ function KoNode({
       disabled={ghost}
       aria-label={`Match ${node.number}`}
     >
+      {node.stale ? (
+        <span className="ribbon stale">set aside</span>
+      ) : note ? (
+        <span className={`ribbon${note.startsWith('pens') ? ' pens' : ''}`}>{note}</span>
+      ) : null}
       <span className={`side${node.winner && node.winner === node.home ? ' winner' : ''}`}>
         {node.home ? (
           <>
-            <Flag id={node.home} size={compact ? 18 : 22} /> {node.home}
+            <Flag id={node.home} size={compact ? 18 : 22} />
+            <span className="cname" title={nameOf(node.home)}>
+              {nameOf(node.home)}
+            </span>
           </>
         ) : (
-          <span className="low">{sourceLabel(ko.home)}</span>
+          <span className="low src">{sourceLabel(ko.home)}</span>
         )}
         <span className="score tnum">{hs}</span>
       </span>
       <span className={`side${node.winner && node.winner === node.away ? ' winner' : ''}`}>
         {node.away ? (
           <>
-            <Flag id={node.away} size={compact ? 18 : 22} /> {node.away}
+            <Flag id={node.away} size={compact ? 18 : 22} />
+            <span className="cname" title={nameOf(node.away)}>
+              {nameOf(node.away)}
+            </span>
           </>
         ) : (
-          <span className="low">{sourceLabel(ko.away)}</span>
+          <span className="low src">{sourceLabel(ko.away)}</span>
         )}
         <span className="score tnum">{as_}</span>
       </span>
       <span className="meta">
-        <span className={`mtag tnum stage-${ko.stage.toLowerCase()}`}>
+        <span className={`mtag stage-${ko.stage.toLowerCase()}`}>
           <i className="mdot" />
-          {STAGE_SHORT[ko.stage]} · M{node.number}
+          {STAGE_FULL[ko.stage]}
         </span>
-        {node.stale ? (
-          <span className="note-badge stale">set aside</span>
-        ) : note ? (
-          <span className={`note-badge${note.startsWith('pens') ? ' pens' : ''}`}>{note}</span>
-        ) : null}
+        <span className="mnum tnum">Match {node.number}</span>
       </span>
     </button>
   )
@@ -360,10 +379,10 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
             <span className="nm display">{NATION_BY_ID.get(home)?.name}</span>
             {hosts.includes(home) && <span className="chip gold">Host nation</span>}
           </div>
-          <div className="display low" style={{ fontSize: 14, textAlign: 'center' }}>
-            M{node.number}
+          <div className="display low" style={{ fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
+            Match {node.number}
             <br />
-            {ko.stage === 'THIRD' ? 'BRONZE' : ko.stage}
+            <span className="gold-text">{STAGE_FULL[ko.stage]}</span>
           </div>
           <div className="team">
             <Flag id={away} size={64} ringed={hosts.includes(away)} />
@@ -648,18 +667,54 @@ function ChampionScene({
           {NATION_BY_ID.get(final.home!)?.name} {h}–{a} {NATION_BY_ID.get(final.away!)?.name}
           {r.pens ? ` · pens ${r.pens.home}–${r.pens.away}` : r.et ? ' · aet' : ''}
         </div>
-        <div className="road">
-          {road.map((n) => {
+
+        <div className="glory card">
+          <div className="glory-head serif-accent">The road to glory</div>
+          {road.map((n, i) => {
             const m = bracket[n]!
-            const opp = m.home === champion ? m.away : m.home
-            const won = m.winner === champion
+            const mr = m.result!
+            const opp = (m.home === champion ? m.away : m.home)!
+            const asHome = m.home === champion
+            const hs = (mr.score.home ?? 0) + (mr.et?.home ?? 0)
+            const as_ = (mr.score.away ?? 0) + (mr.et?.away ?? 0)
+            const mine = asHome ? hs : as_
+            const theirs = asHome ? as_ : hs
+            const note = mr.pens
+              ? `pens ${asHome ? mr.pens.home : mr.pens.away}–${asHome ? mr.pens.away : mr.pens.home}`
+              : mr.et
+                ? 'aet'
+                : null
             return (
-              <span key={n} className="chip" style={{ borderColor: won ? 'var(--gold-dim)' : 'var(--pos-out)' }}>
-                {opp && <Flag id={opp} size={14} />} {opp}
-              </span>
+              <motion.div
+                key={n}
+                className="glory-row"
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7 + i * 0.22, duration: 0.5, ease: [0.2, 0, 0, 1] }}
+              >
+                <span className="glory-stage">{STAGE_FULL[KO_BY_NUMBER[n]!.stage]}</span>
+                <Flag id={opp} size={26} />
+                <span className="glory-opp">{NATION_BY_ID.get(opp)?.name}</span>
+                <span className="glory-score display tnum">
+                  {mine}–{theirs}
+                  {note && <em>{note}</em>}
+                </span>
+              </motion.div>
             )
           })}
+          <motion.div
+            className="glory-row crowned"
+            initial={{ opacity: 0, x: -16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.7 + road.length * 0.22 + 0.15, duration: 0.6, ease: [0.2, 0, 0, 1] }}
+          >
+            <span className="glory-stage gold-text">World Cup</span>
+            <TrophyMark height={26} />
+            <span className="glory-opp gold-text">The trophy is theirs</span>
+            <span className="glory-score display gold-text">✦</span>
+          </motion.div>
         </div>
+
         <div className="row" style={{ marginTop: 16 }}>
           <button className="btn primary" onClick={onClose}>
             Back to the bracket

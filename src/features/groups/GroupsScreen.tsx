@@ -109,9 +109,12 @@ export function GroupsScreen() {
   return (
     <div className="page">
       <div className="groups-toolbar">
-        <h2 className="display" style={{ fontSize: 32, margin: 0 }}>
-          Group Stage
-        </h2>
+        <div>
+          <div className="kicker serif-accent">Seventy-two matches shape the thirty-two.</div>
+          <h2 className="display" style={{ fontSize: 34, margin: 0 }}>
+            Group Stage
+          </h2>
+        </div>
         <div className="seg" role="tablist" aria-label="Matchday">
           {[1, 2, 3, 0].map((m) => (
             <button key={m} className={md === m ? 'on' : ''} onClick={() => setMd(m as 0 | 1 | 2 | 3)}>
@@ -260,12 +263,14 @@ function GroupCard(props: {
         <thead>
           <tr>
             <th className="team">Team</th>
-            <th>P</th>
-            <th>W</th>
-            <th>D</th>
-            <th>L</th>
-            <th>GD</th>
-            <th>Pts</th>
+            <th title="Played">P</th>
+            <th title="Won">W</th>
+            <th title="Drawn">D</th>
+            <th title="Lost">L</th>
+            <th title="Goals scored">GF</th>
+            <th title="Goals conceded">GA</th>
+            <th title="Goal difference">GD</th>
+            <th title="Points">Pts</th>
           </tr>
         </thead>
         <tbody>
@@ -323,6 +328,8 @@ function GroupCard(props: {
                 <td className="tnum">{row.won}</td>
                 <td className="tnum">{row.drawn}</td>
                 <td className="tnum">{row.lost}</td>
+                <td className="tnum">{row.gf}</td>
+                <td className="tnum">{row.ga}</td>
                 <td className={`tnum gdv${row.gd > 0 ? ' up' : row.gd < 0 ? ' down' : ''}`}>
                   {row.gd > 0 ? `+${row.gd}` : row.gd}
                 </td>
@@ -372,7 +379,7 @@ function GroupCard(props: {
           const r = results[f.number]
           return (
             <div key={f.number} className="fixture">
-              <span className="mtag tnum ftag">M{f.number}</span>
+              <span className="mtag tnum ftag">Match {f.number}</span>
               <span className="side">
                 <Flag id={home} size={26} />
                 {home}

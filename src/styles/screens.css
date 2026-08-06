@@ -1858,3 +1858,203 @@
 number-flow-react {
   --number-flow-mask-height: 0.2em;
 }
+
+/* ————— editorial pass: full words, full names, full ceremony ————— */
+
+/* page kickers: a serif whisper above every stage title */
+.kicker {
+  font-size: 15px;
+  color: var(--gold);
+  margin-bottom: 2px;
+  opacity: 0.9;
+}
+
+/* the bracket widens to carry full country names */
+.bracket2 {
+  --node-w: 206px;
+  min-width: 2056px;
+}
+.ko-node .side {
+  font-size: 15px;
+  gap: 7px;
+}
+.ko-node .side .cname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.015em;
+}
+.ko-node .side .src {
+  font-size: 10.5px;
+  font-family: var(--font-text);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ko-node.compact .side {
+  font-size: 13.5px;
+}
+.ko-node.done .side.winner .cname {
+  text-shadow: 0 0 16px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+
+/* meta line: full stage name left, full match number right */
+.ko-node .meta {
+  align-items: center;
+}
+.ko-node .mnum {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-low);
+  white-space: nowrap;
+}
+.mtag {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* aet / pens / set-aside become a jewel tab hanging from the node's top edge */
+.ko-node:has(.ribbon) {
+  padding-top: 21px;
+}
+.ribbon {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 0 0 7px 7px;
+  padding: 1.5px 9px 2.5px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--gold-ink);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pos-third) 92%, #fff), var(--pos-third));
+  box-shadow: 0 3px 10px -4px var(--pos-third);
+}
+.ribbon.pens {
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold));
+  box-shadow: 0 3px 12px -4px var(--gold);
+}
+.ribbon.stale {
+  background: var(--bg-3);
+  color: var(--text-low);
+  box-shadow: none;
+  border: 1px solid var(--line-2);
+  border-top: none;
+}
+
+/* group tables: nine columns, wider cards, engraved headers */
+.groups-grid {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+table.standings th {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+table.standings th:not(.team),
+table.standings td:not(.team) {
+  width: 25px;
+}
+.fixture .side {
+  font-size: 17px;
+}
+
+/* the road to glory: a gilded ledger of the champion's campaign */
+.glory {
+  width: min(560px, calc(100vw - 48px));
+  padding: 16px 22px 10px;
+  text-align: left;
+  border-color: color-mix(in srgb, var(--gold) 30%, var(--line-1));
+  background:
+    radial-gradient(340px 130px at 50% -25%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 75%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 72%, transparent), color-mix(in srgb, var(--bg-1) 82%, transparent));
+  backdrop-filter: blur(6px);
+}
+.glory-head {
+  text-align: center;
+  color: var(--gold);
+  font-size: 16px;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, transparent, var(--gold-dim), transparent) 1;
+}
+.glory-row {
+  display: grid;
+  grid-template-columns: 104px 26px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line-1) 70%, transparent);
+}
+.glory-row:last-child {
+  border-bottom: none;
+}
+.glory-stage {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.glory-opp {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.glory-score {
+  font-size: 17px;
+  color: var(--gold);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.glory-score em {
+  font-style: normal;
+  font-family: var(--font-text);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.glory-row.crowned {
+  border-top: 1px solid;
+  border-image: linear-gradient(90deg, transparent, var(--gold-dim), transparent) 1;
+  margin-top: 2px;
+}
+.glory-row.crowned .trophy {
+  filter: drop-shadow(0 3px 10px color-mix(in srgb, var(--gold) 45%, transparent));
+}
+
+/* champion scene breathes with the taller ceremony */
+.champion {
+  overflow-y: auto;
+}
+.champion .scene {
+  margin: auto;
+  gap: 12px;
+}
+.champion h1 {
+  background: linear-gradient(100deg, var(--text-hi) 42%, var(--gold-hi) 50%, var(--text-hi) 58%);
+  background-size: 230% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ink-sheen 7s ease-in-out infinite;
+}

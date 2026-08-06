@@ -50,9 +50,12 @@ export function SeedingScreen() {
   return (
     <div className="page">
       <div className="row spread" style={{ flexWrap: 'wrap', gap: 16 }}>
-        <h2 className="display" style={{ fontSize: 32, margin: 0 }}>
-          Seeding
-        </h2>
+        <div>
+          <div className="kicker serif-accent">Four pots, twelve balls each.</div>
+          <h2 className="display" style={{ fontSize: 34, margin: 0 }}>
+            Seeding
+          </h2>
+        </div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 12 }}>
           <div className="seg" role="tablist" aria-label="Seeding strategy">
             {STRATEGIES.map((s) => (
