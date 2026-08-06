@@ -10,11 +10,16 @@ const GROUP_ORDER: Booster['group'][] = ['Attack', 'Defense', 'Mentality', 'Phys
 /** The scrollable studio list — used inline on the Laboratory page and inside the modal. */
 export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
   const entries = useStore((s) => s.entries)
+  const playoffTeams = useStore((s) => s.playoffTeams)
   const ratingOverrides = useStore((s) => s.ratingOverrides)
   const setNationOverride = useStore((s) => s.setNationOverride)
   const [open, setOpen] = useState<string | null>(null)
 
-  const sorted = useMemo(() => entries.slice().sort((a, b) => rankOf(a) - rankOf(b)), [entries, ratingOverrides])
+  // direct picks plus play-off entrants — everyone whose ratings can matter
+  const sorted = useMemo(
+    () => [...new Set([...entries, ...playoffTeams])].sort((a, b) => rankOf(a) - rankOf(b)),
+    [entries, playoffTeams, ratingOverrides],
+  )
 
   const patch = (id: string, p: { rank?: number; rating?: number; boosts?: string[] }) => {
     const cur = overrideOf(id) ?? {}

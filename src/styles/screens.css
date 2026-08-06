@@ -2439,3 +2439,159 @@ tr.pos-adv .posn {
   color: var(--gold);
   text-shadow: 0 0 14px color-mix(in srgb, var(--gold) 45%, transparent);
 }
+
+/* ————— the FIFA Play-off Tournament, played by hand ————— */
+.playoff-card {
+  margin-top: 16px;
+  padding: 16px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-color: color-mix(in srgb, var(--pos-third) 35%, var(--line-1));
+  background:
+    radial-gradient(420px 140px at 50% -30%, color-mix(in srgb, var(--pos-third) 8%, transparent), transparent 75%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 62%, var(--bg-1)), var(--bg-1) 70%);
+}
+.po-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--pos-third);
+}
+.po-title::before,
+.po-title::after {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--pos-third) 60%, transparent));
+}
+.po-title::after {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pos-third) 60%, transparent), transparent);
+}
+.po-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 22px;
+}
+.po-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.po-stage {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-low);
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, var(--line-2), transparent 88%) 1;
+  padding-bottom: 5px;
+}
+.po-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--line-1) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-2) 40%, transparent);
+}
+.po-row.done {
+  border-color: color-mix(in srgb, var(--gold) 30%, var(--line-1));
+}
+.po-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14.5px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.po-side:last-of-type {
+  justify-content: flex-end;
+  text-align: right;
+}
+.po-side.winner {
+  color: var(--gold);
+}
+.po-side .src {
+  font-family: var(--font-text);
+  font-size: 11px;
+  font-weight: 500;
+}
+.po-mid {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  flex: none;
+}
+.po-bye {
+  position: absolute;
+  top: -7px;
+  left: 10px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: var(--bg-1);
+  border: 1px solid var(--gold-dim);
+}
+.po-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  flex-basis: 100%;
+  justify-content: center;
+}
+.po-qualified {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid;
+  border-image: linear-gradient(90deg, transparent, var(--gold-dim), transparent) 1;
+}
+
+/* play-off entrant seal + amber quota slots */
+.team-card.po {
+  border-color: color-mix(in srgb, var(--pos-third) 50%, var(--line-1));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--pos-third) 9%, var(--bg-3)), var(--bg-2) 70%);
+}
+.pick-check.po {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pos-third) 90%, #fff), var(--pos-third));
+  box-shadow: 0 2px 10px -3px var(--pos-third);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--gold-ink);
+}
+.quota .meter i.po-slot {
+  background: color-mix(in srgb, var(--pos-third) 25%, var(--line-1));
+}
+.quota .meter i.po-fill {
+  background: var(--pos-third);
+  box-shadow: 0 0 7px -2px var(--pos-third);
+}
+@media (max-width: 1100px) {
+  .po-grid {
+    grid-template-columns: 1fr;
+  }
+}

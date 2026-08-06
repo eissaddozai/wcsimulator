@@ -25,6 +25,8 @@ export default function App() {
   const setStep = useStore((s) => s.setStep)
   const setTheme = useStore((s) => s.setTheme)
   const entries = useStore((s) => s.entries)
+  const playoffTeams = useStore((s) => s.playoffTeams)
+  const playoffResults = useStore((s) => s.playoffResults)
   const hosts = useStore((s) => s.hosts)
   const pots = useStore((s) => s.pots)
   const drawTrace = useStore((s) => s.drawTrace)
@@ -36,7 +38,7 @@ export default function App() {
     document.documentElement.dataset.theme = theme
   }, [theme])
 
-  const gates = stepGates({ entries, hosts, pots, drawTrace, results })
+  const gates = stepGates({ entries, playoffTeams, playoffResults, hosts, pots, drawTrace, results })
   const gateFor = (s: Step): boolean => {
     if (s === 'landing' || s === 'lab' || s === 'teams') return true
     if (s === 'pots') return gates.pots

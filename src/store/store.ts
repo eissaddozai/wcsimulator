@@ -7,7 +7,8 @@ import { completeQualification } from '../engine/qualification'
 import { makeRng, mintSeed, stream } from '../engine/rng'
 import { GROUP_FIXTURES, KO_BY_NUMBER, GROUP_IDS, POT_TO_POSITION } from '../engine/schedule'
 import { seedPots } from '../engine/seeding'
-import { quotaStatus } from '../engine/selection'
+import { playoffState, type PlayoffMatchKey } from '../engine/playoffs'
+import { canAddPlayoff, quotaStatus } from '../engine/selection'
 import { matchEnvironment } from '../engine/environment'
 import { setModelParams, simulateMatch, stageOfMatch, type MatchContext, type ModelParams } from '../engine/simulate'
 import { allGroupsComplete, bracketState, type Groups } from '../engine/tournament'
@@ -27,6 +28,10 @@ interface TournamentState {
   hosts: string[]
   hostsChosen: boolean
   entries: string[]
+  /** the six Play-off Tournament entrants (manual selection path) */
+  playoffTeams: string[]
+  /** hand-played Play-off Tournament results */
+  playoffResults: Partial<Record<PlayoffMatchKey, MatchResult>>
   pots: Pots | null
   drawTrace: DrawPick[] | null
   results: Record<number, MatchResult>
@@ -48,6 +53,9 @@ interface TournamentState {
   markHostsChosen: () => void
 
   toggleTeam: (id: string) => void
+  togglePlayoffTeam: (id: string) => void
+  setPlayoffResult: (k: PlayoffMatchKey, r: MatchResult | null) => void
+  simulatePlayoffMatch: (k: PlayoffMatchKey) => void
   clearTeams: () => void
   simulateQualificationAction: () => void
 
@@ -170,6 +178,8 @@ export const useStore = create<TournamentState>()(
       hosts: [...DEFAULT_HOSTS],
       hostsChosen: false,
       entries: [...DEFAULT_HOSTS],
+      playoffTeams: [],
+      playoffResults: {},
       pots: null,
       drawTrace: null,
       results: {},
@@ -192,6 +202,8 @@ export const useStore = create<TournamentState>()(
           hosts: clean,
           hostsChosen: true,
           entries: [...clean, ...keep].slice(0, 48),
+          playoffTeams: get().playoffTeams.filter((id) => !clean.includes(id)),
+          playoffResults: {},
           pots: null,
           drawTrace: null,
           results: {},
@@ -213,8 +225,56 @@ export const useStore = create<TournamentState>()(
           results: {},
         })
       },
+
+      togglePlayoffTeam: (id) => {
+        const { entries, playoffTeams } = get()
+        if (playoffTeams.includes(id)) {
+          set({ playoffTeams: playoffTeams.filter((t) => t !== id), playoffResults: {}, pots: null, drawTrace: null, results: {} })
+          return
+        }
+        if (!canAddPlayoff(entries, playoffTeams, id).ok) return
+        set({ playoffTeams: [...playoffTeams, id], playoffResults: {}, pots: null, drawTrace: null, results: {} })
+      },
+
+      setPlayoffResult: (k, r) => {
+        set((st) => {
+          const playoffResults = { ...st.playoffResults }
+          if (r === null) delete playoffResults[k]
+          else playoffResults[k] = r
+          // a changed semifinal invalidates its final
+          if (k === 'sf1') delete playoffResults.f1
+          if (k === 'sf2') delete playoffResults.f2
+          return { playoffResults, pots: null, drawTrace: null, results: {} }
+        })
+      },
+
+      simulatePlayoffMatch: (k) => {
+        const { playoffTeams, playoffResults, chaos, masterSeed } = get()
+        const po = playoffState(playoffTeams, playoffResults)
+        if (!po) return
+        const pair = po[k]
+        const [home, away] = pair
+        if (!home || !away) return
+        const r = simulateMatch(
+          home,
+          away,
+          { stage: 'r32' },
+          chaos.match,
+          stream(masterSeed, `po:${k}:${Date.now() % 100000}`),
+        )
+        get().setPlayoffResult(k, r)
+      },
+
       clearTeams: () =>
-        set((st) => ({ entries: [...st.hosts], pots: null, drawTrace: null, results: {}, playoffLog: [] })),
+        set((st) => ({
+          entries: [...st.hosts],
+          playoffTeams: [],
+          playoffResults: {},
+          pots: null,
+          drawTrace: null,
+          results: {},
+          playoffLog: [],
+        })),
 
       simulateQualificationAction: () => {
         const { entries, hosts, chaos, masterSeed } = get()
@@ -225,15 +285,25 @@ export const useStore = create<TournamentState>()(
           chaos.qualification,
           stream(subSeed, 'qual'),
         )
-        set({ entries: full, playoffLog, pots: null, drawTrace: null, results: {} })
+        set({
+          entries: full,
+          playoffLog,
+          playoffTeams: [],
+          playoffResults: {},
+          pots: null,
+          drawTrace: null,
+          results: {},
+        })
       },
 
       reseedPots: () => {
-        const { entries, hosts, strategy, chaos, masterSeed } = get()
-        if (entries.length !== 48) return
+        const { entries, playoffTeams, playoffResults, hosts, strategy, chaos, masterSeed } = get()
+        const winners = entries.length === 48 ? [] : (playoffState(playoffTeams, playoffResults)?.winners ?? [])
+        const full = [...entries, ...winners]
+        if (full.length !== 48) return
         const subSeed = `${masterSeed} seed:${Date.now() % 100000}`
         set({
-          pots: seedPots(entries, hosts, strategy, chaos.seeding, stream(subSeed, 'seed')),
+          pots: seedPots(full, hosts, strategy, chaos.seeding, stream(subSeed, 'seed')),
           drawTrace: null,
           results: {},
         })
@@ -351,6 +421,8 @@ export const useStore = create<TournamentState>()(
           hosts: [...DEFAULT_HOSTS],
           hostsChosen: true,
           entries: [...PRESET_POTS.flat()],
+          playoffTeams: [],
+          playoffResults: {},
           pots: PRESET_POTS.map((p) => p.slice()),
           drawTrace: presetTrace(),
           results: {},
@@ -389,6 +461,8 @@ export const useStore = create<TournamentState>()(
           hosts,
           hostsChosen: true,
           entries,
+          playoffTeams: [],
+          playoffResults: {},
           pots,
           drawTrace: trace,
           results,
@@ -405,6 +479,8 @@ export const useStore = create<TournamentState>()(
           hosts: [...DEFAULT_HOSTS],
           hostsChosen: false,
           entries: [...DEFAULT_HOSTS],
+          playoffTeams: [],
+          playoffResults: {},
           pots: null,
           drawTrace: null,
           results: {},
@@ -414,7 +490,7 @@ export const useStore = create<TournamentState>()(
     }),
     {
       name: 'wcsim:tournament',
-      version: 4,
+      version: 5,
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown>
         if (version < 2) {
@@ -423,6 +499,10 @@ export const useStore = create<TournamentState>()(
         }
         if (version < 3) s.ratingOverrides = {}
         if (version < 4) s.modelParams = {}
+        if (version < 5) {
+          s.playoffTeams = []
+          s.playoffResults = {}
+        }
         return s
       },
       onRehydrateStorage: () => (state) => {
@@ -440,6 +520,8 @@ export const useStore = create<TournamentState>()(
         hosts: s.hosts,
         hostsChosen: s.hostsChosen,
         entries: s.entries,
+        playoffTeams: s.playoffTeams,
+        playoffResults: s.playoffResults,
         pots: s.pots,
         drawTrace: s.drawTrace,
         results: s.results,
@@ -452,14 +534,28 @@ export const useStore = create<TournamentState>()(
   ),
 )
 
+/** The final 48: direct entries plus hand-played play-off winners (already merged on simulated paths). */
+export function tournamentEntries(
+  s: Pick<TournamentState, 'entries' | 'playoffTeams' | 'playoffResults'>,
+): string[] {
+  if (s.entries.length >= 48) return s.entries
+  const winners = playoffState(s.playoffTeams, s.playoffResults)?.winners ?? []
+  return [...s.entries, ...winners]
+}
+
 /** Which steps are reachable for editing right now (viewing is always allowed). */
-export function stepGates(s: Pick<TournamentState, 'entries' | 'hosts' | 'pots' | 'drawTrace' | 'results'>) {
+export function stepGates(
+  s: Pick<TournamentState, 'entries' | 'playoffTeams' | 'playoffResults' | 'hosts' | 'pots' | 'drawTrace' | 'results'>,
+) {
   const quota = quotaStatus(s.entries, s.hosts)
+  const selectionReady =
+    s.entries.length === 48 || // simulated qualification & legacy saves arrive complete
+    (quota.complete && tournamentEntries(s).length === 48)
   const potsOk = s.pots !== null && validatePots(s.pots, s.hosts).ok
   return {
     teams: true,
-    pots: quota.complete,
-    draw: quota.complete && potsOk,
+    pots: selectionReady,
+    draw: selectionReady && potsOk,
     groups: s.drawTrace !== null,
     knockout: s.drawTrace !== null && allGroupsComplete(s.results),
   }
