@@ -19,35 +19,35 @@ source of truth for the build.
 
 ## 16 Intercontinental Playoff Entrants
 
-(amendment requested: one OFC berth reassigned to CONMEBOL — see feasibility
-note below; the seat reverts to OFC)
+(pinned by the user: OFC holds exactly one automatic berth and one play-off
+seat; its former second seat belongs to UEFA as their fourth)
 
-| Confederation | Designated teams |
+| Confederation | Designated seats |
 | --- | --- |
-| UEFA | UEFA 1, UEFA 2, UEFA 3 |
+| UEFA | UEFA 1, UEFA 2, UEFA 3, UEFA 4 |
 | CAF | CAF 1, CAF 2, CAF 3 |
 | AFC | AFC 1, AFC 2, AFC 3 |
 | CONCACAF | CONCACAF 1, CONCACAF 2, CONCACAF 3 |
 | CONMEBOL | CONMEBOL 1, CONMEBOL 2 |
-| OFC | OFC 1, OFC 2 |
+| OFC | OFC 1 |
 | **Total** | **16 teams** |
 
 Team N = the Nth-highest-ranked playoff qualifier within its confederation.
+(CONMEBOL is capped at 2 by arithmetic: 8 of its 10 members qualify directly.)
 
-### Feasibility amendment (forced)
+### Seat placement note
 
-CONMEBOL has only **10 member associations**. With 8 qualifying directly, at
-most **2** CONMEBOL sides can ever remain to enter the play-offs — a third
-CONMEBOL entrant is arithmetically impossible under the pinned 60-berth table.
-The reassigned seat therefore reverts to OFC (11 members, 10 available),
-restoring a playable field of 16.
+UEFA 4 cannot take the vacated seat in Tournament A — that would pit UEFA 1
+against UEFA 4. It therefore sits in Tournament B, the only tournament
+without a UEFA side, and OFC 1 moves to Tournament A. The no-repeat rule
+holds everywhere.
 
 ## Four Playoff Tournaments (semifinals + final; winner takes a berth)
 
 | Tournament | Semifinal 1 | Semifinal 2 | Berth |
 | --- | --- | --- | --- |
-| A | UEFA 1 vs OFC 2 | CAF 3 vs AFC 2 | 61 |
-| B | CAF 1 vs CONCACAF 3 | AFC 3 vs OFC 1 | 62 |
+| A | UEFA 1 vs OFC 1 | CAF 3 vs AFC 2 | 61 |
+| B | CAF 1 vs CONCACAF 3 | AFC 3 vs UEFA 4 | 62 |
 | C | AFC 1 vs UEFA 3 | CONCACAF 2 vs CONMEBOL 2 | 63 |
 | D | CONCACAF 1 vs CAF 2 | CONMEBOL 1 vs UEFA 2 | 64 |
 

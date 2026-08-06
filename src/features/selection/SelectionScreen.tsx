@@ -227,7 +227,7 @@ export function SelectionScreen() {
             {simulated
               ? 'Qualification simulated — the play-off places were settled on the pitch.'
               : format === 64
-                ? 'Sixteen overflow picks enter four Intercontinental Play-offs — each tournament sends one nation through.'
+                ? 'Sixteen overflow picks enter four Intercontinental Play-offs — UEFA sends four, Oceania one. Each tournament sends one nation through.'
                 : 'Six overflow picks enter the FIFA Play-off Tournament — two win the last places. UEFA never enters.'}
           </div>
           <div style={{ borderTop: '1px solid var(--line-1)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>

@@ -1,5 +1,5 @@
 import { BASE_QUOTA, NATIONS, NATION_BY_ID, byConfed, rankOf, ratingOf } from '../data/nations'
-import { PLAYOFF64_SPEC } from './playoffs'
+import { PLAYOFF64_SPEC, seatCanExist } from './playoffs'
 import type { Rng } from './rng'
 import { beta, gumbel } from './rng'
 import { quotasFor, playoffAllocationFor } from './selection'
@@ -134,13 +134,23 @@ export function completeQualification(
       )
     }
     const pick = (confed: string, n: number): string | undefined => entrantsByConfed[confed as Confed]?.[n - 1]
+    // resolve a semifinal, granting a bye when a seat is structurally impossible
+    const semifinal = (spec: [[string, number], [string, number]]): string | undefined => {
+      const [h, a] = [pick(...spec[0]), pick(...spec[1])]
+      if (h && a) return play(h, a)
+      const present = h ?? a
+      const missing = h ? spec[1] : spec[0]
+      if (present && !seatCanExist(missing[0], missing[1])) {
+        log.push(`${name(present)} receive a bye — the ${missing[0]} ${missing[1]} seat cannot be filled`)
+        return present
+      }
+      return undefined
+    }
     for (const t of PLAYOFF64_SPEC) {
-      const [h1, a1] = [pick(...t.sf1[0]!), pick(...t.sf1[1]!)]
-      const [h2, a2] = [pick(...t.sf2[0]!), pick(...t.sf2[1]!)]
-      if (!h1 || !a1 || !h2 || !a2) continue
       log.push(`Play-off Tournament ${t.id} — berth ${t.berth}`)
-      const w1 = play(h1, a1)
-      const w2 = play(h2, a2)
+      const w1 = semifinal(t.sf1 as [[string, number], [string, number]])
+      const w2 = semifinal(t.sf2 as [[string, number], [string, number]])
+      if (!w1 || !w2) continue
       const winner = play(w1, w2)
       picked.add(winner)
       log.push(`${name(winner)} take berth ${t.berth}`)

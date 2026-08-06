@@ -1,6 +1,7 @@
-import { NATION_BY_ID, rankOf } from '../data/nations'
+import { NATIONS, NATION_BY_ID, rankOf } from '../data/nations'
+import { quotasFor } from './selection'
 import { koWinner } from './simulate'
-import type { MatchResult } from './types'
+import type { Confed, MatchResult } from './types'
 
 /**
  * The FIFA Play-off Tournament, played by hand: six entrants, the two best-ranked
@@ -57,6 +58,9 @@ export interface Playoff64Tournament {
   sf2: [string | null, string | null]
   f: [string | null, string | null]
   winner: string | null
+  /** designation label of a structurally impossible seat (e.g. 'CONMEBOL 3') — its opponent gets a bye */
+  sf1Vacant?: string
+  sf2Vacant?: string
 }
 
 export interface Playoff64State {
@@ -67,22 +71,30 @@ export interface Playoff64State {
 }
 
 /**
- * Pinned bracket allocation (FORMAT-64). CONMEBOL 3 was requested but cannot exist —
- * 8 of CONMEBOL's 10 members qualify directly, leaving at most 2 entrants — so that
- * seat reverts to OFC 2 (feasibility amendment). No tournament repeats a confederation.
+ * Pinned bracket allocation (FORMAT-64, as specified: OFC 1, UEFA 4). UEFA's fourth
+ * seat sits in Tournament B — the only tournament without a UEFA side — and OFC 1
+ * moves to Tournament A, preserving the rule that no tournament repeats a
+ * confederation. The vacancy/bye machinery below stays as a general safeguard.
  */
 export const PLAYOFF64_SPEC: { id: 'A' | 'B' | 'C' | 'D'; berth: number; sf1: [string, number][]; sf2: [string, number][] }[] = [
-  { id: 'A', berth: 61, sf1: [['UEFA', 1], ['OFC', 2]], sf2: [['CAF', 3], ['AFC', 2]] },
-  { id: 'B', berth: 62, sf1: [['CAF', 1], ['CONCACAF', 3]], sf2: [['AFC', 3], ['OFC', 1]] },
+  { id: 'A', berth: 61, sf1: [['UEFA', 1], ['OFC', 1]], sf2: [['CAF', 3], ['AFC', 2]] },
+  { id: 'B', berth: 62, sf1: [['CAF', 1], ['CONCACAF', 3]], sf2: [['AFC', 3], ['UEFA', 4]] },
   { id: 'C', berth: 63, sf1: [['AFC', 1], ['UEFA', 3]], sf2: [['CONCACAF', 2], ['CONMEBOL', 2]] },
   { id: 'D', berth: 64, sf1: [['CONCACAF', 1], ['CAF', 2]], sf2: [['CONMEBOL', 1], ['UEFA', 2]] },
 ]
+
+/** true when the Nth play-off seat of a confederation can exist at all under the direct quotas */
+export function seatCanExist(confed: string, n: number): boolean {
+  const members = NATIONS.filter((x) => x.confed === confed).length
+  const quota = quotasFor(64)[confed as Confed] ?? 0
+  return n <= Math.max(0, members - quota)
+}
 
 export function playoff64State(
   teams: readonly string[],
   results: Partial<Record<string, MatchResult>>,
 ): Playoff64State | null {
-  if (teams.length !== 16) return null
+  if (teams.length !== 15 && teams.length !== 16) return null
   // designate Team 1..N per confederation by world ranking
   const designation: Record<string, string[]> = {}
   for (const id of [...teams].sort((a, b) => rankOf(a) - rankOf(b))) {
@@ -100,11 +112,22 @@ export function playoff64State(
     const lo = t.id.toLowerCase()
     const sf1: [string | null, string | null] = [pick(t.sf1[0]![0], t.sf1[0]![1]), pick(t.sf1[1]![0], t.sf1[1]![1])]
     const sf2: [string | null, string | null] = [pick(t.sf2[0]![0], t.sf2[0]![1]), pick(t.sf2[1]![0], t.sf2[1]![1])]
-    const w1 = decide(`${lo}-sf1`, sf1[0], sf1[1])
-    const w2 = decide(`${lo}-sf2`, sf2[0], sf2[1])
+    // a structurally impossible seat concedes a bye — the present side advances unplayed
+    const vacancy = (spec: [string, number][], pair: [string | null, string | null]): string | undefined => {
+      for (const [side, other] of [[0, 1], [1, 0]] as const) {
+        if (pair[side] === null && !seatCanExist(spec[side]![0], spec[side]![1]) && pair[other] !== null) {
+          return `${spec[side]![0]} ${spec[side]![1]}`
+        }
+      }
+      return undefined
+    }
+    const sf1Vacant = vacancy(t.sf1, sf1)
+    const sf2Vacant = vacancy(t.sf2, sf2)
+    const w1 = sf1Vacant ? (sf1[0] ?? sf1[1]) : decide(`${lo}-sf1`, sf1[0], sf1[1])
+    const w2 = sf2Vacant ? (sf2[0] ?? sf2[1]) : decide(`${lo}-sf2`, sf2[0], sf2[1])
     const f: [string | null, string | null] = [w1, w2]
     const winner = decide(`${lo}-f`, f[0], f[1])
-    return { id: t.id, berth: t.berth, sf1, sf2, f, winner }
+    return { id: t.id, berth: t.berth, sf1, sf2, f, winner, sf1Vacant, sf2Vacant }
   })
   return {
     tournaments,

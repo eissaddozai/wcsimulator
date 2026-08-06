@@ -4261,3 +4261,15 @@ table.standings td:nth-child(7) {
 .tier-era { --tier-c: #6ea8d8; }
 .tier-drama { --tier-c: var(--pos-third, #d8a04a); }
 .tier-arcade { --tier-c: var(--danger, #d85c5c); }
+
+/* a structural bye: no match to play, the seat simply cannot exist */
+.pom.pom-bye {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--gold) 30%, var(--line-1));
+  background: color-mix(in srgb, var(--gold) 4%, var(--bg-2));
+}
+.pom-bye-note {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+}

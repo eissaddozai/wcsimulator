@@ -2,18 +2,18 @@ import { BASE_QUOTA, BASE_QUOTA_64, NATION_BY_ID } from '../data/nations'
 import type { Confed, Format } from './types'
 
 /**
- * Intercontinental play-off entrants (64-team format). CONMEBOL was slated for 3, but
- * with 8 of its 10 member associations qualifying directly only 2 can ever remain —
- * the third seat is arithmetically impossible and reverts to OFC (feasibility amendment,
- * see FORMAT-64.md).
+ * Intercontinental play-off allocation (64-team format), pinned by the user: OFC holds
+ * exactly one automatic berth and one play-off seat; its former second seat belongs to
+ * UEFA as their fourth. (CONMEBOL stays at 2 — with 8 of its 10 members qualifying
+ * directly, only 2 can ever enter.)
  */
 export const PLAYOFF_ALLOCATION_64: Record<Confed, number> = {
-  UEFA: 3,
+  UEFA: 4,
   CAF: 3,
   AFC: 3,
   CONCACAF: 3,
   CONMEBOL: 2,
-  OFC: 2,
+  OFC: 1,
 }
 export function quotasFor(format: Format): Record<Confed, number> {
   return format === 64 ? BASE_QUOTA_64 : BASE_QUOTA

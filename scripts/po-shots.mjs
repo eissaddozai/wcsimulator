@@ -44,7 +44,7 @@ await page.evaluate(() => {
   store.setState({
     format: 64,
     playoffResults: {},
-    playoffTeams: ['POL', 'HUN', 'GRE', 'EGY', 'NGA', 'CMR', 'KSA', 'UZB', 'IRQ', 'JAM', 'CRC', 'HON', 'PER', 'VEN', 'NZL', 'FIJ'],
+    playoffTeams: ['POL', 'HUN', 'GRE', 'SWE', 'EGY', 'NGA', 'CMR', 'KSA', 'UZB', 'IRQ', 'JAM', 'CRC', 'HON', 'PER', 'VEN', 'NZL'],
     entries: [...s.hosts],
   })
 })

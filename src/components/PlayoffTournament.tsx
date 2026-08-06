@@ -27,10 +27,13 @@ const PO64_NUMBER: Record<Playoff64Key, number> = {
   'd-sf1': 140, 'd-sf2': 141, 'd-f': 142,
 }
 
+/** The ceremony is staged by whoever the user chose as hosts — never a hardcoded city. */
 function venueLine(hosts: readonly string[]): string {
-  if (hosts.includes('MEX')) return 'Guadalajara & Monterrey · March 2026'
-  const first = hosts[0] ? NATION_BY_ID.get(hosts[0])?.name : null
-  return first ? `Hosted in ${first} · March 2026` : 'March 2026'
+  const names = hosts.map((h) => NATION_BY_ID.get(h)?.name).filter((x): x is string => Boolean(x))
+  if (names.length === 0) return 'March 2026'
+  if (names.length === 1) return `Hosted in ${names[0]} · March 2026`
+  const last = names[names.length - 1]
+  return `Hosted across ${names.slice(0, -1).join(', ')} & ${last} · March 2026`
 }
 
 export function PlayoffTournament({ onClose }: { onClose: () => void }) {
@@ -262,10 +265,10 @@ function Playoff64({ onClose }: { onClose: () => void }) {
             Intercontinental Play-offs
           </h3>
           <div className="po-venue tnum">{venueLine(hosts)}</div>
-          <p className="low" style={{ margin: '6px auto 0', maxWidth: 520, fontSize: 12.5 }}>
-            Sixteen entrants, designated Team 1–3 of their confederation by world ranking, drawn into
-            four tournaments so no two compatriots can meet. Each tournament plays two one-off
-            semifinals and a final — the winner takes one of berths 61–64.
+          <p className="low" style={{ margin: '6px auto 0', maxWidth: 540, fontSize: 12.5 }}>
+            Sixteen entrants — four from UEFA, three each from CAF, AFC and CONCACAF, two from
+            CONMEBOL, one from Oceania — designated Team 1–N by world ranking and drawn so no two
+            compatriots can meet. Each final is worth one of berths 61–64.
           </p>
         </div>
         <div className="po-scroll">
@@ -299,15 +302,19 @@ function Playoff64({ onClose }: { onClose: () => void }) {
                   </header>
                   <div className="po-tree">
                     <div className="po-col">
-                      <div className="po-stage">Semifinal 1</div>
-                      <PlayoffMatchCard
-                        k={`${lo}-sf1` as Playoff64Key}
-                        home={t.sf1[0]}
-                        away={t.sf1[1]}
-                        label="Semifinal 1"
-                        matchNo={PO64_NUMBER[`${lo}-sf1` as Playoff64Key]}
-                        tags={designationOf}
-                      />
+                      <div className="po-stage">{t.sf1Vacant ? 'Bye' : 'Semifinal 1'}</div>
+                      {t.sf1Vacant ? (
+                        <ByeCard team={t.sf1[0] ?? t.sf1[1]} vacant={t.sf1Vacant} tags={designationOf} />
+                      ) : (
+                        <PlayoffMatchCard
+                          k={`${lo}-sf1` as Playoff64Key}
+                          home={t.sf1[0]}
+                          away={t.sf1[1]}
+                          label="Semifinal 1"
+                          matchNo={PO64_NUMBER[`${lo}-sf1` as Playoff64Key]}
+                          tags={designationOf}
+                        />
+                      )}
                     </div>
                     <div className={`po-link${t.f[0] ? ' won' : ''}`} aria-hidden>
                       <i />
@@ -329,15 +336,19 @@ function Playoff64({ onClose }: { onClose: () => void }) {
                       <i />
                     </div>
                     <div className="po-col">
-                      <div className="po-stage">Semifinal 2</div>
-                      <PlayoffMatchCard
-                        k={`${lo}-sf2` as Playoff64Key}
-                        home={t.sf2[0]}
-                        away={t.sf2[1]}
-                        label="Semifinal 2"
-                        matchNo={PO64_NUMBER[`${lo}-sf2` as Playoff64Key]}
-                        tags={designationOf}
-                      />
+                      <div className="po-stage">{t.sf2Vacant ? 'Bye' : 'Semifinal 2'}</div>
+                      {t.sf2Vacant ? (
+                        <ByeCard team={t.sf2[0] ?? t.sf2[1]} vacant={t.sf2Vacant} tags={designationOf} />
+                      ) : (
+                        <PlayoffMatchCard
+                          k={`${lo}-sf2` as Playoff64Key}
+                          home={t.sf2[0]}
+                          away={t.sf2[1]}
+                          label="Semifinal 2"
+                          matchNo={PO64_NUMBER[`${lo}-sf2` as Playoff64Key]}
+                          tags={designationOf}
+                        />
+                      )}
                     </div>
                   </div>
                 </section>
@@ -381,6 +392,36 @@ function Playoff64({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** A structurally vacant seat: the present side advances unplayed, straight into the final. */
+function ByeCard({ team, vacant, tags }: { team: string | null; vacant: string; tags?: Map<string, string> }) {
+  return (
+    <div className="card pom pom-bye">
+      <div className="pom-head">
+        <span className="mtag">
+          <i className="mdot" />
+          Bye
+        </span>
+        <span className="mnum tnum" style={{ marginLeft: 'auto' }}>
+          No match
+        </span>
+      </div>
+      {team && (
+        <div className="pom-side winner">
+          <Flag id={team} size={24} />
+          <span className="pom-name" title={NATION_BY_ID.get(team)?.name}>
+            {NATION_BY_ID.get(team)?.name}
+          </span>
+          <span className="pom-rank tnum low">{tags?.get(team) ?? `#${rankOf(team)}`}</span>
+        </div>
+      )}
+      <p className="pom-bye-note low">
+        The {vacant} seat cannot exist — {team ? NATION_BY_ID.get(team)?.name : 'the seed'} advance
+        straight to the final.
+      </p>
     </div>
   )
 }

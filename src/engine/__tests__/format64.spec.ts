@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_HOSTS, NATION_BY_ID, byConfed } from '../../data/nations'
 import { groupsFromTrace, runDraw, validatePots } from '../draw'
-import { playoff64State, PLAYOFF64_SPEC } from '../playoffs'
+import { playoff64State, seatCanExist, PLAYOFF64_SPEC } from '../playoffs'
 import { completeQualification } from '../qualification'
 import { makeRng, stream } from '../rng'
 import {
@@ -140,12 +140,12 @@ describe('64-team intercontinental play-offs', () => {
         .slice(skip, skip + n)
         .map((x) => x.id)
     return [
-      ...take('UEFA', 21, 3),
+      ...take('UEFA', 21, 4),
       ...take('CAF', 12, 3),
       ...take('AFC', 10, 3),
       ...take('CONCACAF', 8, 3),
       ...take('CONMEBOL', 8, 2),
-      ...take('OFC', 1, 2),
+      ...take('OFC', 1, 1),
     ]
   }
 
@@ -155,15 +155,27 @@ describe('64-team intercontinental play-offs', () => {
       expect(new Set(confeds).size).toBe(4)
     }
     expect(PLAYOFF64_SPEC.map((t) => t.berth)).toEqual([61, 62, 63, 64])
+    // UEFA's four seats spread one per tournament
+    const uefaHomes = PLAYOFF64_SPEC.map((t) => [...t.sf1, ...t.sf2].filter(([c]) => c === 'UEFA').length)
+    expect(uefaHomes).toEqual([1, 1, 1, 1])
   })
 
-  it('resolves four winners from played results', () => {
+  it('knows which seats can exist under the direct quotas', () => {
+    expect(seatCanExist('UEFA', 4)).toBe(true) // 55 members, 21 direct
+    expect(seatCanExist('CONMEBOL', 2)).toBe(true) // 10 members, 8 direct
+    expect(seatCanExist('CONMEBOL', 3)).toBe(false) // ...only 2 can ever remain
+    expect(seatCanExist('OFC', 1)).toBe(true)
+  })
+
+  it('resolves four winners from played results with every seat filled', () => {
     const teams = entrants16()
     const empty = playoff64State(teams, {})
     expect(empty).not.toBeNull()
     for (const t of empty!.tournaments) {
       expect(t.sf1.every((x) => x !== null)).toBe(true)
       expect(t.sf2.every((x) => x !== null)).toBe(true)
+      expect(t.sf1Vacant).toBeUndefined()
+      expect(t.sf2Vacant).toBeUndefined()
       expect(t.winner).toBeNull()
     }
     // play everything with the minute engine
