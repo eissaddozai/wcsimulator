@@ -70,7 +70,6 @@ export const BOOSTERS: Booster[] = [
 ]
 
 export const BOOSTER_BY_ID: ReadonlyMap<string, Booster> = new Map(BOOSTERS.map((b) => [b.id, b]))
-export const MAX_BOOSTERS_PER_TEAM = 3
 
 export interface CombinedFx {
   att: number
@@ -91,7 +90,7 @@ export function combinedFx(id: string): CombinedFx {
   const boosts = overrideOf(id)?.boosts
   if (!boosts || boosts.length === 0) return NEUTRAL
   const out = { ...NEUTRAL }
-  for (const bid of boosts.slice(0, MAX_BOOSTERS_PER_TEAM)) {
+  for (const bid of boosts) {
     const fx = BOOSTER_BY_ID.get(bid)?.fx
     if (!fx) continue
     out.att += fx.att ?? 0

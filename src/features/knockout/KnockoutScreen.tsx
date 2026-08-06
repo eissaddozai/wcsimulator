@@ -1,11 +1,12 @@
-import { Crown, Dices, RotateCcw, X } from 'lucide-react'
+import { Crown, Dices, FlaskConical, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
+import { ModelLab } from '../../components/ModelLab'
 import { ScoreInput } from '../../components/ScoreInput'
 import { NATION_BY_ID, shortName } from '../../data/nations'
 import type { ResolvedKo } from '../../engine/bracket'
 import { KO_BY_NUMBER, KO_MATCHES } from '../../engine/schedule'
-import { koWinner, matchOdds, stageOfMatch, type MatchContext } from '../../engine/simulate'
+import { detailedOdds, koWinner, stageOfMatch, type MatchContext } from '../../engine/simulate'
 import { allGroupsComplete, bracketState } from '../../engine/tournament'
 import { groupsOf, useStore } from '../../store/store'
 import type { KoSource, MatchResult } from '../../engine/types'
@@ -250,6 +251,9 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
   const setResult = useStore((s) => s.setResult)
   const hosts = useStore((s) => s.hosts)
   const chaos = useStore((s) => s.chaos)
+  const modelParams = useStore((s) => s.modelParams)
+  const ratingOverrides = useStore((s) => s.ratingOverrides)
+  const [labOpen, setLabOpen] = useState(false)
   const ko = KO_BY_NUMBER[node.number]!
   const r = node.result && !node.stale ? node.result : null
   const home = node.home!
@@ -263,7 +267,10 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
     }),
     [node.number, home, away, hosts],
   )
-  const odds = useMemo(() => matchOdds(home, away, ctx, chaos.match), [home, away, ctx, chaos.match])
+  const odds = useMemo(
+    () => detailedOdds(home, away, ctx, chaos.match),
+    [home, away, ctx, chaos.match, modelParams, ratingOverrides],
+  )
   const pct = (x: number) => `${Math.round(x * 100)}%`
 
   const commit = (patch: Partial<MatchResult>) => {
@@ -307,25 +314,70 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
           </div>
         </div>
         <div className="match-panel-body">
-          <div className="odds-strip" title="90-minute probabilities from the match model">
-            <div className="odds-bar">
+          <div className="odds-card">
+            <div className="row spread" style={{ fontSize: 12, fontWeight: 600 }}>
+              <span>
+                {shortName(home)} <span className="gold-text tnum">{pct(odds.advHome)}</span>
+              </span>
+              <span className="low" style={{ fontSize: 10, letterSpacing: '0.12em' }}>
+                TO ADVANCE
+              </span>
+              <span>
+                <span className="gold-text tnum">{pct(odds.advAway)}</span> {shortName(away)}
+              </span>
+            </div>
+            <div className="odds-bar big">
+              <i style={{ width: pct(odds.advHome) }} />
+              <i className="a" style={{ width: pct(odds.advAway) }} />
+            </div>
+            <div className="odds-bar" title="90-minute result probabilities">
               <i style={{ width: pct(odds.home) }} />
               <i className="d" style={{ width: pct(odds.draw) }} />
               <i className="a" style={{ width: pct(odds.away) }} />
             </div>
             <div className="row spread low" style={{ fontSize: 11 }}>
-              <span>
-                {shortName(home)} {pct(odds.home)}
-              </span>
+              <span>win {pct(odds.home)}</span>
               <span>draw {pct(odds.draw)}</span>
-              <span>
-                {shortName(away)} {pct(odds.away)}
+              <span>win {pct(odds.away)}</span>
+            </div>
+            <div className="market-row tnum">
+              <span title="Expected goals">
+                xG <b>{odds.lamHome.toFixed(2)}–{odds.lamAway.toFixed(2)}</b>
+              </span>
+              <span title="Both teams to score">
+                BTTS <b>{pct(odds.btts)}</b>
+              </span>
+              <span title="Three or more goals">
+                O2.5 <b>{pct(odds.over25)}</b>
+              </span>
+              <span title="Clean sheet probability">
+                CS <b>{pct(odds.cleanSheetHome)}</b>/<b>{pct(odds.cleanSheetAway)}</b>
               </span>
             </div>
-            <div className="low" style={{ fontSize: 11, textAlign: 'center' }}>
-              xG {odds.lamHome.toFixed(2)} – {odds.lamAway.toFixed(2)} · model factors: form, style, stage tension
-              {hosts.includes(home) || hosts.includes(away) ? ', host advantage' : ''}
+            <div className="scoreline-chips">
+              {odds.topScorelines.map((l) => (
+                <span key={`${l.h}-${l.a}`} className="chip tnum" title={`${pct(l.p)} likely`}>
+                  {l.h}–{l.a} <span className="low">{pct(l.p)}</span>
+                </span>
+              ))}
             </div>
+            {(odds.factors.home.length > 0 || odds.factors.away.length > 0) && (
+              <div className="factor-rows low" style={{ fontSize: 11 }}>
+                {odds.factors.home.length > 0 && (
+                  <div>
+                    {shortName(home)}: {odds.factors.home.join(' · ')}
+                  </div>
+                )}
+                {odds.factors.away.length > 0 && (
+                  <div>
+                    {shortName(away)}: {odds.factors.away.join(' · ')}
+                  </div>
+                )}
+              </div>
+            )}
+            <button className="btn ghost small" style={{ alignSelf: 'center' }} onClick={() => setLabOpen(true)}>
+              <FlaskConical size={13} /> Tune the model
+            </button>
           </div>
 
           <div className="row" style={{ justifyContent: 'center', gap: 16 }}>
@@ -416,6 +468,7 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
           </div>
         </div>
       </aside>
+      {labOpen && <ModelLab onClose={() => setLabOpen(false)} />}
     </>
   )
 }

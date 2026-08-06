@@ -246,7 +246,8 @@ function GroupCard(props: {
   return (
     <div className="card ghub-card">
       <h4 className="display">
-        <span className="letter">Group {g}</span>
+        <span className="gmedal tnum">{g}</span>
+        Group {g}
       </h4>
       <table className="standings">
         <thead>
@@ -340,7 +341,7 @@ function GroupCard(props: {
           })}
         </tbody>
       </table>
-      <div>
+      <div className="fixtures">
         {fixtures.map((f) => {
           const home = slots[f.homePos - 1]
           const away = slots[f.awayPos - 1]

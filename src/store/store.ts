@@ -8,7 +8,7 @@ import { makeRng, mintSeed, stream } from '../engine/rng'
 import { GROUP_FIXTURES, KO_BY_NUMBER, GROUP_IDS, POT_TO_POSITION } from '../engine/schedule'
 import { seedPots } from '../engine/seeding'
 import { quotaStatus } from '../engine/selection'
-import { simulateMatch, stageOfMatch, type MatchContext } from '../engine/simulate'
+import { setModelParams, simulateMatch, stageOfMatch, type MatchContext, type ModelParams } from '../engine/simulate'
 import { allGroupsComplete, bracketState, type Groups } from '../engine/tournament'
 import type { BracketState } from '../engine/bracket'
 import type { ChaosKnobs, DrawPick, GroupId, MatchResult, Position, Pots, StrategyId } from '../engine/types'
@@ -33,6 +33,8 @@ interface TournamentState {
   drawRunId: number
   /** ratings-editor + booster assignments, mirrored into the nations registry */
   ratingOverrides: Record<string, NationOverride>
+  /** Model Lab sliders, mirrored into the simulation engine */
+  modelParams: Partial<ModelParams>
 
   setStep: (s: Step) => void
   setTheme: (t: 'dark' | 'light') => void
@@ -60,6 +62,8 @@ interface TournamentState {
 
   setNationOverride: (id: string, o: NationOverride | null) => void
   clearAllOverrides: () => void
+  setModelParam: (k: keyof ModelParams, v: number) => void
+  resetModelParams: () => void
   swapGroupSlots: (a: { group: GroupId; position: Position }, b: { group: GroupId; position: Position }) => void
 
   loadPreset: () => void
@@ -164,6 +168,7 @@ export const useStore = create<TournamentState>()(
       playoffLog: [],
       drawRunId: 0,
       ratingOverrides: {},
+      modelParams: {},
 
       setStep: (s) => set({ step: s }),
       setTheme: (t) => set({ theme: t }),
@@ -300,6 +305,15 @@ export const useStore = create<TournamentState>()(
         setNationOverrides({})
         set({ ratingOverrides: {} })
       },
+      setModelParam: (k, v) => {
+        const next = { ...get().modelParams, [k]: v }
+        setModelParams(next)
+        set({ modelParams: next })
+      },
+      resetModelParams: () => {
+        setModelParams({})
+        set({ modelParams: {} })
+      },
 
       swapGroupSlots: (a, b) => {
         const trace = get().drawTrace
@@ -388,7 +402,7 @@ export const useStore = create<TournamentState>()(
     }),
     {
       name: 'wcsim:tournament',
-      version: 3,
+      version: 4,
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown>
         if (version < 2) {
@@ -396,10 +410,14 @@ export const useStore = create<TournamentState>()(
           s.hostsChosen = true // existing saves were built on the 2026 trio
         }
         if (version < 3) s.ratingOverrides = {}
+        if (version < 4) s.modelParams = {}
         return s
       },
       onRehydrateStorage: () => (state) => {
-        if (state) setNationOverrides(state.ratingOverrides ?? {})
+        if (state) {
+          setNationOverrides(state.ratingOverrides ?? {})
+          setModelParams(state.modelParams ?? {})
+        }
       },
       partialize: (s) => ({
         step: s.step,
@@ -416,6 +434,7 @@ export const useStore = create<TournamentState>()(
         playoffLog: s.playoffLog,
         drawRunId: s.drawRunId,
         ratingOverrides: s.ratingOverrides,
+        modelParams: s.modelParams,
       }),
     },
   ),

@@ -5,7 +5,7 @@ import { Flag } from '../../components/Flag'
 import { NATION_BY_ID } from '../../data/nations'
 import { GROUP_IDS, POT_TO_POSITION } from '../../engine/schedule'
 import { useStore } from '../../store/store'
-import type { DrawPick, GroupId, PotNumber } from '../../engine/types'
+import type { DrawPick, GroupId, Position, PotNumber } from '../../engine/types'
 
 type Phase = 'ball' | 'flag' | 'hold'
 
@@ -16,6 +16,8 @@ export function DrawScreen() {
   const setStep = useStore((s) => s.setStep)
   const reduced = useReducedMotion()
 
+  const swapGroupSlots = useStore((s) => s.swapGroupSlots)
+  const [dragSlot, setDragSlot] = useState<{ group: GroupId; position: Position } | null>(null)
   const [revealed, setRevealed] = useState(0)
   const [phase, setPhase] = useState<Phase | null>(null)
   const [auto, setAuto] = useState(false)
@@ -184,7 +186,10 @@ export function DrawScreen() {
             <div className="display gold-text" style={{ fontSize: 40 }}>
               The draw is made
             </div>
-            <p className="muted">Twelve groups, every rule respected.</p>
+            <p className="muted">
+              Twelve groups, every rule respected — and they're yours now: drag any two countries to swap their
+              slots.
+            </p>
           </motion.div>
         )}
       </div>
@@ -195,13 +200,29 @@ export function DrawScreen() {
           return (
             <div key={g} className="card group-card">
               <h4 className={`display${skippedNow ? ' flash' : ''}`}>
-                <span className="letter">Group {g}</span>
+                <span className="gmedal tnum">{g}</span>
+                Group {g}
               </h4>
               {[1, 2, 3, 4].map((pos) => {
                 const pick = boardGroups[g][pos - 1]
                 const potForPos = ([1, 3, 2, 4] as PotNumber[]).find((p) => POT_TO_POSITION[p] === pos)!
                 return pick ? (
-                  <div key={pos} className="slot landed">
+                  <div
+                    key={pos}
+                    className={`slot landed${done ? ' swappable' : ''}${dragSlot?.group === g && dragSlot.position === pos ? ' dragging' : ''}`}
+                    draggable={done}
+                    title={done ? 'Drag onto another country to swap groups' : undefined}
+                    onDragStart={() => setDragSlot({ group: g, position: pos as Position })}
+                    onDragEnd={() => setDragSlot(null)}
+                    onDragOver={(e) => done && e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      if (dragSlot && !(dragSlot.group === g && dragSlot.position === pos)) {
+                        swapGroupSlots(dragSlot, { group: g, position: pos as Position })
+                      }
+                      setDragSlot(null)
+                    }}
+                  >
                     <Flag id={pick.teamId} size={22} />
                     {NATION_BY_ID.get(pick.teamId)?.name}
                   </div>

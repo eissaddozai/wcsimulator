@@ -67,7 +67,11 @@ body,
 }
 
 body {
-  background: var(--bg-0);
+  background:
+    radial-gradient(1100px 560px at 88% -12%, color-mix(in srgb, var(--gold) 6%, transparent), transparent 62%),
+    radial-gradient(1300px 720px at 8% 112%, color-mix(in srgb, var(--pitch) 20%, transparent), transparent 66%),
+    var(--bg-0);
+  background-attachment: fixed;
   color: var(--text-hi);
   font-family: var(--font-text);
   font-synthesis: none;
@@ -153,6 +157,16 @@ input {
   background: color-mix(in srgb, var(--bg-0) 85%, transparent);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--line-1);
+}
+.appbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 10%, color-mix(in srgb, var(--gold) 45%, transparent) 50%, transparent 90%);
+  pointer-events: none;
 }
 
 .wordmark {
@@ -242,13 +256,15 @@ input {
   background: var(--bg-3);
 }
 .btn.primary {
-  background: var(--gold);
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold));
   border-color: var(--gold);
   color: var(--gold-ink);
   height: 44px;
+  box-shadow: 0 2px 14px -6px color-mix(in srgb, var(--gold) 65%, transparent);
 }
 .btn.primary:hover {
-  background: var(--gold-hi);
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold-hi));
+  box-shadow: 0 4px 20px -6px color-mix(in srgb, var(--gold) 80%, transparent);
 }
 .btn.ghost {
   background: transparent;
@@ -279,9 +295,10 @@ input {
 }
 
 .card {
-  background: var(--bg-1);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 50%, var(--bg-1)) 0%, var(--bg-1) 62%);
   border: 1px solid var(--line-1);
   border-radius: 12px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-hi) 4%, transparent);
 }
 
 .chip {
@@ -659,4 +676,67 @@ table.standings tr.dragging td {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+
+/* ————— overhaul: scrollbars, odds card, model lab ————— */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.odds-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line-1);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 70%, var(--bg-1)), var(--bg-1));
+}
+.odds-bar.big {
+  height: 12px;
+  border-radius: 6px;
+}
+.market-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-low);
+  border-top: 1px solid var(--line-1);
+  padding-top: 10px;
+  flex-wrap: wrap;
+}
+.market-row b {
+  color: var(--text-mid);
+  font-weight: 600;
+}
+.scoreline-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.factor-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+.lab-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }

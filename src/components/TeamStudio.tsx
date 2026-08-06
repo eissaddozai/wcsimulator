@@ -2,7 +2,7 @@ import { RotateCcw, Sparkles, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Flag } from './Flag'
 import { NATION_BY_ID, overrideOf, rankOf, ratingOf } from '../data/nations'
-import { BOOSTERS, MAX_BOOSTERS_PER_TEAM, type Booster } from '../engine/boosters'
+import { BOOSTERS, type Booster } from '../engine/boosters'
 import { useStore } from '../store/store'
 
 const GROUP_ORDER: Booster['group'][] = ['Attack', 'Defense', 'Mentality', 'Physical', 'Fortune', 'Burden']
@@ -45,8 +45,8 @@ export function TeamStudio({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <p className="muted" style={{ margin: '4px 0 12px' }}>
-          Rewrite any nation's world ranking and rating, and hand out up to {MAX_BOOSTERS_PER_TEAM} boosters — they
-          feed straight into seeding, odds, and every simulated minute.
+          Rewrite any nation's world ranking and rating, and stack as many boosters as you dare — they feed straight
+          into seeding, odds, and every simulated minute.
         </p>
 
         <div style={{ overflowY: 'auto', flex: 1, border: '1px solid var(--line-1)', borderRadius: 8 }}>
@@ -111,13 +111,11 @@ export function TeamStudio({ onClose }: { onClose: () => void }) {
                         <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                           {BOOSTERS.filter((b) => b.group === grp).map((b) => {
                             const on = boosts.includes(b.id)
-                            const full = !on && boosts.length >= MAX_BOOSTERS_PER_TEAM
                             return (
                               <button
                                 key={b.id}
                                 className={`booster-chip${on ? ' on' : ''}${b.group === 'Burden' ? ' burden' : ''}`}
                                 title={b.blurb}
-                                disabled={full}
                                 aria-pressed={on}
                                 onClick={() =>
                                   patch(id, { boosts: on ? boosts.filter((x) => x !== b.id) : [...boosts, b.id] })

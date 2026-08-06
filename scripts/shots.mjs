@@ -94,10 +94,14 @@ if (championVisible) {
 }
 await shot('14-bracket-mirrored-full')
 
-// —— match panel with odds ——
+// —— match panel with detailed odds ——
 await page.locator('.bracket2 .ko-node.done').first().click()
-await page.waitForSelector('.odds-strip')
+await page.waitForSelector('.odds-card')
 await shot('15-match-panel-odds')
+await page.click('text=Tune the model')
+await page.waitForSelector('.lab-slider')
+await shot('15b-model-lab')
+await page.click('text=Done')
 await page.click('text=Close')
 
 // —— light theme + real preset ——

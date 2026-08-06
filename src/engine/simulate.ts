@@ -42,9 +42,46 @@ const STAGE_TEMPO: Record<MatchStage, number> = {
   final: 2.15,
 }
 
-const HOST_BOOST = 45 // Elo-scale home advantage for a host nation on home soil
-const RHO = -0.13 // Dixon–Coles low-score correlation
+/**
+ * Tunable model parameters — the Model Lab's sliders write here (via the store),
+ * so the whole engine can be re-calibrated live.
+ */
+export interface ModelParams {
+  homeBoost: number // Elo points of host home advantage (default 45)
+  tempo: number // global goals multiplier (default 1)
+  drawiness: number // scales the Dixon–Coles draw correction (default 1)
+  edgeWeight: number // how hard strength difference bites (default 0.62)
+  tension: number // scales stage-to-stage tempo differences (0 = flat, default 1)
+  fatigueImpact: number // scales the ET/pens fatigue penalty (default 1)
+  styleInfluence: number // scales attack/defense style splits (default 1)
+}
+
+export const DEFAULT_MODEL: ModelParams = {
+  homeBoost: 45,
+  tempo: 1,
+  drawiness: 1,
+  edgeWeight: 0.62,
+  tension: 1,
+  fatigueImpact: 1,
+  styleInfluence: 1,
+}
+
+let MODEL: ModelParams = { ...DEFAULT_MODEL }
+
+export function setModelParams(p: Partial<ModelParams>): void {
+  MODEL = { ...DEFAULT_MODEL, ...p }
+}
+
+export function getModelParams(): ModelParams {
+  return { ...MODEL }
+}
+
+const BASE_RHO = -0.13 // Dixon–Coles low-score correlation
 const MAX_GOALS = 9
+
+function rho(): number {
+  return Math.max(BASE_RHO * MODEL.drawiness, -0.3)
+}
 
 /** Deterministic per-nation style bias in [-1, 1]: positive = attacking, negative = solid. */
 function styleOf(id: string): number {
@@ -72,10 +109,10 @@ function effRatings(
   let base = ratingOf(id)
   if (oppBase - base >= 40) base += fx.underdog // sharpened against the mighty
   if (BIG_GAME_STAGES.has(stage)) base += fx.bigGame
-  if (host) base += HOST_BOOST * fx.homeAmp
+  if (host) base += MODEL.homeBoost * fx.homeAmp
   const effFresh = 1 - (1 - freshness) * (1 - Math.max(fx.stamina, 0))
-  base -= (1 - effFresh) * 160
-  const bias = styleOf(id) * 22
+  base -= (1 - effFresh) * 160 * MODEL.fatigueImpact
+  const bias = styleOf(id) * 22 * MODEL.styleInfluence
   return { att: base + bias + fx.att, def: base - bias + fx.def, fx }
 }
 
@@ -87,10 +124,11 @@ function poissonPmf(lambda: number, k: number): number {
 
 /** Dixon–Coles τ correction for the four low-score cells. */
 function tau(h: number, a: number, lh: number, la: number): number {
-  if (h === 0 && a === 0) return 1 - lh * la * RHO
-  if (h === 1 && a === 0) return 1 + la * RHO
-  if (h === 0 && a === 1) return 1 + lh * RHO
-  if (h === 1 && a === 1) return 1 - RHO
+  const r = rho()
+  if (h === 0 && a === 0) return Math.max(1 - lh * la * r, 0.05)
+  if (h === 1 && a === 0) return Math.max(1 + la * r, 0.05)
+  if (h === 0 && a === 1) return Math.max(1 + lh * r, 0.05)
+  if (h === 1 && a === 1) return Math.max(1 - r, 0.05)
   return 1
 }
 
@@ -126,12 +164,13 @@ export function expectedGoals(
   const delta = ((H.att - A.def) + (H.def - A.att)) / 2
   const T = Math.pow(3, Math.min(Math.max(theta, 0), 2) - 1)
   const edge = Math.min(Math.max(delta / 175 / T, -1.6), 1.6)
-  const tempo = STAGE_TEMPO[ctx.stage] * H.fx.tempo * A.fx.tempo
+  const stageTempo = STAGE_TEMPO.group + (STAGE_TEMPO[ctx.stage] - STAGE_TEMPO.group) * MODEL.tension
+  const tempo = stageTempo * MODEL.tempo * H.fx.tempo * A.fx.tempo
   // attack-leaning matchups raise the tempo a touch; mismatches raise it more
   const openness = 1 + 0.05 * (styleOf(homeId) + styleOf(awayId)) + 0.1 * Math.abs(edge)
   const mu = tempo * openness
-  const lamHome = Math.min((mu / 2) * Math.exp(0.62 * edge), 5.5)
-  const lamAway = Math.min((mu / 2) * Math.exp(-0.62 * edge), 5.5)
+  const lamHome = Math.min((mu / 2) * Math.exp(MODEL.edgeWeight * edge), 5.5)
+  const lamAway = Math.min((mu / 2) * Math.exp(-MODEL.edgeWeight * edge), 5.5)
   return { lamHome, lamAway, edge, H, A }
 }
 
@@ -141,6 +180,24 @@ export interface MatchOdds {
   away: number
   lamHome: number
   lamAway: number
+}
+
+export interface Scoreline {
+  h: number
+  a: number
+  p: number
+}
+
+export interface DetailedOdds extends MatchOdds {
+  /** knockout advance probability incl. extra time and penalties (exact draw split by ET/pens model) */
+  advHome: number
+  advAway: number
+  topScorelines: Scoreline[]
+  btts: number
+  over25: number
+  cleanSheetHome: number
+  cleanSheetAway: number
+  factors: { home: string[]; away: string[] }
 }
 
 /** Exact 90-minute win/draw/win probabilities from the Dixon–Coles grid — powers the UI. */
@@ -159,6 +216,72 @@ export function matchOdds(homeId: string, awayId: string, ctx: MatchContext, the
   }
   const total = home + draw + away
   return { home: home / total, draw: draw / total, away: away / total, lamHome, lamAway }
+}
+
+/** Everything the odds panel shows: full grid analytics + active model factors per side. */
+export function detailedOdds(homeId: string, awayId: string, ctx: MatchContext, theta: number): DetailedOdds {
+  const { lamHome, lamAway, edge, H, A } = expectedGoals(homeId, awayId, ctx, theta)
+  let home = 0
+  let draw = 0
+  let away = 0
+  let btts = 0
+  let over25 = 0
+  let cleanH = 0
+  let cleanA = 0
+  const lines: Scoreline[] = []
+  let total = 0
+  for (let h = 0; h <= MAX_GOALS; h++) {
+    for (let a = 0; a <= MAX_GOALS; a++) {
+      const p = poissonPmf(lamHome, h) * poissonPmf(lamAway, a) * tau(h, a, lamHome, lamAway)
+      total += p
+      lines.push({ h, a, p })
+      if (h > a) home += p
+      else if (h === a) draw += p
+      else away += p
+      if (h > 0 && a > 0) btts += p
+      if (h + a >= 3) over25 += p
+      if (a === 0) cleanH += p
+      if (h === 0) cleanA += p
+    }
+  }
+  home /= total
+  draw /= total
+  away /= total
+  // ET/pens split of a 90' draw: clutch tilts extra time, pens boosters tilt the shootout
+  const clutchEdge = edge + (0.3 * (H.fx.clutch - A.fx.clutch)) / 175
+  const etHomeShare = 0.5 + 0.35 * Math.tanh(0.8 * clutchEdge) + 0.5 * (H.fx.pens - A.fx.pens)
+  const advHome = home + draw * Math.min(Math.max(etHomeShare, 0.1), 0.9)
+  const factors = (id: string, host: boolean, fresh: number, fx: typeof H.fx): string[] => {
+    const out: string[] = []
+    if (host) out.push(`home advantage +${Math.round(MODEL.homeBoost * fx.homeAmp)}`)
+    if (fresh < 1) out.push(`tired legs −${Math.round((1 - fresh) * 160 * MODEL.fatigueImpact)}`)
+    const style = styleOf(id)
+    if (Math.abs(style) > 0.25) out.push(style > 0 ? 'attacking style' : 'defensive style')
+    const boosts = (combinedFx(id).att !== 0 || combinedFx(id).def !== 0 || fx.tempo !== 1 || fx.pens !== 0)
+    if (boosts) out.push('boosters active')
+    return out
+  }
+  return {
+    home,
+    draw,
+    away,
+    lamHome,
+    lamAway,
+    advHome,
+    advAway: 1 - advHome,
+    topScorelines: lines
+      .map((l) => ({ ...l, p: l.p / total }))
+      .sort((x, y) => y.p - x.p)
+      .slice(0, 6),
+    btts: btts / total,
+    over25: over25 / total,
+    cleanSheetHome: cleanH / total,
+    cleanSheetAway: cleanA / total,
+    factors: {
+      home: factors(homeId, ctx.homeHost ?? false, ctx.homeFreshness ?? 1, H.fx),
+      away: factors(awayId, ctx.awayHost ?? false, ctx.awayFreshness ?? 1, A.fx),
+    },
+  }
 }
 
 export function simulateMatch(
