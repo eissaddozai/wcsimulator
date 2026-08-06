@@ -166,7 +166,9 @@ export function DrawScreen() {
                           ?
                         </span>
                       ) : (
-                        <Flag id={current.teamId} size={92} />
+                        <motion.div layoutId={`fly-${current.order}`} transition={{ layout: { duration: 0.55, ease: [0.2, 0, 0, 1] } }}>
+                          <Flag id={current.teamId} size={92} />
+                        </motion.div>
                       )}
                     </motion.div>
                   </div>
@@ -251,7 +253,17 @@ export function DrawScreen() {
                       setDragSlot(null)
                     }}
                   >
-                    <Flag id={pick.teamId} size={22} />
+                    {pick.order === revealed - 1 ? (
+                      <motion.div
+                        layoutId={`fly-${pick.order}`}
+                        transition={{ layout: { duration: 0.55, ease: [0.2, 0, 0, 1] } }}
+                        style={{ display: 'flex' }}
+                      >
+                        <Flag id={pick.teamId} size={22} />
+                      </motion.div>
+                    ) : (
+                      <Flag id={pick.teamId} size={22} />
+                    )}
                     {NATION_BY_ID.get(pick.teamId)?.name}
                   </div>
                 ) : (
@@ -269,6 +281,9 @@ export function DrawScreen() {
       <div className="draw-controls">
         {!done ? (
           <>
+            <span className="low tnum" style={{ fontSize: 12, alignSelf: 'center', letterSpacing: '0.08em' }}>
+              BALL {Math.min(revealed + 1, total)} OF {total}
+            </span>
             <button className="btn primary" onClick={advance} disabled={phase !== null}>
               Draw next
             </button>

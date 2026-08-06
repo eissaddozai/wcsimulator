@@ -2,14 +2,14 @@ import NumberFlow from '@number-flow/react'
 import confetti from 'canvas-confetti'
 import { motion } from 'framer-motion'
 import { CloudRain, CloudSun, Dices, FlaskConical, Mountain, RotateCcw, Sun, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { MatchTheater } from '../../components/MatchTheater'
 import { TrophyMark } from '../../components/TrophyMark'
 import { ModelLab } from '../../components/ModelLab'
 import { ScoreInput } from '../../components/ScoreInput'
 import { TournamentPulse } from '../../components/TournamentPulse'
-import { NATION_BY_ID, shortName } from '../../data/nations'
+import { NATION_BY_ID, rankOf, shortName } from '../../data/nations'
 import { WEATHER_LABEL, matchEnvironment } from '../../engine/environment'
 import { matchRecap } from '../../engine/narrative'
 import type { ResolvedKo } from '../../engine/bracket'
@@ -69,8 +69,14 @@ export function KnockoutScreen() {
 
   if (!groups || !state) {
     return (
-      <div className="page" style={{ textAlign: 'center', paddingTop: 96 }}>
-        <p className="muted">Run the draw and play the groups first.</p>
+      <div className="page empty-stage">
+        <TrophyMark height={64} className="dim" />
+        <p className="serif-accent" style={{ fontSize: 19, margin: 0, color: 'var(--text-mid)' }}>
+          The bracket sleeps until the groups have spoken.
+        </p>
+        <p className="low" style={{ margin: 0 }}>
+          Run the draw, then enter or simulate all seventy-two group scores.
+        </p>
       </div>
     )
   }
@@ -80,7 +86,7 @@ export function KnockoutScreen() {
   const finalMatch = bracket[104]
 
   const node = (n: number, row: string, col: number, compact = false) => (
-    <div key={n} style={{ gridRow: row, gridColumn: col, display: 'flex', alignItems: 'center', minWidth: 0 }}>
+    <div key={n} data-m={n} style={{ gridRow: row, gridColumn: col, display: 'flex', alignItems: 'center', minWidth: 0 }}>
       <KoNode node={bracket[n]!} compact={compact} onOpen={() => setOpenMatch(n)} />
     </div>
   )
@@ -131,6 +137,7 @@ export function KnockoutScreen() {
 
       <div className="bracket-wrap">
         <div className="bracket2">
+          <ChampionThread champion={champion} bracket={bracket} />
           {/* round headers */}
           <div className="bhead" style={{ gridColumn: 1 }}>Round of 32</div>
           <div className="bhead" style={{ gridColumn: 3 }}>Round of 16</div>
@@ -154,7 +161,7 @@ export function KnockoutScreen() {
             <div className="champ-slot">
               {champion ? (
                 <>
-                  <div className="trophy-medal won">
+                  <div className="trophy-medal won" data-m="trophy">
                     <Flag id={champion} size={64} ringed />
                   </div>
                   <div className="champ-name display">{NATION_BY_ID.get(champion)?.name}</div>
@@ -171,7 +178,9 @@ export function KnockoutScreen() {
                 </>
               )}
             </div>
-            <KoNode node={bracket[104]!} onOpen={() => setOpenMatch(104)} final />
+            <div data-m={104}>
+              <KoNode node={bracket[104]!} onOpen={() => setOpenMatch(104)} final />
+            </div>
             <div className="bronze-wrap">
               <div className="champ-caption dim" style={{ justifyContent: 'center', marginBottom: 6 }}>Bronze</div>
               <KoNode node={bracket[103]!} compact onOpen={() => setOpenMatch(103)} />
@@ -199,6 +208,75 @@ export function KnockoutScreen() {
         <ChampionScene champion={champion} final={finalMatch} bracket={bracket} onClose={() => setShowChampion(false)} />
       )}
     </div>
+  )
+}
+
+/** One continuous molten thread tracing the champion's road from Round of 32 to the trophy. */
+function ChampionThread({ champion, bracket }: { champion: string | null; bracket: Record<number, ResolvedKo> }) {
+  const [path, setPath] = useState<string | null>(null)
+  const [size, setSize] = useState({ w: 0, h: 0 })
+
+  const road = useMemo(() => {
+    if (!champion) return []
+    const r: number[] = []
+    for (let n = 73; n <= 104; n++) {
+      const m = bracket[n]
+      if (m && m.winner === champion && (m.home === champion || m.away === champion)) r.push(n)
+    }
+    return r
+  }, [champion, bracket])
+
+  useLayoutEffect(() => {
+    if (!champion || road.length < 2) {
+      setPath(null)
+      return
+    }
+    const compute = () => {
+      const grid = document.querySelector('.bracket2') as HTMLElement | null
+      if (!grid) return
+      const gr = grid.getBoundingClientRect()
+      const pts: [number, number][] = []
+      for (const n of [...road, 'trophy']) {
+        const el = grid.querySelector(`[data-m="${n}"]`)
+        if (!el) continue
+        const r = el.getBoundingClientRect()
+        pts.push([r.left - gr.left + r.width / 2, r.top - gr.top + r.height / 2])
+      }
+      if (pts.length < 2) {
+        setPath(null)
+        return
+      }
+      let d = `M ${pts[0]![0]} ${pts[0]![1]}`
+      for (let i = 1; i < pts.length; i++) {
+        const [x1, y1] = pts[i - 1]!
+        const [x2, y2] = pts[i]!
+        const mx = (x1 + x2) / 2
+        d += ` C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`
+      }
+      setPath(d)
+      setSize({ w: grid.scrollWidth, h: grid.scrollHeight })
+    }
+    compute()
+    const settle = setTimeout(compute, 400)
+    window.addEventListener('resize', compute)
+    return () => {
+      clearTimeout(settle)
+      window.removeEventListener('resize', compute)
+    }
+  }, [champion, road])
+
+  if (!path) return null
+  return (
+    <svg
+      className="champ-thread"
+      width={size.w}
+      height={size.h}
+      viewBox={`0 0 ${size.w} ${size.h}`}
+      aria-hidden
+    >
+      <path d={path} pathLength={1} className="thread-halo" />
+      <path d={path} pathLength={1} className="thread-core" />
+    </svg>
   )
 }
 
@@ -237,9 +315,11 @@ function KoNode({
   const { home: hs, away: as_, note } = scoreText(node)
   const ghost = !node.home || !node.away
   const nameOf = (id: string) => NATION_BY_ID.get(id)?.name ?? id
+  const loser = node.winner ? (node.winner === node.home ? node.away : node.home) : null
+  const upset = Boolean(node.winner && loser && rankOf(node.winner) > rankOf(loser))
   return (
     <button
-      className={`card ko-node${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}${compact ? ' compact' : ''}${final ? ' final-node' : ''}`}
+      className={`card ko-node${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}${compact ? ' compact' : ''}${final ? ' final-node' : ''}${node.number === 103 ? ' bronze' : ''}`}
       onClick={onOpen}
       disabled={ghost}
       aria-label={`Match ${node.number}`}
@@ -256,6 +336,9 @@ function KoNode({
             <span className="cname" title={nameOf(node.home)}>
               {nameOf(node.home)}
             </span>
+            {upset && node.winner === node.home && (
+              <span className="upset" title="Upset — the lower-ranked side advances">†</span>
+            )}
           </>
         ) : (
           <span className="low src">{sourceLabel(ko.home)}</span>
@@ -269,6 +352,9 @@ function KoNode({
             <span className="cname" title={nameOf(node.away)}>
               {nameOf(node.away)}
             </span>
+            {upset && node.winner === node.away && (
+              <span className="upset" title="Upset — the lower-ranked side advances">†</span>
+            )}
           </>
         ) : (
           <span className="low src">{sourceLabel(ko.away)}</span>
@@ -307,13 +393,18 @@ function ShootoutBoard({ r, home, away }: { r: MatchResult; home: string; away: 
                     <i
                       key={i}
                       className={`so-kick${scored ? ' scored' : ' missed'}${i === 5 ? ' sd-start' : ''}`}
+                      style={{ animationDelay: `${i * 90}ms` }}
                       title={`Kick ${i + 1} — ${scored ? 'scored' : 'missed'}`}
                     >
                       {scored ? '' : '×'}
                     </i>
                   ))
                 : Array.from({ length: Math.max(5, total) }, (_, i) => (
-                    <i key={i} className={`so-kick${i < total ? ' scored' : ' blank'}${i === 5 ? ' sd-start' : ''}`} />
+                    <i
+                      key={i}
+                      className={`so-kick${i < total ? ' scored' : ' blank'}${i === 5 ? ' sd-start' : ''}`}
+                      style={{ animationDelay: `${i * 90}ms` }}
+                    />
                   ))}
             </span>
             <span className="so-total display tnum">{total}</span>

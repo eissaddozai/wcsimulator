@@ -66,7 +66,9 @@ export function GroupsScreen() {
   if (!groups || !standings) {
     return (
       <div className="page" style={{ textAlign: 'center', paddingTop: 96 }}>
-        <p className="muted">Run the draw first — the groups will appear here.</p>
+        <p className="serif-accent" style={{ fontSize: 19, color: 'var(--text-mid)' }}>
+          No draw yet — the balls wait in their pots.
+        </p>
       </div>
     )
   }
@@ -116,11 +118,22 @@ export function GroupsScreen() {
           </h2>
         </div>
         <div className="seg" role="tablist" aria-label="Matchday">
-          {[1, 2, 3, 0].map((m) => (
-            <button key={m} className={md === m ? 'on' : ''} onClick={() => setMd(m as 0 | 1 | 2 | 3)}>
-              {m === 0 ? 'All' : `MD${m}`}
-            </button>
-          ))}
+          {[1, 2, 3, 0].map((m) => {
+            const mdFixtures = GROUP_IDS.flatMap((g) => fixturesOfGroup(g)).filter(
+              (f) => m === 0 || f.matchday === m,
+            )
+            const mdDone = mdFixtures.filter((f) => results[f.number] && isScored(results[f.number]!)).length
+            return (
+              <button key={m} className={md === m ? 'on' : ''} onClick={() => setMd(m as 0 | 1 | 2 | 3)}>
+                {m === 0 ? 'All' : `MD${m}`}
+                <i
+                  className="md-fill"
+                  style={{ transform: `scaleX(${mdFixtures.length ? mdDone / mdFixtures.length : 0})` }}
+                  aria-hidden
+                />
+              </button>
+            )
+          })}
         </div>
         <span className="low tnum" style={{ fontSize: 13 }}>
           <NumberFlow value={doneCount} /> / 72 scored
@@ -247,9 +260,10 @@ function GroupCard(props: {
 }) {
   const { g, slots, md, results, standings, thirds, contention, onScore, onDice, editMode, dragSlot, setDragSlot, onSwap } = props
   const fixtures = fixturesOfGroup(g).filter((f) => md === 0 || f.matchday === md)
+  const sealed = standings.length === 4 && standings.every((r) => r.played === 3)
 
   return (
-    <div className="card ghub-card">
+    <div className={`card ghub-card${sealed ? ' sealed' : ''}`}>
       <h4 className="display">
         <span className="gmedal tnum">{g}</span>
         Group {g}

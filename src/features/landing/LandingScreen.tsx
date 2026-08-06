@@ -1,4 +1,5 @@
 import { Dices, ListChecks, Trophy } from 'lucide-react'
+import { useEffect } from 'react'
 import { WorldGlobe } from '../../components/WorldGlobe'
 import { useStore } from '../../store/store'
 
@@ -6,6 +7,17 @@ export function LandingScreen() {
   const setStep = useStore((s) => s.setStep)
   const loadPreset = useStore((s) => s.loadPreset)
   const fullChaos = useStore((s) => s.fullChaos)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return
+      if (e.key === '1') loadPreset()
+      if (e.key === '2') setStep('lab')
+      if (e.key === '3') fullChaos()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [loadPreset, setStep, fullChaos])
 
   return (
     <section className="landing">
@@ -27,6 +39,7 @@ export function LandingScreen() {
           <span className="icon">
             <Trophy size={28} />
           </span>
+          <span className="kbd tnum">1</span>
           <h3 className="display">Real 2026</h3>
           <p>
             The actual 48 qualifiers, the real December-2025 pots, and the draw as it happened in Washington. You take
@@ -38,6 +51,7 @@ export function LandingScreen() {
           <span className="icon">
             <ListChecks size={28} />
           </span>
+          <span className="kbd tnum">2</span>
           <h3 className="display">Custom</h3>
           <p>
             Start in the Laboratory — 31 dials over the tournament's physics and every squad's boosters — then build
@@ -54,6 +68,7 @@ export function LandingScreen() {
           <span className="icon">
             <Dices size={28} />
           </span>
+          <span className="kbd tnum">3</span>
           <h3 className="display">Full chaos</h3>
           <p>
             One click simulates everything — qualification, seeding, draw, all 104 matches — and hands you a finished

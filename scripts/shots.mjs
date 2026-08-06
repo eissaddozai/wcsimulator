@@ -98,6 +98,7 @@ if (championVisible) {
   await page.click('text=Back to the bracket')
   await page.waitForTimeout(300)
 }
+await page.waitForTimeout(2600) // let the champion's golden thread finish drawing
 await shot('14-bracket-mirrored-full')
 
 // —— match panel with detailed odds ——

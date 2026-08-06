@@ -206,6 +206,9 @@ export function SelectionScreen() {
               {CONFEDS.map((c) => (
                 <button key={c} role="tab" className={tab === c && !query ? 'on' : ''} onClick={() => { setTab(c); setQuery('') }}>
                   {c}
+                  <span className={`seg-count tnum${status.counts[c] === BASE_QUOTA[c] ? ' full' : ''}`}>
+                    {status.counts[c]}/{BASE_QUOTA[c]}
+                  </span>
                 </button>
               ))}
             </div>
