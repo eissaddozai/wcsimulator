@@ -59,6 +59,8 @@ export interface MatchResult {
   score: ScorePair
   et?: ScorePair // extra-time goals only (added on top of 90' score)
   pens?: ScorePair
+  /** kick-by-kick shootout record (simulated matches only) — true = scored */
+  pensDetail?: { home: boolean[]; away: boolean[] }
   simulated?: boolean
   /** minute-engine output: goals and cards with minutes (simulated matches only) */
   events?: MatchEvent[]

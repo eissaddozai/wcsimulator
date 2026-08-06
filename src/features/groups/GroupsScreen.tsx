@@ -295,15 +295,15 @@ function GroupCard(props: {
                 ) : third.qualified ? (
                   <span className="badge q">Q</span>
                 ) : (
-                  <span className="badge out">OUT</span>
+                  <span className="badge out" title="Eliminated">E</span>
                 )
               ) : (
-                <span className="badge out">OUT</span>
+                <span className="badge out" title="Eliminated">E</span>
               )
             ) : c?.securedTop2 ? (
               <span className="badge q">Q</span>
             ) : c?.outOfTop3 ? (
-              <span className="badge out">OUT</span>
+              <span className="badge out" title="Eliminated">E</span>
             ) : row.position === 3 ? (
               <span className="badge t3">3rd?</span>
             ) : null
@@ -458,7 +458,7 @@ function ThirdsPanel({ thirds, onClose }: { thirds: ReturnType<typeof liveThirds
                 <span className="tnum low">{t.row.points}p</span>
                 <span className="tnum low">{t.row.gd > 0 ? `+${t.row.gd}` : t.row.gd}</span>
                 <span className="tnum low">{t.row.gf}</span>
-                {t.qualified ? <span className="badge q">Q</span> : <span className="badge out">OUT</span>}
+                {t.qualified ? <span className="badge q">Q</span> : <span className="badge out" title="Eliminated">E</span>}
               </div>
               {i === 7 && <div className="thirds-line">Qualification line</div>}
             </motion.div>

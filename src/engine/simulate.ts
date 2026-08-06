@@ -468,7 +468,11 @@ export function simulateMatch(
     result.et = { home: home.goals - h0, away: away.goals - a0 }
     result.score = { home: h0, away: a0 }
     decided = home.goals !== away.goals
-    if (!decided) result.pens = shootout(edge, H, A, rng)
+    if (!decided) {
+      const so = shootout(edge, H, A, rng)
+      result.pens = { home: so.home, away: so.away }
+      result.pensDetail = { home: so.seqHome, away: so.seqAway }
+    }
   }
 
   const possBase = lamHome / (lamHome + lamAway)
@@ -483,28 +487,48 @@ export function simulateMatch(
   return result
 }
 
-function shootout(edge: number, H: SideRatings, A: SideRatings, rng: Rng): { home: number; away: number } {
+function shootout(
+  edge: number,
+  H: SideRatings,
+  A: SideRatings,
+  rng: Rng,
+): { home: number; away: number; seqHome: boolean[]; seqAway: boolean[] } {
   const clamp = (x: number) => Math.min(Math.max(x, 0.5), 0.95)
   const keeperH = MODEL.penKeeperWeight * Math.tanh((H.att - A.def) / 175)
   const keeperA = MODEL.penKeeperWeight * Math.tanh((A.att - H.def) / 175)
   const pHome = clamp(MODEL.penBase + MODEL.penPressure * Math.tanh(edge) + H.fx.pens + keeperH)
   const pAway = clamp(MODEL.penBase - MODEL.penPressure * Math.tanh(edge) + A.fx.pens + keeperA)
+  const seqHome: boolean[] = []
+  const seqAway: boolean[] = []
   let h = 0
   let a = 0
   for (let round = 1; round <= 5; round++) {
-    if (rng() < pHome) h++
-    if (rng() < pAway) a++
+    const sh = rng() < pHome
+    const sa = rng() < pAway
+    seqHome.push(sh)
+    seqAway.push(sa)
+    if (sh) h++
+    if (sa) a++
     const remaining = 5 - round
-    if (h > a + remaining || a > h + remaining) return { home: h, away: a }
+    if (h > a + remaining || a > h + remaining) return { home: h, away: a, seqHome, seqAway }
   }
   for (let round = 0; round < 30; round++) {
-    const sh = rng() < pHome ? 1 : 0
-    const sa = rng() < pAway ? 1 : 0
-    h += sh
-    a += sa
-    if (sh !== sa) return { home: h, away: a }
+    const sh = rng() < pHome
+    const sa = rng() < pAway
+    seqHome.push(sh)
+    seqAway.push(sa)
+    if (sh) h++
+    if (sa) a++
+    if (sh !== sa) return { home: h, away: a, seqHome, seqAway }
   }
-  return rng() < 0.5 ? { home: h + 1, away: a } : { home: h, away: a + 1 }
+  if (rng() < 0.5) {
+    seqHome.push(true)
+    seqAway.push(false)
+    return { home: h + 1, away: a, seqHome, seqAway }
+  }
+  seqHome.push(false)
+  seqAway.push(true)
+  return { home: h, away: a + 1, seqHome, seqAway }
 }
 
 /** Winner of a knockout result (score + et + pens must decide; partial entries decide nothing). */

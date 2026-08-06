@@ -1,7 +1,7 @@
 import NumberFlow from '@number-flow/react'
 import confetti from 'canvas-confetti'
 import { motion } from 'framer-motion'
-import { Dices, FlaskConical, RotateCcw, X } from 'lucide-react'
+import { CloudRain, CloudSun, Dices, FlaskConical, Mountain, RotateCcw, Sun, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { MatchTheater } from '../../components/MatchTheater'
@@ -286,6 +286,44 @@ function KoNode({
   )
 }
 
+/** The shoot-out as it happened: kick-by-kick gold and misses, winner aglow. */
+function ShootoutBoard({ r, home, away }: { r: MatchResult; home: string; away: string }) {
+  if (!r.pens || r.pens.home === null || r.pens.away === null || r.pens.home === r.pens.away) return null
+  const winSide = r.pens.home > r.pens.away ? 'home' : 'away'
+  return (
+    <div className="shootout">
+      <div className="shootout-title">Penalty shoot-out</div>
+      {(['home', 'away'] as const).map((side) => {
+        const id = side === 'home' ? home : away
+        const seq = r.pensDetail?.[side] ?? null
+        const total = r.pens![side]!
+        return (
+          <div key={side} className={`shootout-row${winSide === side ? ' winner' : ''}`}>
+            <Flag id={id} size={22} />
+            <span className="so-name display">{NATION_BY_ID.get(id)?.name}</span>
+            <span className="so-kicks">
+              {seq
+                ? seq.map((scored, i) => (
+                    <i
+                      key={i}
+                      className={`so-kick${scored ? ' scored' : ' missed'}${i === 5 ? ' sd-start' : ''}`}
+                      title={`Kick ${i + 1} — ${scored ? 'scored' : 'missed'}`}
+                    >
+                      {scored ? '' : '×'}
+                    </i>
+                  ))
+                : Array.from({ length: Math.max(5, total) }, (_, i) => (
+                    <i key={i} className={`so-kick${i < total ? ' scored' : ' blank'}${i === 5 ? ' sd-start' : ''}`} />
+                  ))}
+            </span>
+            <span className="so-total display tnum">{total}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 /** The minute engine's story of the match: goals and cards on a timeline. */
 function MatchTimeline({ r, home, away }: { r: MatchResult; home: string; away: string }) {
   if (!r.events || r.events.length === 0) return null
@@ -351,9 +389,12 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
     if (partial || next.score.home !== next.score.away) {
       delete next.et
       delete next.pens
+      delete next.pensDetail
     } else if (next.et && next.et.home !== null && next.et.home !== next.et.away) {
       delete next.pens
+      delete next.pensDetail
     }
+    if (patch.pens !== undefined) delete next.pensDetail
     delete next.simulated
     setResult(node.number, next)
   }
@@ -393,6 +434,15 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
         <div className="match-panel-body">
           <div className="env-row">
             <span className={`env-chip wx-${env.weather}`}>
+              {env.weather === 'rain' ? (
+                <CloudRain size={12} />
+              ) : env.weather === 'heat' ? (
+                <Sun size={12} />
+              ) : env.weather === 'altitude' ? (
+                <Mountain size={12} />
+              ) : (
+                <CloudSun size={12} />
+              )}
               {WEATHER_LABEL[env.weather]} · {env.tempC}°C
             </span>
             <span className="env-chip" title={env.refStrictness > 1.15 ? 'Books everything' : env.refStrictness < 0.9 ? 'Lets play flow' : 'Even-tempered'}>
@@ -543,6 +593,7 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
             </div>
           )}
 
+          {r && <ShootoutBoard r={r} home={home} away={away} />}
           {r && r.events && r.events.length > 0 && <MatchTheater r={r} home={home} away={away} />}
           {r && <MatchTimeline r={r} home={home} away={away} />}
           {recap && <p className="recap serif-accent">{recap}</p>}

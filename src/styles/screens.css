@@ -2250,3 +2250,192 @@ table.standings td:not(.team) {
   color: var(--gold);
   border-bottom-color: var(--gold-dim);
 }
+
+/* ————— visual-language pass: one grammar everywhere ————— */
+
+/* every flag gains glass: a gloss catch and a machined rim */
+.flag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.26), transparent 46%);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.22);
+}
+
+/* single-letter fates: Q and E as enamel seals */
+.badge.q,
+.badge.out {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* standings positions become minted discs */
+table.standings .posn {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 10px;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+tr.pos-adv .posn {
+  box-shadow: inset 0 0 0 1px var(--gold-dim);
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
+}
+
+/* broadcast corner ticks: the signature frame on instrument panels */
+.odds-card,
+.theater,
+.glory,
+.lab-card,
+.rail,
+.shootout {
+  position: relative;
+}
+.odds-card::after,
+.theater::after,
+.glory::after,
+.lab-card::after,
+.rail::after,
+.shootout::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  pointer-events: none;
+  opacity: 0.42;
+  background:
+    linear-gradient(var(--gold) 0 0) left top / 11px 1px,
+    linear-gradient(var(--gold) 0 0) left top / 1px 11px,
+    linear-gradient(var(--gold) 0 0) right top / 11px 1px,
+    linear-gradient(var(--gold) 0 0) right top / 1px 11px,
+    linear-gradient(var(--gold) 0 0) left bottom / 11px 1px,
+    linear-gradient(var(--gold) 0 0) left bottom / 1px 11px,
+    linear-gradient(var(--gold) 0 0) right bottom / 11px 1px,
+    linear-gradient(var(--gold) 0 0) right bottom / 1px 11px;
+  background-repeat: no-repeat;
+}
+
+/* card headers close with fading hairlines, not flat rules */
+.ghub-card h4,
+.group-card h4,
+.pot-col h3 {
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, var(--line-2), transparent 88%) 1;
+}
+
+/* ————— the shoot-out, staged ————— */
+.shootout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--gold) 32%, var(--line-2));
+  background:
+    radial-gradient(300px 110px at 50% -30%, color-mix(in srgb, var(--gold) 9%, transparent), transparent 75%),
+    color-mix(in srgb, var(--bg-2) 55%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--gold) 13%, transparent);
+}
+.shootout-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.shootout-title::before,
+.shootout-title::after {
+  content: '';
+  width: 26px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim));
+}
+.shootout-title::after {
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+.shootout-row {
+  display: grid;
+  grid-template-columns: 22px minmax(64px, auto) 1fr 30px;
+  gap: 10px;
+  align-items: center;
+  padding: 3px 0;
+}
+.shootout-row .so-name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-mid);
+}
+.shootout-row.winner .so-name {
+  color: var(--gold);
+}
+.so-kicks {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.so-kick {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+  flex: none;
+}
+.so-kick.scored {
+  background: radial-gradient(circle at 32% 28%, var(--gold-hi), var(--gold) 72%);
+  box-shadow:
+    0 0 9px -3px var(--gold),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.25);
+}
+.so-kick.missed {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-3));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 45%, transparent);
+}
+.so-kick.blank {
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.so-kick.sd-start {
+  position: relative;
+  margin-left: 11px;
+}
+.so-kick.sd-start::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--gold-dim);
+}
+.so-total {
+  font-size: 19px;
+  color: var(--text-mid);
+  text-align: right;
+}
+.shootout-row.winner .so-total {
+  color: var(--gold);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--gold) 45%, transparent);
+}

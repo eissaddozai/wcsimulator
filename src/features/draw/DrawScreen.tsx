@@ -109,6 +109,7 @@ export function DrawScreen() {
   if (!drawTrace) {
     return (
       <div className="page" style={{ textAlign: 'center', paddingTop: 96 }}>
+        <div className="kicker serif-accent">One ceremony. Every constraint honored.</div>
         <h2 className="display" style={{ fontSize: 44, margin: '0 0 8px' }}>
           The Final Draw
         </h2>
