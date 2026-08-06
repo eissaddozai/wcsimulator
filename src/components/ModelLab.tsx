@@ -6,6 +6,7 @@ import { LAB_GROUPS, type SliderSpec } from './labSpecs'
 export function LabSlider({ sl }: { sl: SliderSpec }) {
   const modelParams = useStore((s) => s.modelParams)
   const setModelParam = useStore((s) => s.setModelParam)
+  const clearModelParams = useStore((s) => s.clearModelParams)
   const value = modelParams[sl.key] ?? DEFAULT_MODEL[sl.key]
   const isDefault = value === DEFAULT_MODEL[sl.key]
   return (
@@ -15,8 +16,22 @@ export function LabSlider({ sl }: { sl: SliderSpec }) {
           {sl.label}
           {!isDefault && <span className="gold-text"> ●</span>}
         </span>
-        <span className="tnum gold-text" style={{ fontSize: 13 }}>
-          {sl.format(value)}
+        <span className="row" style={{ gap: 5 }}>
+          <span className="tnum gold-text" style={{ fontSize: 13 }}>
+            {sl.format(value)}
+          </span>
+          {!isDefault && (
+            <button
+              className="dial-clear"
+              title="Back to the calibrated default"
+              onClick={(e) => {
+                e.preventDefault()
+                clearModelParams([sl.key])
+              }}
+            >
+              ×
+            </button>
+          )}
         </span>
       </span>
       <input

@@ -3771,3 +3771,198 @@ table.standings td:nth-child(7) {
 .theater-dialog .theater::after {
   display: none;
 }
+
+/* ————— the Laboratory, rebuilt as an instrument console ————— */
+.lab-console {
+  display: grid;
+  grid-template-columns: 225px minmax(0, 1fr) 335px;
+  gap: 16px;
+  align-items: start;
+}
+.lab-rail {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-mid);
+  transition: background 150ms, border-color 150ms, color 150ms;
+}
+.rail-item:hover {
+  background: var(--bg-2);
+  color: var(--text-hi);
+}
+.rail-item.on {
+  background: linear-gradient(160deg, color-mix(in srgb, currentColor 7%, var(--bg-2)), var(--bg-1) 75%);
+  border-color: color-mix(in srgb, currentColor 30%, var(--line-1));
+  color: var(--text-hi);
+}
+.rail-item .bg-dot {
+  background: currentColor;
+  box-shadow: 0 0 7px -1px currentColor;
+}
+.rail-item.tint-gold .bg-dot { color: var(--gold); }
+.rail-item.tint-green .bg-dot { color: var(--pos-adv); }
+.rail-item.tint-blue .bg-dot { color: #7ba7c9; }
+.rail-item.tint-amber .bg-dot { color: var(--pos-third); }
+.rail-item.tint-red .bg-dot { color: var(--danger); }
+.rail-item .ri-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rail-item .ri-count {
+  font-size: 10px;
+  color: var(--text-low);
+}
+.rail-item.on .ri-count {
+  color: var(--gold);
+}
+
+.chamber {
+  padding: 20px 22px;
+  min-height: 480px;
+}
+.chamber-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, color-mix(in srgb, currentColor 40%, transparent), transparent 80%) 1;
+}
+.chamber-head h3 {
+  margin: 0;
+  font-size: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.chamber-head p {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+  font-size: 12.5px;
+  color: var(--text-mid);
+}
+.dial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px 26px;
+}
+.dial-clear {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-low);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.dial-clear:hover {
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+.lab-console-side {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.preset-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.preset-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--line-1);
+  transition: border-color 150ms, background 150ms;
+}
+.preset-chip .display {
+  font-size: 14px;
+}
+.preset-chip .low {
+  font-size: 10px;
+}
+.preset-chip:hover {
+  border-color: var(--gold-dim);
+}
+.preset-chip.on {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 7%, var(--bg-2));
+  box-shadow: 0 0 14px -8px var(--gold);
+}
+.fp-head,
+.fp-row {
+  display: grid;
+  grid-template-columns: 1fr 42px 42px 44px;
+  gap: 6px;
+  align-items: center;
+}
+.fp-head {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: right;
+}
+.fp-head span:first-child {
+  text-align: left;
+}
+.fp-row {
+  font-size: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line-1) 70%, transparent);
+  text-align: right;
+}
+.fp-row:last-of-type {
+  border-bottom: none;
+}
+.fp-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--text-mid);
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1100px) {
+  .lab-console {
+    grid-template-columns: 1fr;
+  }
+  .lab-rail {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .lab-console-side {
+    position: static;
+  }
+}
