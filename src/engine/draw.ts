@@ -1,8 +1,8 @@
 import { NATION_BY_ID, rankOf } from '../data/nations'
 import type { Rng } from './rng'
 import { shuffle } from './rng'
-import { GROUP_IDS, POT_TO_POSITION, halfOfGroup } from './schedule'
-import type { Confed, DrawPick, GroupId, Pots, PotNumber } from './types'
+import { POT_TO_POSITION, groupIdsFor, halfOfGroupFor } from './schedule'
+import type { Confed, DrawPick, Format, GroupId, Pots, PotNumber } from './types'
 
 /** Host group anchors in host-selection order: first host opens Group A, then B, then D. */
 export function hostAnchors(hosts: readonly string[]): Record<string, GroupId> {
@@ -19,11 +19,11 @@ function confedOf(id: string): Confed {
 }
 
 /**
- * Top 4 of the 48 by FIFA ranking, paired (1,2) and (3,4) for bracket-half separation.
+ * Top 4 of the field by FIFA ranking, paired (1,2) and (3,4) for bracket-half separation.
  * A pair whose members are both hosts locked into the same half drops its constraint
  * instead of making the draw unsatisfiable.
  */
-export function top4Pairs(entries: readonly string[], hosts: readonly string[]): [string, string][] {
+export function top4Pairs(entries: readonly string[], hosts: readonly string[], format: Format = 48): [string, string][] {
   const anchors = hostAnchors(hosts)
   const sorted = entries.slice().sort((a, b) => rankOf(a) - rankOf(b))
   const t = sorted.slice(0, 4)
@@ -35,7 +35,7 @@ export function top4Pairs(entries: readonly string[], hosts: readonly string[]):
   return pairs.filter(([x, y]) => {
     const gx = anchors[x]
     const gy = anchors[y]
-    return !(gx && gy && halfOfGroup(gx) === halfOfGroup(gy))
+    return !(gx && gy && halfOfGroupFor(gx, format) === halfOfGroupFor(gy, format))
   })
 }
 
@@ -62,21 +62,24 @@ class DrawSolver {
   private groupOf = new Map<string, GroupId>()
   private nodes = 0
   private readonly nodeBudget: number
+  private readonly groupIds: GroupId[]
 
   private anchors: Record<string, GroupId>
 
   constructor(
     private pots: Pots,
     hosts: readonly string[],
+    private readonly format: Format = 48,
     nodeBudget = 2_000_000,
   ) {
     this.nodeBudget = nodeBudget
+    this.groupIds = groupIdsFor(format)
     this.anchors = hostAnchors(hosts)
-    for (const g of GROUP_IDS) {
+    for (const g of this.groupIds) {
       this.slots[g] = [null, null, null, null, null] // indexed by pot 1..4
       this.confedCount[g] = {}
     }
-    this.pairs = top4Pairs(pots.flat(), hosts)
+    this.pairs = top4Pairs(pots.flat(), hosts, format)
     this.uefaTotal = pots.flat().filter((id) => confedOf(id) === 'UEFA').length
   }
 
@@ -93,7 +96,7 @@ class DrawSolver {
       const partner = id === x ? y : id === y ? x : null
       if (!partner) continue
       const pg = this.groupOf.get(partner)
-      if (pg && halfOfGroup(pg) === halfOfGroup(g)) {
+      if (pg && halfOfGroupFor(pg, this.format) === halfOfGroupFor(g, this.format)) {
         return `Group ${g} is in the same bracket half as ${NATION_BY_ID.get(partner)!.name}`
       }
     }
@@ -124,15 +127,15 @@ class DrawSolver {
     for (const [c, n] of remainingByConfed) {
       const cap = c === 'UEFA' ? 2 : 1
       let capacity = 0
-      for (const g of GROUP_IDS) {
+      for (const g of this.groupIds) {
         const open = this.slots[g].reduce((acc, s, i) => acc + (i >= 1 && s === null ? 1 : 0), 0)
         capacity += Math.min(Math.max(cap - (this.confedCount[g][c] ?? 0), 0), open)
       }
       if (n > capacity) return false
     }
-    if (this.uefaTotal >= 12) {
+    if (this.uefaTotal >= this.groupIds.length) {
       const uefaRemaining = remainingByConfed.get('UEFA') ?? 0
-      const uncovered = GROUP_IDS.filter((g) => (this.confedCount[g].UEFA ?? 0) === 0)
+      const uncovered = this.groupIds.filter((g) => (this.confedCount[g].UEFA ?? 0) === 0)
       if (uncovered.length > uefaRemaining) return false
       // stronger: every uncovered group needs a DISTINCT remaining UEFA ball whose pot
       // slot is still open there — a bipartite matching, checked with simple augmenting
@@ -176,7 +179,7 @@ class DrawSolver {
     if (!this.prune(balls, from)) return false
     const ball = balls[from]!
     const mySkipped: { group: GroupId; reason: string }[] = []
-    for (const g of GROUP_IDS) {
+    for (const g of this.groupIds) {
       if (this.slots[g][ball.pot] !== null) continue
       const v = this.violation(ball.id, ball.pot, g)
       if (v) {
@@ -248,21 +251,22 @@ class DrawSolver {
   }
 }
 
-export function runDraw(pots: Pots, hosts: readonly string[], rng: Rng): DrawPick[] {
-  return new DrawSolver(pots, hosts).run(rng)
+export function runDraw(pots: Pots, hosts: readonly string[], rng: Rng, format: Format = 48): DrawPick[] {
+  return new DrawSolver(pots, hosts, format).run(rng)
 }
 
 /** Pre-check for the seeding-room linter: can this pot configuration produce a legal draw? */
-export function validatePots(pots: Pots, hosts: readonly string[]): { ok: boolean; reason: string | null } {
-  if (pots.length !== 4 || pots.some((p) => p.length !== 12)) {
-    return { ok: false, reason: 'Each pot must hold exactly 12 teams' }
+export function validatePots(pots: Pots, hosts: readonly string[], format: Format = 48): { ok: boolean; reason: string | null } {
+  const potSize = format / 4
+  if (pots.length !== 4 || pots.some((p) => p.length !== potSize)) {
+    return { ok: false, reason: `Each pot must hold exactly ${potSize} teams` }
   }
   for (const h of hosts) {
     if (pots.flat().includes(h) && !pots[0]!.includes(h)) {
       return { ok: false, reason: `${NATION_BY_ID.get(h)!.name} is a host and must be in Pot 1` }
     }
   }
-  if (!new DrawSolver(pots, hosts, 300_000).feasibleAtAll()) {
+  if (!new DrawSolver(pots, hosts, format, 300_000).feasibleAtAll()) {
     const counts = new Map<Confed, number>()
     for (const id of pots.flat()) counts.set(confedOf(id), (counts.get(confedOf(id)) ?? 0) + 1)
     const worst = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
@@ -275,9 +279,9 @@ export function validatePots(pots: Pots, hosts: readonly string[]): { ok: boolea
 }
 
 /** Reconstruct groups (position-ordered) from a draw trace. */
-export function groupsFromTrace(trace: readonly DrawPick[]): Record<GroupId, (string | null)[]> {
+export function groupsFromTrace(trace: readonly DrawPick[], format: Format = 48): Record<GroupId, (string | null)[]> {
   const groups = {} as Record<GroupId, (string | null)[]>
-  for (const g of GROUP_IDS) groups[g] = [null, null, null, null]
+  for (const g of groupIdsFor(format)) groups[g] = [null, null, null, null]
   for (const p of trace) groups[p.group][p.position - 1] = p.teamId
   return groups
 }

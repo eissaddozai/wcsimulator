@@ -1,7 +1,7 @@
 import { NATION_BY_ID, rankOf, ratingOf } from '../data/nations'
 import type { Rng } from './rng'
 import { beta, gaussian, shuffle } from './rng'
-import type { Pots, StrategyId } from './types'
+import type { Format, Pots, StrategyId } from './types'
 
 export const STRATEGY_LABELS: Record<StrategyId, string> = {
   official: 'Official',
@@ -21,19 +21,21 @@ export const STRATEGY_BLURBS: Record<StrategyId, string> = {
 
 const RTILDE = (id: string) => (ratingOf(id) - 1500) / 175
 
-function slice(hostless: string[], hosts: readonly string[]): Pots {
-  const n = 12 - hosts.length
-  return [
-    [...hosts, ...hostless.slice(0, n)],
-    hostless.slice(n, n + 12),
-    hostless.slice(n + 12, n + 24),
-    hostless.slice(n + 24, n + 36),
-  ]
+function makeSlice(potSize: number) {
+  return (hostless: string[], hosts: readonly string[]): Pots => {
+    const n = potSize - hosts.length
+    return [
+      [...hosts, ...hostless.slice(0, n)],
+      hostless.slice(n, n + potSize),
+      hostless.slice(n + potSize, n + 2 * potSize),
+      hostless.slice(n + 2 * potSize, n + 3 * potSize),
+    ]
+  }
 }
 
 /**
- * Five seeding strategies, one signature. Invariants: hosts are always Pot 1; output is 4×12.
- * Manual drag-and-drop is a layered override on the result, not a strategy.
+ * Five seeding strategies, one signature. Invariants: hosts are always Pot 1; output is
+ * 4 pots × (field/4). Manual drag-and-drop is a layered override on the result, not a strategy.
  */
 export function seedPots(
   entries: readonly string[],
@@ -41,7 +43,9 @@ export function seedPots(
   strategy: StrategyId,
   theta: number,
   rng: Rng,
+  format: Format = 48,
 ): Pots {
+  const slice = makeSlice(format / 4)
   const hosts = hostList.filter((h) => entries.includes(h))
   const rest = entries.filter((id) => !hosts.includes(id))
 

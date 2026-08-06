@@ -1,5 +1,35 @@
-import { BASE_QUOTA, NATION_BY_ID } from '../data/nations'
-import type { Confed } from './types'
+import { BASE_QUOTA, BASE_QUOTA_64, NATION_BY_ID } from '../data/nations'
+import type { Confed, Format } from './types'
+
+/**
+ * Intercontinental play-off entrants (64-team format). CONMEBOL was slated for 3, but
+ * with 8 of its 10 member associations qualifying directly only 2 can ever remain —
+ * the third seat is arithmetically impossible and reverts to OFC (feasibility amendment,
+ * see FORMAT-64.md).
+ */
+export const PLAYOFF_ALLOCATION_64: Record<Confed, number> = {
+  UEFA: 3,
+  CAF: 3,
+  AFC: 3,
+  CONCACAF: 3,
+  CONMEBOL: 2,
+  OFC: 2,
+}
+export function quotasFor(format: Format): Record<Confed, number> {
+  return format === 64 ? BASE_QUOTA_64 : BASE_QUOTA
+}
+export function playoffAllocationFor(format: Format): Record<Confed, number> {
+  return format === 64 ? PLAYOFF_ALLOCATION_64 : PLAYOFF_ALLOCATION
+}
+export function directTotalFor(format: Format): number {
+  return format === 64 ? 60 : 46
+}
+export function playoffEntrantsFor(format: Format): number {
+  return format === 64 ? 16 : 6
+}
+export function fieldSizeFor(format: Format): number {
+  return format === 64 ? 64 : 48
+}
 
 /**
  * The 46 direct places are exact per confederation. The last two places are won on the
@@ -26,23 +56,24 @@ export interface QuotaStatus {
   capReason: (confed: Confed) => string | null
 }
 
-export function quotaStatus(entries: readonly string[], hosts: readonly string[]): QuotaStatus {
+export function quotaStatus(entries: readonly string[], hosts: readonly string[], format: Format = 48): QuotaStatus {
   const counts: Record<Confed, number> = { UEFA: 0, CAF: 0, AFC: 0, CONCACAF: 0, CONMEBOL: 0, OFC: 0 }
   for (const id of entries) {
     const n = NATION_BY_ID.get(id)
     if (n) counts[n.confed]++
   }
+  const quotas = quotasFor(format)
   const total = entries.length
   const hostsIn = hosts.every((h) => entries.includes(h))
   const complete =
-    total === DIRECT_TOTAL &&
+    total === directTotalFor(format) &&
     hostsIn &&
-    (Object.keys(counts) as Confed[]).every((c) => counts[c] === BASE_QUOTA[c])
+    (Object.keys(counts) as Confed[]).every((c) => counts[c] === quotas[c])
 
   const capReason = (confed: Confed): string | null => {
-    if (counts[confed] < BASE_QUOTA[confed]) return null
+    if (counts[confed] < quotas[confed]) return null
     return confed === 'UEFA'
-      ? 'UEFA is capped at 16 — Europe never enters the Play-off Tournament'
+      ? `UEFA is capped at ${quotas.UEFA} — the next tap becomes a Play-off Tournament entrant`
       : `${confed}'s direct places are full — the next tap becomes a Play-off Tournament entrant`
   }
 
@@ -54,12 +85,14 @@ export function canAdd(
   entries: readonly string[],
   hosts: readonly string[],
   id: string,
+  format: Format = 48,
 ): { ok: boolean; reason: string | null } {
   if (entries.includes(id)) return { ok: false, reason: 'Already selected' }
-  if (entries.length >= DIRECT_TOTAL) return { ok: false, reason: 'All 46 direct places are filled' }
+  if (entries.length >= directTotalFor(format))
+    return { ok: false, reason: `All ${directTotalFor(format)} direct places are filled` }
   const n = NATION_BY_ID.get(id)
   if (!n) return { ok: false, reason: 'Unknown nation' }
-  const reason = quotaStatus(entries, hosts).capReason(n.confed)
+  const reason = quotaStatus(entries, hosts, format).capReason(n.confed)
   return reason ? { ok: false, reason } : { ok: true, reason: null }
 }
 
@@ -68,20 +101,23 @@ export function canAddPlayoff(
   entries: readonly string[],
   playoffTeams: readonly string[],
   id: string,
+  format: Format = 48,
 ): { ok: boolean; reason: string | null } {
   if (entries.includes(id)) return { ok: false, reason: 'Already holds a direct place' }
   if (playoffTeams.includes(id)) return { ok: false, reason: 'Already a play-off entrant' }
-  if (playoffTeams.length >= PLAYOFF_ENTRANTS) return { ok: false, reason: 'All six play-off places are taken' }
+  if (playoffTeams.length >= playoffEntrantsFor(format))
+    return { ok: false, reason: `All ${playoffEntrantsFor(format)} play-off places are taken` }
   const n = NATION_BY_ID.get(id)
   if (!n) return { ok: false, reason: 'Unknown nation' }
-  if (n.confed === 'UEFA') return { ok: false, reason: 'UEFA never enters the Play-off Tournament' }
+  const alloc = playoffAllocationFor(format)
+  if (alloc[n.confed] === 0) return { ok: false, reason: `${n.confed} never enters the Play-off Tournament` }
   const used = playoffTeams.filter((t) => NATION_BY_ID.get(t)?.confed === n.confed).length
-  if (used >= PLAYOFF_ALLOCATION[n.confed]) {
+  if (used >= alloc[n.confed]) {
     return {
       ok: false,
       reason:
-        PLAYOFF_ALLOCATION[n.confed] === 2
-          ? `Both of ${n.confed}'s play-off places are taken`
+        alloc[n.confed] > 1
+          ? `All ${alloc[n.confed]} of ${n.confed}'s play-off places are taken`
           : `${n.confed}'s play-off place is taken`,
     }
   }

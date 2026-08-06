@@ -1,4 +1,4 @@
-import type { GroupId, Pots } from '../engine/types'
+import type { GroupId48, Pots } from '../engine/types'
 
 /**
  * The real FIFA World Cup 26: qualified 48, final-draw pots (5 Dec 2025, playoff
@@ -14,7 +14,7 @@ export const PRESET_POTS: Pots = [
 export const PRESET_ENTRIES: string[] = PRESET_POTS.flat()
 
 /** Real draw result — teams listed in position order 1..4. */
-export const PRESET_GROUPS: Record<GroupId, [string, string, string, string]> = {
+export const PRESET_GROUPS: Record<GroupId48, [string, string, string, string]> = {
   A: ['MEX', 'RSA', 'KOR', 'CZE'],
   B: ['CAN', 'QAT', 'SUI', 'BIH'],
   C: ['BRA', 'SCO', 'MAR', 'HAI'],

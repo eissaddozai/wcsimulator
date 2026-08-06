@@ -1,6 +1,6 @@
-import { KO_MATCHES, KO_BY_NUMBER, THIRD_SLOT_MATCHES } from './schedule'
+import { KO_BY_NUMBER, THIRD_SLOT_MATCHES, koMatchesFor } from './schedule'
 import { koLoser, koWinner } from './simulate'
-import type { GroupId, KoSource, MatchResult, StandingRow, ThirdRank } from './types'
+import type { Format, GroupId, KoSource, MatchResult, StandingRow, ThirdRank } from './types'
 
 export interface ResolvedKo {
   number: number
@@ -61,6 +61,7 @@ export function resolveBracket(
   standings: Record<GroupId, StandingRow[]> | null,
   thirds: ThirdRank[] | null,
   results: Record<number, MatchResult>,
+  format: Format = 48,
 ): BracketState {
   const state: BracketState = {}
   const thirdSlots = thirds ? safeAllocate(thirds.filter((t) => t.qualified)) : null
@@ -85,7 +86,7 @@ export function resolveBracket(
     }
   }
 
-  for (const ko of KO_MATCHES) {
+  for (const ko of koMatchesFor(format)) {
     const home = resolveSource(ko.home, ko.number)
     const away = resolveSource(ko.away, ko.number)
     const r = results[ko.number] ?? null
@@ -125,8 +126,9 @@ export function staleAfter(
   standings: Record<GroupId, StandingRow[]> | null,
   thirds: ThirdRank[] | null,
   results: Record<number, MatchResult>,
+  format: Format = 48,
 ): number[] {
-  const next = resolveBracket(standings, thirds, results)
+  const next = resolveBracket(standings, thirds, results, format)
   return Object.values(next)
     .filter((m) => m.stale)
     .map((m) => m.number)

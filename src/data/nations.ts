@@ -27,6 +27,16 @@ export const BASE_QUOTA: Record<Confed, number> = {
 }
 export const FLEX_SLOTS = 2
 
+/** 64-team format: 60 direct berths per the pinned FORMAT-64 spec. */
+export const BASE_QUOTA_64: Record<Confed, number> = {
+  UEFA: 21,
+  CAF: 12,
+  AFC: 10,
+  CONCACAF: 8,
+  CONMEBOL: 8,
+  OFC: 1,
+}
+
 export function byConfed(confed: Confed): Nation[] {
   return NATIONS.filter((n) => n.confed === confed).sort((a, b) => a.rank - b.rank)
 }

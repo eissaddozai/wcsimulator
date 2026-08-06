@@ -14,28 +14,40 @@ import { NATION_BY_ID, rankOf, shortName } from '../../data/nations'
 import { WEATHER_LABEL, matchEnvironment } from '../../engine/environment'
 import { matchRecap } from '../../engine/narrative'
 import type { ResolvedKo } from '../../engine/bracket'
-import { KO_BY_NUMBER, KO_MATCHES } from '../../engine/schedule'
-import { detailedOdds, koWinner, stageOfMatch, type MatchContext } from '../../engine/simulate'
+import {
+  bronzeNumberFor,
+  finalNumberFor,
+  groupMatchCountFor,
+  koByNumberFor,
+  koMatchesFor,
+  koRangeFor,
+} from '../../engine/schedule'
+import { detailedOdds, koWinner, stageOfMatchFor, type MatchContext } from '../../engine/simulate'
 import { allGroupsComplete, bracketState } from '../../engine/tournament'
 import { groupsOf, useStore } from '../../store/store'
-import type { KoSource, MatchEvent, MatchResult } from '../../engine/types'
+import type { Format, KoSource, MatchEvent, MatchResult } from '../../engine/types'
 
 /**
  * True mirrored bracket: two wings converging on a center Final column.
  * One CSS grid, 16 rows; node cells span 2/4/8/16 rows so every round centers on its
  * feeders, with elbow connectors drawn between columns — the champion's road turns gold.
+ * Both formats share the tree shape (16 R32 ties); only the match numbers differ.
  */
-const LEFT = {
-  r32: [74, 77, 73, 75, 83, 84, 81, 82],
-  r16: [89, 90, 93, 94],
-  qf: [97, 98],
-  sf: [101],
+const WINGS: Record<Format, { left: WingSpec; right: WingSpec }> = {
+  48: {
+    left: { r32: [74, 77, 73, 75, 83, 84, 81, 82], r16: [89, 90, 93, 94], qf: [97, 98], sf: [101] },
+    right: { r32: [76, 78, 79, 80, 86, 88, 85, 87], r16: [91, 92, 95, 96], qf: [99, 100], sf: [102] },
+  },
+  64: {
+    left: { r32: [97, 98, 99, 100, 101, 102, 103, 104], r16: [113, 114, 115, 116], qf: [121, 122], sf: [125] },
+    right: { r32: [105, 106, 107, 108, 109, 110, 111, 112], r16: [117, 118, 119, 120], qf: [123, 124], sf: [126] },
+  },
 }
-const RIGHT = {
-  r32: [76, 78, 79, 80, 86, 88, 85, 87],
-  r16: [91, 92, 95, 96],
-  qf: [99, 100],
-  sf: [102],
+interface WingSpec {
+  r32: number[]
+  r16: number[]
+  qf: number[]
+  sf: number[]
 }
 
 function sourceLabel(src: KoSource): string {
@@ -57,7 +69,12 @@ export function KnockoutScreen() {
   const drawTrace = useStore((s) => s.drawTrace)
   const results = useStore((s) => s.results)
   const masterSeed = useStore((s) => s.masterSeed)
+  const format = useStore((s) => s.format)
   const simulateKoMatch = useStore((s) => s.simulateKoMatch)
+  const { left: LEFT, right: RIGHT } = WINGS[format]
+  const FINAL_N = finalNumberFor(format)
+  const BRONZE_N = bronzeNumberFor(format)
+  const koMatches = koMatchesFor(format)
   const [openMatch, setOpenMatch] = useState<number | null>(null)
   const [showChampion, setShowChampion] = useState(true)
   const [screenLabOpen, setScreenLabOpen] = useState(false)
@@ -80,11 +97,11 @@ export function KnockoutScreen() {
     return () => window.removeEventListener('resize', onR)
   }, [fitMode])
 
-  const groups = useMemo(() => groupsOf(drawTrace), [drawTrace])
-  const complete = allGroupsComplete(results)
+  const groups = useMemo(() => groupsOf(drawTrace, format), [drawTrace, format])
+  const complete = allGroupsComplete(results, format)
   const state = useMemo(
-    () => (groups ? bracketState(groups, results, masterSeed) : null),
-    [groups, results, masterSeed],
+    () => (groups ? bracketState(groups, results, masterSeed, format) : null),
+    [groups, results, masterSeed, format],
   )
 
   if (!groups || !state) {
@@ -95,19 +112,19 @@ export function KnockoutScreen() {
           The bracket sleeps until the groups have spoken.
         </p>
         <p className="low" style={{ margin: 0 }}>
-          Run the draw, then enter or simulate all seventy-two group scores.
+          Run the draw, then enter or simulate all {format === 64 ? 'ninety-six' : 'seventy-two'} group scores.
         </p>
       </div>
     )
   }
 
   const bracket = state.bracket
-  const champion = bracket[104]?.winner ?? null
-  const finalMatch = bracket[104]
+  const champion = bracket[FINAL_N]?.winner ?? null
+  const finalMatch = bracket[FINAL_N]
 
   const liveStage = (() => {
     for (const st of ['R32', 'R16', 'QF', 'SF', 'FINAL'] as const) {
-      const open = KO_MATCHES.some((m) => {
+      const open = koMatches.some((m) => {
         if (m.stage !== st) return false
         const nd = bracket[m.number]
         return Boolean(nd?.home && nd.away && !nd.winner)
@@ -146,7 +163,9 @@ export function KnockoutScreen() {
           </h2>
         </div>
         {!complete && (
-          <span className="chip">Awaiting the group stage — the wings fill once all 72 scores are entered</span>
+          <span className="chip">
+            Awaiting the group stage — the wings fill once all {groupMatchCountFor(format)} scores are entered
+          </span>
         )}
         <button className="btn small" onClick={() => setScreenLabOpen(true)} title="Tune the simulation engine — dials apply to every match you simulate from here">
           <FlaskConical size={14} /> Model Lab
@@ -155,10 +174,10 @@ export function KnockoutScreen() {
           <button
             className="btn small gold-line"
             onClick={() => {
-              for (const m of KO_MATCHES) {
+              for (const m of koMatches) {
                 const cur = useStore.getState()
-                const gs = groupsOf(cur.drawTrace)!
-                const st = bracketState(gs, cur.results, cur.masterSeed)
+                const gs = groupsOf(cur.drawTrace, cur.format)!
+                const st = bracketState(gs, cur.results, cur.masterSeed, cur.format)
                 const nd = st.bracket[m.number]!
                 if (!nd.result && nd.home && nd.away) simulateKoMatch(m.number)
               }
@@ -232,7 +251,7 @@ export function KnockoutScreen() {
           {LEFT.r16.map((n, j) => [conn(n, `${4 * j + 2} / span 4`, 2, 'l'), node(n, `${4 * j + 2} / span 4`, 3)])}
           {LEFT.qf.map((n, k) => [conn(n, `${8 * k + 2} / span 8`, 4, 'l'), node(n, `${8 * k + 2} / span 8`, 5)])}
           {LEFT.sf.map((n) => [conn(n, `2 / span 16`, 6, 'l'), node(n, `2 / span 16`, 7)])}
-          {conn(104, `2 / span 16`, 8, 'l', true)}
+          {conn(FINAL_N, `2 / span 16`, 8, 'l', true)}
 
           {/* center: champion, final, bronze */}
           <div className="bcenter" style={{ gridRow: '2 / span 16', gridColumn: 9 }}>
@@ -256,17 +275,17 @@ export function KnockoutScreen() {
                 </>
               )}
             </div>
-            <div data-m={104}>
-              <KoNode node={bracket[104]!} onOpen={() => setOpenMatch(104)} final />
+            <div data-m={FINAL_N}>
+              <KoNode node={bracket[FINAL_N]!} onOpen={() => setOpenMatch(FINAL_N)} final />
             </div>
             <div className="bronze-wrap">
               <div className="champ-caption dim" style={{ justifyContent: 'center', marginBottom: 6 }}>Bronze</div>
-              <KoNode node={bracket[103]!} compact onOpen={() => setOpenMatch(103)} />
+              <KoNode node={bracket[BRONZE_N]!} compact onOpen={() => setOpenMatch(BRONZE_N)} />
             </div>
           </div>
 
           {/* right wing (mirrored) */}
-          {conn(104, `2 / span 16`, 10, 'r', true)}
+          {conn(FINAL_N, `2 / span 16`, 10, 'r', true)}
           {RIGHT.sf.map((n) => [node(n, `2 / span 16`, 11), conn(n, `2 / span 16`, 12, 'r')])}
           {RIGHT.qf.map((n, k) => [node(n, `${8 * k + 2} / span 8`, 13), conn(n, `${8 * k + 2} / span 8`, 14, 'r')])}
           {RIGHT.r16.map((n, j) => [node(n, `${4 * j + 2} / span 4`, 15), conn(n, `${4 * j + 2} / span 4`, 16, 'r')])}
@@ -293,18 +312,20 @@ export function KnockoutScreen() {
 
 /** One continuous molten thread tracing the champion's road from Round of 32 to the trophy. */
 function ChampionThread({ champion, bracket, zoom = 1 }: { champion: string | null; bracket: Record<number, ResolvedKo>; zoom?: number }) {
+  const format = useStore((s) => s.format)
   const [path, setPath] = useState<string | null>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
 
   const road = useMemo(() => {
     if (!champion) return []
     const r: number[] = []
-    for (let n = 73; n <= 104; n++) {
+    const [from, to] = koRangeFor(format)
+    for (let n = from; n <= to; n++) {
       const m = bracket[n]
       if (m && m.winner === champion && (m.home === champion || m.away === champion)) r.push(n)
     }
     return r
-  }, [champion, bracket])
+  }, [champion, bracket, format])
 
   useLayoutEffect(() => {
     if (!champion || road.length < 2) {
@@ -391,7 +412,8 @@ function KoNode({
   compact?: boolean
   final?: boolean
 }) {
-  const ko = KO_BY_NUMBER[node.number]!
+  const format = useStore((s) => s.format)
+  const ko = koByNumberFor(format)[node.number]!
   const { home: hs, away: as_, note } = scoreText(node)
   const ghost = !node.home || !node.away
   const nameOf = (id: string) => NATION_BY_ID.get(id)?.name ?? id
@@ -399,7 +421,7 @@ function KoNode({
   const upset = Boolean(node.winner && loser && rankOf(node.winner) > rankOf(loser))
   return (
     <button
-      className={`card ko-node ks-${ko.stage.toLowerCase()}${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}${compact ? ' compact' : ''}${final ? ' final-node' : ''}${node.number === 103 ? ' bronze' : ''}`}
+      className={`card ko-node ks-${ko.stage.toLowerCase()}${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}${compact ? ' compact' : ''}${final ? ' final-node' : ''}${node.number === bronzeNumberFor(format) ? ' bronze' : ''}`}
       onClick={onOpen}
       disabled={ghost}
       aria-label={`Match ${node.number}`}
@@ -548,22 +570,23 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
   const chaos = useStore((s) => s.chaos)
   const modelParams = useStore((s) => s.modelParams)
   const ratingOverrides = useStore((s) => s.ratingOverrides)
+  const format = useStore((s) => s.format)
   const [labOpen, setLabOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [oddsOpen, setOddsOpen] = useState(false)
   const [theaterOpen, setTheaterOpen] = useState(false)
-  const ko = KO_BY_NUMBER[node.number]!
+  const ko = koByNumberFor(format)[node.number]!
   const r = node.result && !node.stale ? node.result : null
   const home = node.home!
   const away = node.away!
 
   const ctx: MatchContext = useMemo(
     () => ({
-      stage: stageOfMatch(node.number),
+      stage: stageOfMatchFor(node.number, format),
       homeHost: hosts.includes(home),
       awayHost: hosts.includes(away),
     }),
-    [node.number, home, away, hosts],
+    [node.number, home, away, hosts, format],
   )
   const odds = useMemo(
     () => detailedOdds(home, away, ctx, chaos.match),
@@ -868,6 +891,7 @@ function ChampionScene({
   bracket: Record<number, ResolvedKo>
   onClose: () => void
 }) {
+  const format = useStore((s) => s.format)
   const nation = NATION_BY_ID.get(champion)
   const r = final.result!
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -931,7 +955,8 @@ function ChampionScene({
   }, [])
 
   const road: number[] = []
-  for (let n = 73; n <= 104; n++) {
+  const [koFrom, koTo] = koRangeFor(format)
+  for (let n = koFrom; n <= koTo; n++) {
     const m = bracket[n]
     if (m && (m.home === champion || m.away === champion)) road.push(n)
   }
@@ -976,7 +1001,7 @@ function ChampionScene({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7 + i * 0.22, duration: 0.5, ease: [0.2, 0, 0, 1] }}
               >
-                <span className="glory-stage">{STAGE_FULL[KO_BY_NUMBER[n]!.stage]}</span>
+                <span className="glory-stage">{STAGE_FULL[koByNumberFor(format)[n]!.stage]}</span>
                 <Flag id={opp} size={26} />
                 <span className="glory-opp">{NATION_BY_ID.get(opp)?.name}</span>
                 <span className="glory-score display tnum">

@@ -1,4 +1,4 @@
-import type { GroupFixture, GroupId, KoMatch, PotNumber, Position } from './types'
+import type { Format, GroupFixture, GroupId, KoMatch, PotNumber, Position } from './types'
 
 export const GROUP_IDS: GroupId[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
 
@@ -105,3 +105,109 @@ export function halfOfGroup(g: GroupId): 1 | 2 {
 
 /** The 8 R32 matches hosting a third-placed team, ascending. */
 export const THIRD_SLOT_MATCHES = [74, 77, 79, 80, 81, 82, 83, 85] as const
+
+/* ————————————————————————— the 64-team format ————————————————————————— */
+
+export const GROUP_IDS_64: GroupId[] = [
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+]
+
+/**
+ * 64-team group stage: 16 groups × 4, matchday-major numbering — MD1 = 1–32,
+ * MD2 = 33–64, MD3 = 65–96 — with the same verified per-group pairing pattern.
+ */
+export const GROUP_FIXTURES_64: GroupFixture[] = (() => {
+  const out: GroupFixture[] = []
+  for (let md = 0; md < 3; md++) {
+    for (let g = 0; g < 16; g++) {
+      for (let f = 0; f < 2; f++) {
+        const pair = MATCHDAY_PATTERN[md]![f]!
+        out.push({
+          number: md * 32 + g * 2 + f + 1,
+          group: GROUP_IDS_64[g]!,
+          matchday: (md + 1) as 1 | 2 | 3,
+          homePos: pair[0],
+          awayPos: pair[1],
+        })
+      }
+    }
+  }
+  return out
+})()
+
+/**
+ * 64-team knockout: the top two of all 16 groups — 32 sides, no best-thirds.
+ * Cross-paired winners vs runners-up within each half (A–H left, I–P right),
+ * matches 97–128.
+ */
+export const KO_MATCHES_64: KoMatch[] = (() => {
+  const W = (g: GroupId): KoSource64 => ({ kind: 'winner', group: g })
+  const R = (g: GroupId): KoSource64 => ({ kind: 'runnerUp', group: g })
+  const M = (n: number): KoSource64 => ({ kind: 'matchWinner', match: n })
+  const out: KoMatch[] = []
+  const halves: GroupId[][] = [
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+    ['I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'],
+  ]
+  let n = 97
+  for (const half of halves) {
+    // winners of adjacent pairs meet the other pair's runner-up
+    for (let i = 0; i < 8; i += 2) out.push({ number: n++, stage: 'R32', home: W(half[i]!), away: R(half[i + 1]!) })
+    for (let i = 0; i < 8; i += 2) out.push({ number: n++, stage: 'R32', home: W(half[i + 1]!), away: R(half[i]!) })
+  }
+  // R16: 113–120
+  const r32Left = [97, 98, 99, 100, 101, 102, 103, 104]
+  const r32Right = [105, 106, 107, 108, 109, 110, 111, 112]
+  for (const wing of [r32Left, r32Right]) {
+    for (let i = 0; i < 8; i += 2) out.push({ number: n++, stage: 'R16', home: M(wing[i]!), away: M(wing[i + 1]!) })
+  }
+  // QF: 121–124
+  for (const base of [113, 117]) {
+    out.push({ number: n++, stage: 'QF', home: M(base), away: M(base + 1) })
+    out.push({ number: n++, stage: 'QF', home: M(base + 2), away: M(base + 3) })
+  }
+  // SF 125–126, Bronze 127, Final 128
+  out.push({ number: 125, stage: 'SF', home: M(121), away: M(122) })
+  out.push({ number: 126, stage: 'SF', home: M(123), away: M(124) })
+  out.push({ number: 127, stage: 'THIRD', home: { kind: 'matchLoser', match: 125 }, away: { kind: 'matchLoser', match: 126 } })
+  out.push({ number: 128, stage: 'FINAL', home: { kind: 'matchWinner', match: 125 }, away: { kind: 'matchWinner', match: 126 } })
+  return out
+})()
+
+type KoSource64 = KoMatch['home']
+
+export const KO_BY_NUMBER_64: Record<number, KoMatch> = Object.fromEntries(KO_MATCHES_64.map((m) => [m.number, m]))
+
+/* format-aware accessors — every 48-team export stays untouched */
+export function groupIdsFor(format: Format): GroupId[] {
+  return format === 64 ? GROUP_IDS_64 : GROUP_IDS
+}
+export function groupFixturesFor(format: Format): GroupFixture[] {
+  return format === 64 ? GROUP_FIXTURES_64 : GROUP_FIXTURES
+}
+export function fixturesOfGroupFor(group: GroupId, format: Format): GroupFixture[] {
+  return groupFixturesFor(format).filter((f) => f.group === group)
+}
+export function koMatchesFor(format: Format): KoMatch[] {
+  return format === 64 ? KO_MATCHES_64 : KO_MATCHES
+}
+export function koByNumberFor(format: Format): Record<number, KoMatch> {
+  return format === 64 ? KO_BY_NUMBER_64 : KO_BY_NUMBER
+}
+export function finalNumberFor(format: Format): number {
+  return format === 64 ? 128 : 104
+}
+export function bronzeNumberFor(format: Format): number {
+  return format === 64 ? 127 : 103
+}
+export function koRangeFor(format: Format): [number, number] {
+  return format === 64 ? [97, 128] : [73, 104]
+}
+export function groupMatchCountFor(format: Format): number {
+  return format === 64 ? 96 : 72
+}
+/** Bracket halves: the 48-team pathways are irregular; the 64-team tree splits cleanly A–H / I–P. */
+export function halfOfGroupFor(g: GroupId, format: Format): 1 | 2 {
+  if (format === 64) return g <= 'H' ? 1 : 2
+  return halfOfGroup(g)
+}

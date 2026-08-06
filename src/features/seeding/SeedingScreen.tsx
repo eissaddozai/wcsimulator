@@ -19,13 +19,15 @@ export function SeedingScreen() {
   const setChaos = useStore((s) => s.setChaos)
   const setStep = useStore((s) => s.setStep)
   const hosts = useStore((s) => s.hosts)
+  const format = useStore((s) => s.format)
+  const potSize = format / 4
 
   const [drag, setDrag] = useState<{ id: string; pot: number } | null>(null)
   const [over, setOver] = useState<{ id: string; pot: number } | null>(null)
 
   const check = useMemo(
-    () => (pots ? validatePots(pots, hosts) : { ok: false, reason: 'Seed the pots first' }),
-    [pots, hosts],
+    () => (pots ? validatePots(pots, hosts, format) : { ok: false, reason: 'Seed the pots first' }),
+    [pots, hosts, format],
   )
 
   const move = (fromId: string, toPot: number, toId: string | null) => {
@@ -42,7 +44,7 @@ export function SeedingScreen() {
       next[fromPot]![fi] = toId
       next[toPot]![ti] = fromId
     } else if (fromPot !== toPot) {
-      return // pots must stay 12/12 — only swaps allowed across pots
+      return // pots must stay equal-sized — only swaps allowed across pots
     }
     setPots(next)
   }
@@ -51,7 +53,7 @@ export function SeedingScreen() {
     <div className="page">
       <div className="row spread" style={{ flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div className="kicker serif-accent">Four pots, twelve balls each.</div>
+          <div className="kicker serif-accent">Four pots, {potSize === 16 ? 'sixteen' : 'twelve'} balls each.</div>
           <h2 className="display" style={{ fontSize: 34, margin: 0 }}>
             Seeding
           </h2>
@@ -115,7 +117,7 @@ export function SeedingScreen() {
                     ⌀ {Math.round(pot.reduce((acc, id) => acc + ratingOf(id), 0) / Math.max(pot.length, 1))}
                   </span>
                   <span className="tnum low" style={{ fontSize: 13 }}>
-                    {pot.length}/12
+                    {pot.length}/{potSize}
                   </span>
                 </span>
               </h3>

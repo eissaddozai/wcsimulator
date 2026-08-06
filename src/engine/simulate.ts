@@ -638,3 +638,14 @@ export function stageOfMatch(n: number): MatchStage {
   if (n <= 102) return 'sf'
   return n === 103 ? 'third' : 'final'
 }
+
+/** Stage of match n under either format's numbering. */
+export function stageOfMatchFor(n: number, format: 48 | 64): MatchStage {
+  if (format === 48) return stageOfMatch(n)
+  if (n <= 96) return 'group'
+  if (n <= 112) return 'r32'
+  if (n <= 120) return 'r16'
+  if (n <= 124) return 'qf'
+  if (n <= 126) return 'sf'
+  return n === 127 ? 'third' : 'final'
+}

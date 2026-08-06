@@ -24,7 +24,7 @@ export function LandingScreen() {
       <div className="landing-globe" aria-hidden>
         <WorldGlobe size={680} />
       </div>
-      <div className="overline serif-accent">The 48-team era</div>
+      <div className="overline serif-accent">The 48-team era — and the 64 beyond it</div>
       <h1 className="display">
         Simulate the 2026
         <br />
@@ -39,11 +39,12 @@ export function LandingScreen() {
           {[0, 1].map((dup) => (
             <span key={dup} className="ft-set">
               {[
-                '48 nations',
-                '12 groups',
-                '104 matches',
+                '48 or 64 nations',
+                '12 or 16 groups',
+                'Up to 128 matches',
                 '211 eligible teams',
-                'A hand-played play-off tournament',
+                'Hand-played play-off tournaments',
+                '5 qualifying modalities',
                 '34 boosters',
                 '43 laboratory dials',
                 '5 seeding strategies',
@@ -79,7 +80,7 @@ export function LandingScreen() {
           <h3 className="display">Custom</h3>
           <p>
             Start in the Laboratory — 43 dials over the tournament's physics and every squad's boosters — then build
-            your 48 and let the draw engine handle the rules.
+            your 48, or the expanded 64, and let the draw engine handle the rules.
           </p>
           <span className="btn gold-line">Start from scratch</span>
         </button>

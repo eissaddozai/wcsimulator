@@ -11,7 +11,10 @@ export interface Nation {
   host?: boolean
 }
 
-export type GroupId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L'
+export type GroupId48 = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L'
+export type GroupId = GroupId48 | 'M' | 'N' | 'O' | 'P'
+/** tournament format: the 2026 48-team World Cup, or the expanded 64-team format */
+export type Format = 48 | 64
 export type PotNumber = 1 | 2 | 3 | 4
 export type Position = 1 | 2 | 3 | 4
 

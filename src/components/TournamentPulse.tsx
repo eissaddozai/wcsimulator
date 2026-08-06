@@ -2,8 +2,9 @@ import NumberFlow from '@number-flow/react'
 import { useMemo } from 'react'
 import { ratingOf, shortName } from '../data/nations'
 import type { BracketState } from '../engine/bracket'
-import { GROUP_FIXTURES } from '../engine/schedule'
+import { groupFixturesFor, koRangeFor } from '../engine/schedule'
 import type { Groups } from '../engine/tournament'
+import { useStore } from '../store/store'
 import { isScored, type MatchResult } from '../engine/types'
 
 /** Live records strip: the tournament's vital signs, recomputed from every entered score. */
@@ -16,6 +17,7 @@ export function TournamentPulse({
   bracket: BracketState
   results: Record<number, MatchResult>
 }) {
+  const format = useStore((s) => s.format)
   const pulse = useMemo(() => {
     let played = 0
     let goals = 0
@@ -43,18 +45,19 @@ export function TournamentPulse({
       }
     }
 
-    for (const f of GROUP_FIXTURES) {
+    for (const f of groupFixturesFor(format)) {
       const home = groups[f.group][f.homePos - 1]
       const away = groups[f.group][f.awayPos - 1]
       const r = results[f.number]
       if (home && away && r) consume(home, away, r)
     }
-    for (let n = 73; n <= 104; n++) {
+    const [koFrom, koTo] = koRangeFor(format)
+    for (let n = koFrom; n <= koTo; n++) {
       const m = bracket[n]
       if (m?.home && m.away && m.result && !m.stale) consume(m.home, m.away, m.result)
     }
     return { played, goals, draws, aet, pens, upsets, biggest: biggest as { margin: number; label: string } | null }
-  }, [groups, bracket, results])
+  }, [groups, bracket, results, format])
 
   if (pulse.played === 0) return null
 

@@ -1,10 +1,11 @@
 import { setNationOverrides, type NationOverride } from '../data/nations'
 import { groupsFromTrace } from '../engine/draw'
-import { playoffState, type PlayoffMatchKey } from '../engine/playoffs'
+import type { QualMode } from '../engine/qualification'
+import { finalNumberFor } from '../engine/schedule'
 import { setModelParams, type ModelParams } from '../engine/simulate'
 import { bracketState } from '../engine/tournament'
-import { useStore, type Step } from './store'
-import type { ChaosKnobs, DrawPick, MatchResult, Pots, StrategyId } from '../engine/types'
+import { useStore, type PlayoffKey, type Step } from './store'
+import type { ChaosKnobs, DrawPick, Format, MatchResult, Pots, StrategyId } from '../engine/types'
 
 /**
  * The tournament archive: name a run, shelve it locally, restore it any time.
@@ -15,6 +16,9 @@ const LIMIT = 24
 
 export interface RunSnapshot {
   step: Step
+  /** absent on runs saved before the 64-team era — treated as 48 */
+  format?: Format
+  qualMode?: QualMode
   masterSeed: string
   chaos: ChaosKnobs
   strategy: StrategyId
@@ -22,7 +26,7 @@ export interface RunSnapshot {
   hostsChosen: boolean
   entries: string[]
   playoffTeams: string[]
-  playoffResults: Partial<Record<PlayoffMatchKey, MatchResult>>
+  playoffResults: Partial<Record<PlayoffKey, MatchResult>>
   pots: Pots | null
   drawTrace: DrawPick[] | null
   results: Record<number, MatchResult>
@@ -59,8 +63,8 @@ export function currentChampion(): string | null {
   const s = useStore.getState()
   if (!s.drawTrace) return null
   try {
-    const groups = groupsFromTrace(s.drawTrace)
-    return bracketState(groups, s.results, s.masterSeed).bracket[104]?.winner ?? null
+    const groups = groupsFromTrace(s.drawTrace, s.format)
+    return bracketState(groups, s.results, s.masterSeed, s.format).bracket[finalNumberFor(s.format)]?.winner ?? null
   } catch {
     return null
   }
@@ -70,6 +74,8 @@ export function saveRun(name: string): SavedRun {
   const s = useStore.getState()
   const snapshot: RunSnapshot = {
     step: s.step,
+    format: s.format,
+    qualMode: s.qualMode,
     masterSeed: s.masterSeed,
     chaos: s.chaos,
     strategy: s.strategy,
@@ -105,11 +111,9 @@ export function loadRun(id: string): boolean {
   const run = listRuns().find((r) => r.id === id)
   if (!run) return false
   const snap = run.snapshot
-  useStore.setState({ ...snap })
+  useStore.setState({ ...snap, format: snap.format ?? 48, qualMode: snap.qualMode ?? 'balanced' })
   // mirror the persisted registries exactly as rehydration does
   setNationOverrides(snap.ratingOverrides ?? {})
   setModelParams(snap.modelParams ?? {})
-  // keep derived state honest
-  void playoffState(snap.playoffTeams ?? [], snap.playoffResults ?? {})
   return true
 }

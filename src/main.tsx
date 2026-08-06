@@ -8,6 +8,10 @@ import './styles/screens.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { useStore } from './store/store'
+
+// console access for power users and the screenshot walkthrough
+;(window as unknown as Record<string, unknown>).__wcstore = useStore
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

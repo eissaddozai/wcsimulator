@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { LabSlider } from '../../components/ModelLab'
 import { TeamStudioBody } from '../../components/TeamStudio'
-import { LAB_GROUPS, MODEL_PRESETS } from '../../components/labSpecs'
+import { LAB_GROUPS, MODEL_PRESETS, PRESET_TIERS } from '../../components/labSpecs'
 import { ratingOf, shortName } from '../../data/nations'
 import { detailedOdds, matchOdds, GROUP_CTX } from '../../engine/simulate'
 import { useStore } from '../../store/store'
@@ -202,20 +202,28 @@ export function LabScreen() {
 
         <aside className="lab-console-side">
           <div className="card lab-card">
-            <div className="lab-group-label tint-gold">Calibration presets</div>
-            <div className="preset-stack">
-              {MODEL_PRESETS.map((p) => (
-                <button
-                  key={p.id}
-                  className={`preset-chip${activePreset?.id === p.id ? ' on' : ''}`}
-                  onClick={() => applyModelPreset(p.params)}
-                  title={p.blurb}
-                >
-                  <span className="display">{p.name}</span>
-                  <span className="low">{p.blurb}</span>
-                </button>
-              ))}
-            </div>
+            <div className="lab-group-label tint-gold">Calibration presets — realism to arcade</div>
+            {PRESET_TIERS.map((tier) => (
+              <div key={tier.id} className={`preset-tier tier-${tier.id}`}>
+                <div className="tier-head" title={tier.blurb}>
+                  <i className="tier-dot" aria-hidden />
+                  {tier.name}
+                </div>
+                <div className="preset-stack">
+                  {MODEL_PRESETS.filter((p) => p.tier === tier.id).map((p) => (
+                    <button
+                      key={p.id}
+                      className={`preset-chip${activePreset?.id === p.id ? ' on' : ''}`}
+                      onClick={() => applyModelPreset(p.params)}
+                      title={p.blurb}
+                    >
+                      <span className="display">{p.name}</span>
+                      <span className="low">{p.blurb}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="card lab-card">

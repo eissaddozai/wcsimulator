@@ -8,10 +8,10 @@ import { ScoreInput } from '../../components/ScoreInput'
 import { TeamStudio } from '../../components/TeamStudio'
 import { shortName } from '../../data/nations'
 import { staleAfter } from '../../engine/bracket'
-import { GROUP_IDS, fixturesOfGroup } from '../../engine/schedule'
+import { fixturesOfGroupFor, groupIdsFor, groupMatchCountFor } from '../../engine/schedule'
 import { allGroupsComplete, allStandings, contentionFor, liveThirds } from '../../engine/tournament'
 import { groupsOf, useStore } from '../../store/store'
-import { isScored, type GroupId, type MatchResult, type Position, type TieBreakRung } from '../../engine/types'
+import { isScored, type Format, type GroupId, type MatchResult, type Position, type TieBreakRung } from '../../engine/types'
 
 export interface SlotRef {
   group: GroupId
@@ -35,6 +35,9 @@ export function GroupsScreen() {
   const simulateGroup = useStore((s) => s.simulateGroup)
   const masterSeed = useStore((s) => s.masterSeed)
   const setStep = useStore((s) => s.setStep)
+  const format = useStore((s) => s.format)
+  const groupIds = groupIdsFor(format)
+  const groupMatchCount = groupMatchCountFor(format)
 
   const [md, setMd] = useState<0 | 1 | 2 | 3>(1) // 0 = all
   const [thirdsOpen, setThirdsOpen] = useState(false)
@@ -45,17 +48,17 @@ export function GroupsScreen() {
   const [reportFor, setReportFor] = useState<{ n: number; home: string; away: string; label: string } | null>(null)
   const swapGroupSlots = useStore((s) => s.swapGroupSlots)
 
-  const groups = useMemo(() => groupsOf(drawTrace), [drawTrace])
+  const groups = useMemo(() => groupsOf(drawTrace, format), [drawTrace, format])
   const standings = useMemo(
-    () => (groups ? allStandings(groups, results, masterSeed) : null),
-    [groups, results, masterSeed],
+    () => (groups ? allStandings(groups, results, masterSeed, format) : null),
+    [groups, results, masterSeed, format],
   )
   const thirds = useMemo(
-    () => (groups && standings ? liveThirds(groups, standings, results, masterSeed) : []),
-    [groups, standings, results, masterSeed],
+    () => (format === 48 && groups && standings ? liveThirds(groups, standings, results, masterSeed) : []),
+    [groups, standings, results, masterSeed, format],
   )
-  const contention = useMemo(() => (groups ? contentionFor(groups, results) : null), [groups, results])
-  const complete = allGroupsComplete(results)
+  const contention = useMemo(() => (groups ? contentionFor(groups, results, format) : null), [groups, results, format])
+  const complete = allGroupsComplete(results, format)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -77,15 +80,19 @@ export function GroupsScreen() {
 
   /** commit a group score, but preview knockout casualties first */
   const commitScore = (n: number, r: MatchResult | null) => {
-    const hasKoResults = Object.keys(results).some((k) => Number(k) > 72)
+    const hasKoResults = Object.keys(results).some((k) => Number(k) > groupMatchCount)
     if (hasKoResults) {
       const next = { ...results }
       if (r === null) delete next[n]
       else next[n] = r
+      const nextDone = allGroupsComplete(next, format)
       const casualties = staleAfter(
-        allGroupsComplete(next) ? allStandings(groups, next, masterSeed) : null,
-        allGroupsComplete(next) ? liveThirds(groups, allStandings(groups, next, masterSeed), next, masterSeed) : null,
+        nextDone ? allStandings(groups, next, masterSeed, format) : null,
+        nextDone && format === 48
+          ? liveThirds(groups, allStandings(groups, next, masterSeed), next, masterSeed)
+          : null,
         next,
+        format,
       ).filter((m) => !staleNow.includes(m))
       if (casualties.length > 0) {
         setPendingEdit({ n, r, casualties })
@@ -99,14 +106,16 @@ export function GroupsScreen() {
     () =>
       staleAfter(
         complete ? standings : null,
-        complete ? thirds : null,
+        complete && format === 48 ? thirds : null,
         results,
+        format,
       ),
-    [complete, standings, thirds, results],
+    [complete, standings, thirds, results, format],
   )
 
-  const doneCount = GROUP_IDS.reduce(
-    (acc, g) => acc + fixturesOfGroup(g).filter((f) => results[f.number] && isScored(results[f.number]!)).length,
+  const doneCount = groupIds.reduce(
+    (acc, g) =>
+      acc + fixturesOfGroupFor(g, format).filter((f) => results[f.number] && isScored(results[f.number]!)).length,
     0,
   )
 
@@ -114,14 +123,16 @@ export function GroupsScreen() {
     <div className="page">
       <div className="groups-toolbar">
         <div>
-          <div className="kicker serif-accent">Seventy-two matches shape the thirty-two.</div>
+          <div className="kicker serif-accent">
+            {format === 64 ? 'Ninety-six matches shape the thirty-two.' : 'Seventy-two matches shape the thirty-two.'}
+          </div>
           <h2 className="display" style={{ fontSize: 34, margin: 0 }}>
             Group Stage
           </h2>
         </div>
         <div className="seg" role="tablist" aria-label="Matchday">
           {[1, 2, 3, 0].map((m) => {
-            const mdFixtures = GROUP_IDS.flatMap((g) => fixturesOfGroup(g)).filter(
+            const mdFixtures = groupIds.flatMap((g) => fixturesOfGroupFor(g, format)).filter(
               (f) => m === 0 || f.matchday === m,
             )
             const mdDone = mdFixtures.filter((f) => results[f.number] && isScored(results[f.number]!)).length
@@ -138,12 +149,14 @@ export function GroupsScreen() {
           })}
         </div>
         <span className="low tnum" style={{ fontSize: 13 }}>
-          <NumberFlow value={doneCount} /> / 72 scored
+          <NumberFlow value={doneCount} /> / {groupMatchCount} scored
         </span>
         <div style={{ flex: 1 }} />
-        <button className="btn small" onClick={() => setThirdsOpen(true)}>
-          <ListOrdered size={14} /> 3rd place race
-        </button>
+        {format === 48 && (
+          <button className="btn small" onClick={() => setThirdsOpen(true)}>
+            <ListOrdered size={14} /> 3rd place race
+          </button>
+        )}
         <button className="btn small" onClick={() => setStudioOpen(true)}>
           <SlidersHorizontal size={14} /> Team studio
         </button>
@@ -159,7 +172,7 @@ export function GroupsScreen() {
           className="btn small gold-line"
           onClick={() => {
             // groups fall one by one — the tables glide as each lands
-            GROUP_IDS.forEach((g, i) => setTimeout(() => simulateGroup(g), i * 140))
+            groupIds.forEach((g, i) => setTimeout(() => simulateGroup(g), i * 140))
           }}
         >
           <Dices size={14} /> Simulate remaining
@@ -167,8 +180,8 @@ export function GroupsScreen() {
         <button
           className="btn small danger ghost"
           onClick={() => {
-            if (confirm('Clear all 72 group scores (knockout results will be set aside)?')) {
-              for (const g of GROUP_IDS) for (const f of fixturesOfGroup(g)) setResult(f.number, null)
+            if (confirm(`Clear all ${groupMatchCount} group scores (knockout results will be set aside)?`)) {
+              for (const g of groupIds) for (const f of fixturesOfGroupFor(g, format)) setResult(f.number, null)
             }
           }}
         >
@@ -183,10 +196,11 @@ export function GroupsScreen() {
         </p>
       )}
       <div className={`groups-grid${editGroups ? ' editing' : ''}`}>
-        {GROUP_IDS.map((g) => (
+        {groupIds.map((g) => (
           <GroupCard
             key={g}
             g={g}
+            format={format}
             slots={groups[g]}
             md={md}
             results={results}
@@ -201,7 +215,7 @@ export function GroupsScreen() {
             setDragSlot={setDragSlot}
             onSwap={(a, b) => {
               const affected = [a.group, b.group].some((gg) =>
-                fixturesOfGroup(gg).some((f) => results[f.number] !== undefined),
+                fixturesOfGroupFor(gg, format).some((f) => results[f.number] !== undefined),
               )
               if (affected && !confirm('Swapping clears the entered scores of both groups. Continue?')) return
               swapGroupSlots(a, b)
@@ -211,13 +225,15 @@ export function GroupsScreen() {
       </div>
 
       <div className="footerbar">
-        {!complete && <span className="why">Enter or simulate all 72 matches to seed the Round of 32.</span>}
+        {!complete && (
+          <span className="why">Enter or simulate all {groupMatchCount} matches to seed the Round of 32.</span>
+        )}
         <button className="btn primary" disabled={!complete} onClick={() => setStep('knockout')}>
           Seed the Round of 32
         </button>
       </div>
 
-      {thirdsOpen && <ThirdsPanel thirds={thirds} onClose={() => setThirdsOpen(false)} />}
+      {thirdsOpen && format === 48 && <ThirdsPanel thirds={thirds} onClose={() => setThirdsOpen(false)} />}
       {studioOpen && <TeamStudio onClose={() => setStudioOpen(false)} />}
       {reportFor && results[reportFor.n] && (
         <MatchReport
@@ -264,6 +280,7 @@ export function GroupsScreen() {
 
 function GroupCard(props: {
   g: GroupId
+  format: Format
   slots: (string | null)[]
   md: 0 | 1 | 2 | 3
   results: Record<number, MatchResult>
@@ -278,8 +295,9 @@ function GroupCard(props: {
   setDragSlot: (s: SlotRef | null) => void
   onSwap: (a: SlotRef, b: SlotRef) => void
 }) {
-  const { g, slots, md, results, standings, thirds, contention, onScore, onDice, onReport, editMode, dragSlot, setDragSlot, onSwap } = props
-  const fixtures = fixturesOfGroup(g).filter((f) => md === 0 || f.matchday === md)
+  const { g, format, slots, md, results, standings, thirds, contention, onScore, onDice, onReport, editMode, dragSlot, setDragSlot, onSwap } = props
+  const hasThirdsRace = format === 48
+  const fixtures = fixturesOfGroupFor(g, format).filter((f) => md === 0 || f.matchday === md)
   const sealed = standings.length === 4 && standings.every((r) => r.played === 3)
 
   return (
@@ -288,7 +306,7 @@ function GroupCard(props: {
         <span className="gmedal tnum">{g}</span>
         Group {g}
         <span className="gdots" title="Fixtures entered">
-          {fixturesOfGroup(g).map((f) => (
+          {fixturesOfGroupFor(g, format).map((f) => (
             <i key={f.number} className={results[f.number] && isScored(results[f.number]!) ? 'on' : ''} />
           ))}
         </span>
@@ -311,19 +329,19 @@ function GroupCard(props: {
           {standings.map((row) => {
             const groupDone = standings.every((r) => r.played === 3)
             const c = contention?.get(row.id)
-            const third = thirds.find((t) => t.id === row.id)
-            const raceLive = thirds.length === 0 || thirds.some((x) => x.provisional)
+            const third = hasThirdsRace ? thirds.find((t) => t.id === row.id) : undefined
+            const raceLive = hasThirdsRace && (thirds.length === 0 || thirds.some((x) => x.provisional))
             const posClass =
               row.position <= 2
                 ? 'pos-adv'
-                : row.position === 3 && (groupDone ? raceLive || third?.qualified : !c?.outOfTop3)
+                : hasThirdsRace && row.position === 3 && (groupDone ? raceLive || third?.qualified : !c?.outOfTop3)
                   ? 'pos-third'
                   : 'pos-out'
-            // finished groups: positions + the thirds race decide; live groups: points-only proofs
+            // finished groups: positions (+ the thirds race, 48 only) decide; live groups: points-only proofs
             const badge = groupDone ? (
               row.position <= 2 ? (
                 <span className="badge q">Q</span>
-              ) : row.position === 3 ? (
+              ) : hasThirdsRace && row.position === 3 ? (
                 raceLive || !third ? (
                   <span className="badge t3">3rd?</span>
                 ) : third.qualified ? (
@@ -336,9 +354,9 @@ function GroupCard(props: {
               )
             ) : c?.securedTop2 ? (
               <span className="badge q">Q</span>
-            ) : c?.outOfTop3 ? (
+            ) : (hasThirdsRace ? c?.outOfTop3 : c?.outOfTop2) ? (
               <span className="badge out" title="Eliminated">E</span>
-            ) : row.position === 3 ? (
+            ) : hasThirdsRace && row.position === 3 ? (
               <span className="badge t3">3rd?</span>
             ) : null
             const slotPos = (slots.indexOf(row.id) + 1) as Position

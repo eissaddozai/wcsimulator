@@ -35,6 +35,7 @@ export default function App() {
   const pots = useStore((s) => s.pots)
   const drawTrace = useStore((s) => s.drawTrace)
   const results = useStore((s) => s.results)
+  const format = useStore((s) => s.format)
   const uiZoom = useStore((s) => s.uiZoom)
   const setUiZoom = useStore((s) => s.setUiZoom)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -60,7 +61,7 @@ export default function App() {
     document.documentElement.dataset.theme = theme
   }, [theme])
 
-  const gates = stepGates({ entries, playoffTeams, playoffResults, hosts, pots, drawTrace, results })
+  const gates = stepGates({ entries, playoffTeams, playoffResults, hosts, pots, drawTrace, results, format })
   const gateFor = (s: Step): boolean => {
     if (s === 'landing' || s === 'lab' || s === 'teams') return true
     if (s === 'pots') return gates.pots
@@ -72,7 +73,8 @@ export default function App() {
   const exportJson = () => {
     const s = useStore.getState()
     const payload = {
-      schemaVersion: 2,
+      schemaVersion: 3,
+      format: s.format,
       masterSeed: s.masterSeed,
       chaos: s.chaos,
       strategy: s.strategy,
@@ -95,8 +97,9 @@ export default function App() {
     void file.text().then((txt) => {
       try {
         const p = JSON.parse(txt)
-        if (![1, 2].includes(p.schemaVersion) || !Array.isArray(p.entries)) throw new Error('bad file')
+        if (![1, 2, 3].includes(p.schemaVersion) || !Array.isArray(p.entries)) throw new Error('bad file')
         useStore.setState({
+          format: p.format === 64 ? 64 : 48,
           masterSeed: String(p.masterSeed ?? 'IMPORTED'),
           chaos: p.chaos ?? { qualification: 1, seeding: 1, match: 1 },
           strategy: p.strategy ?? 'official',

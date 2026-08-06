@@ -233,7 +233,7 @@ function assertLegalDraw(groups: Record<GroupId, (string | null)[]>, pots: Pots)
 describe('the draw', () => {
   it('accepts the real 2026 draw as legal (UEFA pairs from pots 1–3 included)', () => {
     const groups = {} as Record<GroupId, (string | null)[]>
-    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g].slice()
+    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g as import('../types').GroupId48].slice()
     assertLegalDraw(groups, PRESET_POTS)
   })
 
@@ -502,7 +502,7 @@ describe('environment & modalities', () => {
 describe('partial score entry', () => {
   it('a one-sided score never counts as played or complete', () => {
     const groups = {} as Record<GroupId, (string | null)[]>
-    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g].slice()
+    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g as import('../types').GroupId48].slice()
     const results: Record<number, MatchResult> = { 1: { score: { home: 2, away: null } } }
     const standings = allStandings(groups, results, 'partial')
     expect(standings.A!.every((r) => r.played === 0)).toBe(true)
@@ -514,7 +514,7 @@ describe('full tournament integration', () => {
   it('runs the real 2026 draw through simulated scores to a champion', () => {
     const masterSeed = 'INTEGRATION'
     const groups = {} as Record<GroupId, (string | null)[]>
-    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g].slice()
+    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g as import('../types').GroupId48].slice()
 
     const results: Record<number, MatchResult> = {}
     // simulate all 72 group matches
@@ -560,7 +560,7 @@ describe('full tournament integration', () => {
   it('editing a decisive group result flags downstream knockout results stale', () => {
     const masterSeed = 'STALE-TEST'
     const groups = {} as Record<GroupId, (string | null)[]>
-    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g].slice()
+    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g as import('../types').GroupId48].slice()
     const results: Record<number, MatchResult> = {}
     for (const f of GROUP_FIXTURES) {
       const home = groups[f.group][f.homePos - 1]!

@@ -4,7 +4,7 @@ import { FastForward, Pause, Play, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { NATION_BY_ID } from '../../data/nations'
-import { GROUP_IDS, POT_TO_POSITION } from '../../engine/schedule'
+import { POT_TO_POSITION, groupIdsFor } from '../../engine/schedule'
 import { useStore } from '../../store/store'
 import type { DrawPick, GroupId, Position, PotNumber } from '../../engine/types'
 
@@ -15,6 +15,9 @@ export function DrawScreen() {
   const drawRunId = useStore((s) => s.drawRunId)
   const runDrawAction = useStore((s) => s.runDrawAction)
   const setStep = useStore((s) => s.setStep)
+  const format = useStore((s) => s.format)
+  const groupIds = groupIdsFor(format)
+  const potSize = format / 4
   const reduced = useReducedMotion()
 
   const swapGroupSlots = useStore((s) => s.swapGroupSlots)
@@ -99,12 +102,12 @@ export function DrawScreen() {
 
   const boardGroups = useMemo(() => {
     const g = {} as Record<GroupId, (DrawPick | null)[]>
-    for (const id of GROUP_IDS) g[id] = [null, null, null, null]
+    for (const id of groupIds) g[id] = [null, null, null, null]
     trace.slice(0, revealed).forEach((p) => {
       g[p.group][p.position - 1] = p
     })
     return g
-  }, [trace, revealed])
+  }, [trace, revealed, groupIds])
 
   if (!drawTrace) {
     return (
@@ -114,9 +117,9 @@ export function DrawScreen() {
           The Final Draw
         </h2>
         <p className="muted" style={{ maxWidth: 520, margin: '0 auto 32px' }}>
-          Twelve groups, four pots, every FIFA constraint — confederation caps, the UEFA one-to-two band, host
-          anchors, and the top-four bracket split. The engine verifies every ball keeps the draw completable, so it
-          can never dead-end.
+          {format === 64 ? 'Sixteen' : 'Twelve'} groups, four pots, every FIFA constraint — confederation caps, the
+          UEFA one-to-two band, host anchors, and the top-four bracket split. The engine verifies every ball keeps
+          the draw completable, so it can never dead-end.
         </p>
         <button className="btn primary" onClick={runDrawAction} style={{ fontSize: 16, height: 52, padding: '0 32px' }}>
           Conduct the draw
@@ -135,11 +138,11 @@ export function DrawScreen() {
         {!done && (
           <>
             <div className="pot-label display tnum">
-              Drawing Pot {potOfCurrent} — {Math.min(potCount, 12)} of 12
+              Drawing Pot {potOfCurrent} — {Math.min(potCount, potSize)} of {potSize}
             </div>
-            <div className="pot-dots" role="img" aria-label={`${Math.min(potCount, 12)} of 12 drawn from this pot`}>
-              {Array.from({ length: 12 }, (_, i) => (
-                <i key={i} className={i < Math.min(potCount, 12) ? 'on' : ''} />
+            <div className="pot-dots" role="img" aria-label={`${Math.min(potCount, potSize)} of ${potSize} drawn from this pot`}>
+              {Array.from({ length: potSize }, (_, i) => (
+                <i key={i} className={i < Math.min(potCount, potSize) ? 'on' : ''} />
               ))}
             </div>
             <div className="reveal-stage">
@@ -186,7 +189,7 @@ export function DrawScreen() {
                       {current.skipped.length > 0 && (
                         <div className="reveal-skips">
                           {current.skipped
-                            .filter((s) => GROUP_IDS.indexOf(s.group) < GROUP_IDS.indexOf(current.group))
+                            .filter((s) => groupIds.indexOf(s.group) < groupIds.indexOf(current.group))
                             .slice(0, 2)
                             .map((s) => s.reason)
                             .join(' · ')}
@@ -212,7 +215,9 @@ export function DrawScreen() {
             style={{ textAlign: 'center', position: 'relative' }}
           >
             <div className="podium-rings still" aria-hidden />
-            <div className="kicker serif-accent">Twelve groups, every rule respected.</div>
+            <div className="kicker serif-accent">
+              {format === 64 ? 'Sixteen' : 'Twelve'} groups, every rule respected.
+            </div>
             <h2 className="display" style={{ fontSize: 44, margin: '2px 0 8px' }}>
               The draw is made
             </h2>
@@ -223,8 +228,8 @@ export function DrawScreen() {
         )}
       </div>
 
-      <div className="board">
-        {GROUP_IDS.map((g) => {
+      <div className={`board${format === 64 ? ' board-64' : ''}`}>
+        {groupIds.map((g) => {
           const skippedNow = phase === 'hold' && current?.skipped.some((s) => s.group === g)
           const receiving = phase === 'hold' && current?.group === g
           return (
