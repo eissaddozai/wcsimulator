@@ -104,7 +104,12 @@ export function SeedingScreen() {
           {pots.map((pot, pi) => (
             <div key={pi} className="card pot-col">
               <h3 className="display">
-                Pot {pi + 1}
+                <span className="row" style={{ gap: 8 }}>
+                  <span className="gmedal tnum" style={{ width: 26, height: 26, fontSize: 14 }}>
+                    {pi + 1}
+                  </span>
+                  Pot {pi + 1}
+                </span>
                 <span className="row" style={{ gap: 6 }}>
                   <span className="chip tnum" title="Average rating">
                     ⌀ {Math.round(pot.reduce((acc, id) => acc + ratingOf(id), 0) / Math.max(pot.length, 1))}

@@ -1,5 +1,6 @@
 import { Download, Moon, Plus, Sun, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { TrophyMark } from './components/TrophyMark'
 import { DrawScreen } from './features/draw/DrawScreen'
 import { GroupsScreen } from './features/groups/GroupsScreen'
 import { KnockoutScreen } from './features/knockout/KnockoutScreen'
@@ -96,7 +97,8 @@ export default function App() {
   return (
     <>
       <header className="appbar">
-        <div className="wordmark display">
+        <div className="wordmark display row" style={{ gap: 8 }}>
+          <TrophyMark height={22} />
           WC26 <b>SIMULATOR</b>
         </div>
         <nav className="stepper" aria-label="Tournament steps">

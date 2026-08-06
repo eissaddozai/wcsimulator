@@ -1,16 +1,15 @@
 import NumberFlow from '@number-flow/react'
-import { Check, Crown, Dices, Lock, RotateCcw, Search, SlidersHorizontal, Swords } from 'lucide-react'
+import { Check, Crown, Dices, Lock, Search, SlidersHorizontal, Swords } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { HostPicker } from '../../components/HostPicker'
-import { ScoreInput } from '../../components/ScoreInput'
+import { PlayoffTournament } from '../../components/PlayoffTournament'
 import { TeamStudio } from '../../components/TeamStudio'
 import { BASE_QUOTA, CONFEDS, NATIONS, NATION_BY_ID, byConfed, shortName } from '../../data/nations'
-import { playoffState, type PlayoffMatchKey, type PlayoffState } from '../../engine/playoffs'
+import { playoffState } from '../../engine/playoffs'
 import { PLAYOFF_ALLOCATION, canAdd, canAddPlayoff, quotaStatus } from '../../engine/selection'
-import { koWinner } from '../../engine/simulate'
 import { useStore } from '../../store/store'
-import { isScored, type Confed, type MatchResult } from '../../engine/types'
+import type { Confed } from '../../engine/types'
 
 export function SelectionScreen() {
   const entries = useStore((s) => s.entries)
@@ -32,12 +31,20 @@ export function SelectionScreen() {
   const [query, setQuery] = useState('')
   const [hostPickerOpen, setHostPickerOpen] = useState(false)
   const [studioOpen, setStudioOpen] = useState(false)
+  const [poOpen, setPoOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
   // the very first thing a custom tournament asks: who is hosting?
   useEffect(() => {
     if (!hostsChosen) setHostPickerOpen(true)
   }, [hostsChosen])
+
+  // the moment the sixth entrant is named, the tournament convenes
+  const prevEntrants = useRef(0)
+  useEffect(() => {
+    if (playoffTeams.length === 6 && prevEntrants.current < 6) setPoOpen(true)
+    prevEntrants.current = playoffTeams.length
+  }, [playoffTeams.length])
 
   const status = useMemo(() => quotaStatus(entries, hosts), [entries, hosts])
   const po = useMemo(() => playoffState(playoffTeams, playoffResults), [playoffTeams, playoffResults])
@@ -215,7 +222,34 @@ export function SelectionScreen() {
             </label>
           </div>
 
-          {!simulated && playoffTeams.length > 0 && <PlayoffPanel po={po} />}
+          {!simulated && playoffTeams.length > 0 && (
+            <div className="po-band card">
+              <div className="po-band-info">
+                <span className="po-title" style={{ justifyContent: 'flex-start' }}>
+                  FIFA Play-off Tournament
+                </span>
+                <span className="row" style={{ gap: 5, flexWrap: 'wrap' }}>
+                  {playoffTeams.map((id) => (
+                    <Flag key={id} id={id} size={20} />
+                  ))}
+                  <span className="low" style={{ fontSize: 12, marginLeft: 6 }}>
+                    {playoffTeams.length < 6
+                      ? `${playoffTeams.length} of 6 entrants — keep tapping beyond the quotas`
+                      : winners.length === 2
+                        ? `Settled — ${winners.map((w) => shortName(w)).join(' and ')} qualified`
+                        : 'Six entrants named — two places on the pitch'}
+                  </span>
+                </span>
+              </div>
+              <button
+                className={`btn small ${playoffTeams.length === 6 && winners.length < 2 ? 'primary' : 'gold-line'}`}
+                disabled={playoffTeams.length < 6}
+                onClick={() => setPoOpen(true)}
+              >
+                <Swords size={14} /> {winners.length === 2 ? 'Review the tournament' : 'Enter the tournament'}
+              </button>
+            </div>
+          )}
 
           <div className="team-grid">
             {list.map((n) => {
@@ -282,144 +316,7 @@ export function SelectionScreen() {
 
       {hostPickerOpen && <HostPicker onClose={() => setHostPickerOpen(false)} />}
       {studioOpen && <TeamStudio onClose={() => setStudioOpen(false)} />}
-    </div>
-  )
-}
-
-/** The hand-played FIFA Play-off Tournament: two semifinals feed two finals; two qualify. */
-function PlayoffPanel({ po }: { po: PlayoffState | null }) {
-  const playoffTeams = useStore((s) => s.playoffTeams)
-  if (!po) {
-    return (
-      <div className="card playoff-card">
-        <div className="po-title">FIFA Play-off Tournament</div>
-        <p className="low" style={{ margin: 0, textAlign: 'center', fontSize: 12.5 }}>
-          {playoffTeams.length} of 6 entrants named — keep tapping beyond the quotas. Two from CONCACAF, one each
-          from CAF, AFC, CONMEBOL, and OFC.
-        </p>
-        <div className="row" style={{ justifyContent: 'center', flexWrap: 'wrap', gap: 6 }}>
-          {playoffTeams.map((id) => (
-            <span key={id} className="chip">
-              <Flag id={id} size={15} /> {shortName(id)}
-            </span>
-          ))}
-        </div>
-      </div>
-    )
-  }
-  return (
-    <div className="card playoff-card">
-      <div className="po-title">FIFA Play-off Tournament</div>
-      <p className="low" style={{ margin: 0, textAlign: 'center', fontSize: 12.5 }}>
-        The two best-ranked entrants wait in the finals. Win twice — or once from a bye — and you're in.
-      </p>
-      <div className="po-grid">
-        <div className="po-col">
-          <div className="po-stage">Semifinals</div>
-          <PlayoffMatch k="sf1" home={po.sf1[0]} away={po.sf1[1]} />
-          <PlayoffMatch k="sf2" home={po.sf2[0]} away={po.sf2[1]} />
-        </div>
-        <div className="po-col">
-          <div className="po-stage">Finals — winner qualifies</div>
-          <PlayoffMatch k="f1" home={po.f1[0]} away={po.f1[1]} seeded />
-          <PlayoffMatch k="f2" home={po.f2[0]} away={po.f2[1]} seeded />
-        </div>
-      </div>
-      {po.winners.length > 0 && (
-        <div className="po-qualified">
-          {po.winners.map((id) => (
-            <span key={id} className="chip gold">
-              <Flag id={id} size={16} /> {NATION_BY_ID.get(id)?.name} — qualified
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function PlayoffMatch({ k, home, away, seeded = false }: { k: PlayoffMatchKey; home: string; away: string | null; seeded?: boolean }) {
-  const r = useStore((s) => s.playoffResults[k]) ?? null
-  const setPlayoffResult = useStore((s) => s.setPlayoffResult)
-  const simulatePlayoffMatch = useStore((s) => s.simulatePlayoffMatch)
-
-  const commit = (patch: Partial<MatchResult>) => {
-    if (!away) return
-    const base: MatchResult = r ?? { score: { home: null, away: null } }
-    const next: MatchResult = { ...base, ...patch }
-    const partial = next.score.home === null || next.score.away === null
-    if (partial || next.score.home !== next.score.away) {
-      delete next.et
-      delete next.pens
-      delete next.pensDetail
-    } else if (next.et && next.et.home !== null && next.et.home !== next.et.away) {
-      delete next.pens
-      delete next.pensDetail
-    }
-    if (patch.pens !== undefined) delete next.pensDetail
-    delete next.simulated
-    setPlayoffResult(k, next)
-  }
-
-  const decided = r && away ? koWinner(home, away, r) : null
-  const level90 = r ? isScored(r) && r.score.home === r.score.away : false
-  const needsPens = level90 && r?.et !== undefined && r.et.home !== null && r.et.home === r.et.away
-
-  const side = (id: string | null, winner: boolean) => (
-    <span className={`po-side${winner ? ' winner' : ''}`}>
-      {id ? (
-        <>
-          <Flag id={id} size={20} /> {shortName(id)}
-        </>
-      ) : (
-        <span className="low src">Semifinal winner</span>
-      )}
-    </span>
-  )
-
-  return (
-    <div className={`po-row${decided ? ' done' : ''}`}>
-      {seeded && <span className="po-bye" title="Bye to the final — best-ranked entrant">seed</span>}
-      {side(home, decided === home)}
-      <span className="po-mid">
-        {away ? (
-          <>
-            <ScoreInput small label={`${home} goals`} value={r?.score.home ?? null} onCommit={(v) => commit({ score: { home: v, away: r?.score.away ?? null } })} />
-            <ScoreInput small label={`${away ?? ''} goals`} value={r?.score.away ?? null} onCommit={(v) => commit({ score: { home: r?.score.home ?? null, away: v } })} />
-          </>
-        ) : (
-          <span className="low tnum">–</span>
-        )}
-      </span>
-      {side(away, decided !== null && decided === away)}
-      {away && (
-        <span className="row" style={{ gap: 4 }}>
-          <button className="dice-btn" onClick={() => simulatePlayoffMatch(k)} title="Simulate (extra time and penalties included)">
-            <Dices size={14} />
-          </button>
-          {r && (
-            <button className="dice-btn" onClick={() => setPlayoffResult(k, null)} title="Clear">
-              <RotateCcw size={13} />
-            </button>
-          )}
-        </span>
-      )}
-      {level90 && r && (
-        <span className="po-extra low">
-          <Swords size={11} /> level —
-          <ScoreInput small label="home extra time" value={r.et?.home ?? null} onCommit={(v) => commit({ et: { home: v, away: r.et?.away ?? null } })} />
-          ET
-          <ScoreInput small label="away extra time" value={r.et?.away ?? null} onCommit={(v) => commit({ et: { home: r.et?.home ?? null, away: v } })} />
-        </span>
-      )}
-      {needsPens && r && (
-        <span className="po-extra low">
-          pens
-          <ScoreInput small label="home penalties" value={r.pens?.home ?? null} onCommit={(v) => commit({ pens: { home: v, away: r.pens?.away ?? null } })} />
-          –
-          <ScoreInput small label="away penalties" value={r.pens?.away ?? null} onCommit={(v) => commit({ pens: { home: r.pens?.home ?? null, away: v } })} />
-        </span>
-      )}
+      {poOpen && playoffTeams.length === 6 && <PlayoffTournament onClose={() => setPoOpen(false)} />}
     </div>
   )
 }
