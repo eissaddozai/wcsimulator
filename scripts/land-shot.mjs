@@ -1,0 +1,11 @@
+import { chromium } from 'playwright-core'
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
+const page = await browser.newPage({ viewport: { width: 1600, height: 900 } })
+await page.goto('http://localhost:4173/')
+await page.evaluate(() => localStorage.clear())
+await page.reload()
+await page.waitForSelector('.landing-v2')
+await page.waitForTimeout(1400)
+await page.screenshot({ path: process.argv[2] + '/home-v2.png' })
+console.log('done')
+await browser.close()

@@ -1,12 +1,58 @@
-import { Dices, ListChecks, Trophy } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowRight, Dices, ListChecks, Trophy } from 'lucide-react'
 import { useEffect } from 'react'
+import { Flag } from '../../components/Flag'
 import { WorldGlobe } from '../../components/WorldGlobe'
 import { useStore } from '../../store/store'
+
+/** The marquee of nations that closes the page — a slow parade of the eligible world. */
+const RAIL = [
+  'BRA', 'FRA', 'ARG', 'ENG', 'ESP', 'GER', 'POR', 'NED', 'ITA', 'MAR',
+  'JPN', 'USA', 'MEX', 'CRO', 'URU', 'COL', 'KOR', 'SEN', 'AUS', 'CAN',
+  'EGY', 'NGA', 'KSA', 'NZL',
+]
+
+const TICKETS = [
+  {
+    kbd: '1',
+    icon: Trophy,
+    title: 'Real 2026',
+    tag: 'Fastest start',
+    body: 'The actual qualifiers, the real pots, the Washington draw — you take it from the group stage.',
+    cta: 'Load the real tournament',
+    primary: true,
+  },
+  {
+    kbd: '2',
+    icon: ListChecks,
+    title: 'Custom',
+    tag: 'Full control',
+    body: 'Open the Laboratory, bend the physics, pick your hosts, and build a 48 — or the expanded 64.',
+    cta: 'Start from scratch',
+    primary: false,
+  },
+  {
+    kbd: '3',
+    icon: Dices,
+    title: 'Full chaos',
+    tag: 'One click',
+    body: 'Qualification, seeding, draw, every match — a finished World Cup lands in your lap to rewrite.',
+    cta: 'Roll the universe',
+    primary: false,
+  },
+] as const
+
+const rise = (delay: number) => ({
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+  transition: { delay, duration: 0.55, ease: [0.2, 0, 0, 1] as const },
+})
 
 export function LandingScreen() {
   const setStep = useStore((s) => s.setStep)
   const loadPreset = useStore((s) => s.loadPreset)
   const fullChaos = useStore((s) => s.fullChaos)
+  const actions = [loadPreset, () => setStep('lab'), fullChaos]
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -20,91 +66,79 @@ export function LandingScreen() {
   }, [loadPreset, setStep, fullChaos])
 
   return (
-    <section className="landing">
+    <section className="landing landing-v2">
       <div className="landing-globe" aria-hidden>
-        <WorldGlobe size={680} />
+        <WorldGlobe size={760} />
       </div>
-      <div className="hero-copy">
-        <div className="overline serif-accent">The 48-team era — and the 64 beyond it</div>
-        <h1 className="display">
-          Simulate the 2026
-          <br />
-          World Cup
-        </h1>
-        <p className="sub">
-          Pick the qualifiers confederation by confederation, seed the pots, run a rule-perfect draw, and play every
-          match from the group stage to the Final — with the real FIFA format at every step.
-        </p>
+
+      <div className="hero-copy hero-left">
+        <motion.div {...rise(0.05)} className="overline serif-accent">
+          The 48-team era — and the 64 beyond it
+        </motion.div>
+        <motion.h1 {...rise(0.14)} className="display hero-title">
+          Simulate the
+          <em className="serif-accent hero-em">beautiful game's</em>
+          biggest stage
+        </motion.h1>
+        <motion.p {...rise(0.24)} className="sub">
+          Qualification to coronation: pick the field, seed the pots, run a rule-perfect draw, and play
+          every minute of every match through a living simulation engine.
+        </motion.p>
+        <motion.div {...rise(0.32)} className="hero-stats" role="group" aria-label="What's inside">
+          {[
+            ['48·64', 'formats'],
+            ['128', 'matches'],
+            ['211', 'nations'],
+            ['40', 'physics dials'],
+            ['∞', 'universes'],
+          ].map(([n, l]) => (
+            <span key={l} className="hstat">
+              <b className="display tnum">{n}</b>
+              <i>{l}</i>
+            </span>
+          ))}
+        </motion.div>
       </div>
-      <div className="fact-ticker" aria-hidden>
-        <div className="ft-track">
+
+      <div className="tickets">
+        {TICKETS.map((t, i) => (
+          <motion.button
+            key={t.title}
+            {...rise(0.42 + i * 0.09)}
+            className={`ticket${t.primary ? ' headline-ticket' : ''}`}
+            onClick={actions[i]}
+          >
+            <span className="tk-index display tnum">{t.kbd}</span>
+            <span className="tk-icon">
+              <t.icon size={22} />
+            </span>
+            <span className="tk-copy">
+              <span className="tk-head">
+                <b className="display">{t.title}</b>
+                <i className="tk-tag">{t.tag}</i>
+              </span>
+              <span className="tk-body">{t.body}</span>
+            </span>
+            <span className={`tk-cta${t.primary ? ' gold' : ''}`}>
+              {t.cta}
+              <ArrowRight size={14} />
+            </span>
+          </motion.button>
+        ))}
+      </div>
+
+      <motion.div {...rise(0.75)} className="flag-rail" aria-hidden>
+        <div className="fr-track">
           {[0, 1].map((dup) => (
-            <span key={dup} className="ft-set">
-              {[
-                '48 or 64 nations',
-                '12 or 16 groups',
-                'Up to 128 matches',
-                '211 eligible teams',
-                'Hand-played play-off tournaments',
-                '5 qualifying modalities',
-                '34 boosters',
-                '43 laboratory dials',
-                '5 seeding strategies',
-                'Every FIFA rule',
-              ].map((f) => (
-                <span key={f} className="ft-item">
-                  {f}
-                  <i />
-                </span>
+            <span key={dup} className="fr-set">
+              {RAIL.map((id) => (
+                <Flag key={`${dup}-${id}`} id={id} size={22} />
               ))}
             </span>
           ))}
         </div>
-      </div>
-      <div className="setup-cards">
-        <button className="card setup-card recommended" onClick={loadPreset}>
-          <span className="rec-tag">Fastest start</span>
-          <span className="icon">
-            <Trophy size={28} />
-          </span>
-          <span className="kbd tnum" data-hint="press">1</span>
-          <h3 className="display">Real 2026</h3>
-          <p>
-            The actual 48 qualifiers, the real December-2025 pots, and the draw as it happened in Washington. You take
-            it from the group stage.
-          </p>
-          <span className="btn primary">Load the real tournament</span>
-        </button>
-        <button className="card setup-card" onClick={() => setStep('lab')}>
-          <span className="icon">
-            <ListChecks size={28} />
-          </span>
-          <span className="kbd tnum" data-hint="press">2</span>
-          <h3 className="display">Custom</h3>
-          <p>
-            Start in the Laboratory — 43 dials over the tournament's physics and every squad's boosters — then build
-            your 48, or the expanded 64, and let the draw engine handle the rules.
-          </p>
-          <span className="btn gold-line">Start from scratch</span>
-        </button>
-        <button
-          className="card setup-card"
-          onClick={() => {
-            fullChaos()
-          }}
-        >
-          <span className="icon">
-            <Dices size={28} />
-          </span>
-          <span className="kbd tnum" data-hint="press">3</span>
-          <h3 className="display">Full chaos</h3>
-          <p>
-            One click simulates everything — qualification, seeding, draw, all 104 matches — and hands you a finished
-            tournament to explore and rewrite.
-          </p>
-          <span className="btn gold-line">Roll the universe</span>
-        </button>
-      </div>
+      </motion.div>
+
       <div className="landing-foot serif-accent">An open-source love letter to the beautiful game.</div>
     </section>
   )
