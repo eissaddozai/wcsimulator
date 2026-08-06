@@ -34,17 +34,25 @@ export function LabSlider({ sl }: { sl: SliderSpec }) {
           )}
         </span>
       </span>
-      <input
-        className="chaos-slider"
-        type="range"
-        min={sl.min}
-        max={sl.max}
-        step={sl.step}
-        value={value}
-        onChange={(e) => setModelParam(sl.key, Number(e.target.value))}
-        aria-label={sl.label}
-      />
-      <span className="low" style={{ fontSize: 11 }}>
+      <span className="dial-track">
+        <i
+          className="dial-tick"
+          style={{ left: `${(((DEFAULT_MODEL[sl.key] as number) - sl.min) / (sl.max - sl.min)) * 100}%` }}
+          title={`Calibrated default: ${sl.format(DEFAULT_MODEL[sl.key] as number)}`}
+          aria-hidden
+        />
+        <input
+          className="chaos-slider"
+          type="range"
+          min={sl.min}
+          max={sl.max}
+          step={sl.step}
+          value={value}
+          onChange={(e) => setModelParam(sl.key, Number(e.target.value))}
+          aria-label={sl.label}
+        />
+      </span>
+      <span className="low dial-blurb" style={{ fontSize: 11 }}>
         {sl.blurb}
       </span>
     </label>

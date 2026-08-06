@@ -215,9 +215,13 @@ export function SelectionScreen() {
                   {Array.from({ length: base }, (_, i) => (
                     <i key={i} className={i < Math.min(count, base) ? 'fill' : ''} />
                   ))}
+                  {count > base &&
+                    Array.from({ length: count - base }, (_, i) => (
+                      <i key={`w${i}`} className="over" title="Play-off winner — earned on the pitch" />
+                    ))}
                   {!simulated &&
                     Array.from({ length: alloc[c] }, (_, i) => (
-                      <i key={`p${i}`} className={i < poCounts[c] ? 'po-fill' : 'po-slot'} style={{ maxWidth: 6 }} />
+                      <i key={`p${i}`} className={i < poCounts[c] ? 'po-fill' : 'po-slot'} />
                     ))}
                 </div>
               </div>
@@ -231,19 +235,23 @@ export function SelectionScreen() {
                 : 'Six overflow picks enter the FIFA Play-off Tournament — two win the last places. UEFA never enters.'}
           </div>
           <div style={{ borderTop: '1px solid var(--line-1)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div className="qual-modes" role="radiogroup" aria-label="Qualifying modality">
-              {QUAL_MODES.map((m) => (
-                <button
-                  key={m.id}
-                  className={`qm-chip${qualMode === m.id ? ' on' : ''}`}
-                  role="radio"
-                  aria-checked={qualMode === m.id}
-                  title={m.blurb}
-                  onClick={() => setQualMode(m.id)}
-                >
-                  {m.name}
-                </button>
-              ))}
+            <div className="qual-rail" role="radiogroup" aria-label="Qualifying modality">
+              <span className="qr-end">chalk</span>
+              <div className="qual-modes">
+                {QUAL_MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    className={`qm-chip${qualMode === m.id ? ' on' : ''}`}
+                    role="radio"
+                    aria-checked={qualMode === m.id}
+                    title={m.blurb}
+                    onClick={() => setQualMode(m.id)}
+                  >
+                    {m.name}
+                  </button>
+                ))}
+              </div>
+              <span className="qr-end">anarchy</span>
             </div>
             <div className="low" style={{ fontSize: 10.5, marginTop: -4 }}>
               {QUAL_MODES.find((m) => m.id === qualMode)?.blurb}
@@ -283,7 +291,12 @@ export function SelectionScreen() {
           <div className="row spread" style={{ flexWrap: 'wrap', gap: 12 }}>
             <div className="seg" role="tablist" aria-label="Confederations">
               {CONFEDS.map((c) => (
-                <button key={c} role="tab" className={tab === c && !query ? 'on' : ''} onClick={() => { setTab(c); setQuery('') }}>
+                <button
+                  key={c}
+                  role="tab"
+                  className={`${tab === c && !query ? 'on' : ''}${status.counts[c] === quotas[c] ? ' filled' : ''}`}
+                  onClick={() => { setTab(c); setQuery('') }}
+                >
                   {c}
                   <span className={`seg-count tnum${status.counts[c] === quotas[c] ? ' full' : ''}`}>
                     {status.counts[c]}/{quotas[c]}
@@ -291,19 +304,36 @@ export function SelectionScreen() {
                 </button>
               ))}
             </div>
-            <label className="row" style={{ gap: 8 }}>
-              <Search size={16} className="low" />
+            <label className="search-pill row" style={{ gap: 8 }}>
+              <Search size={15} className="low" />
               <input
                 ref={searchRef}
                 className="search-in"
-                placeholder="Search all nations…  ( / )"
+                placeholder="Search all nations…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Escape' && setQuery('')}
               />
+              <kbd className="key-hint">/</kbd>
             </label>
           </div>
 
+          {!simulated && playoffTeams.length === 0 && (
+            <div className="po-band card ghost-band">
+              <div className="po-band-info">
+                <span className="po-title" style={{ justifyContent: 'flex-start' }}>
+                  {format === 64 ? 'Intercontinental Play-offs' : 'FIFA Play-off Tournament'}
+                </span>
+                <span className="low" style={{ fontSize: 12 }}>
+                  Tap beyond a confederation's quota to name play-off entrants — {entrantTarget} contest the last{' '}
+                  {winnersNeeded} places on the pitch.
+                </span>
+              </div>
+              <button className="btn small gold-line" disabled>
+                <Swords size={14} /> Awaiting entrants
+              </button>
+            </div>
+          )}
           {!simulated && playoffTeams.length > 0 && (
             <div className="po-band card">
               <div className="po-band-info">

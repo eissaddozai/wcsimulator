@@ -1,5 +1,7 @@
 import NumberFlow from '@number-flow/react'
+import { Flame, Goal, Target, Timer } from 'lucide-react'
 import { useMemo } from 'react'
+import { Flag } from './Flag'
 import { ratingOf, shortName } from '../data/nations'
 import type { BracketState } from '../engine/bracket'
 import { groupFixturesFor, koRangeFor } from '../engine/schedule'
@@ -25,7 +27,7 @@ export function TournamentPulse({
     let aet = 0
     let pens = 0
     let upsets = 0
-    let biggest: { margin: number; label: string } | null = null
+    let biggest: { margin: number; label: string; home: string; away: string } | null = null
 
     const consume = (home: string, away: string, r: MatchResult) => {
       if (!isScored(r)) return
@@ -41,7 +43,7 @@ export function TournamentPulse({
       if (winner && ratingOf(winner) < ratingOf(loser) - 80) upsets++
       const margin = Math.abs(h - a)
       if (margin >= 3 && (!biggest || margin > biggest.margin)) {
-        biggest = { margin, label: `${shortName(home)} ${h}–${a} ${shortName(away)}` }
+        biggest = { margin, label: `${shortName(home)} ${h}–${a} ${shortName(away)}`, home, away }
       }
     }
 
@@ -56,49 +58,64 @@ export function TournamentPulse({
       const m = bracket[n]
       if (m?.home && m.away && m.result && !m.stale) consume(m.home, m.away, m.result)
     }
-    return { played, goals, draws, aet, pens, upsets, biggest: biggest as { margin: number; label: string } | null }
+    return {
+      played,
+      goals,
+      draws,
+      aet,
+      pens,
+      upsets,
+      biggest: biggest as { margin: number; label: string; home: string; away: string } | null,
+    }
   }, [groups, bracket, results, format])
 
   if (pulse.played === 0) return null
 
   return (
-    <div className="pulse-strip" role="group" aria-label="Tournament pulse">
-      <span className="pulse-item tnum">
+    <div className="pulse-strip tiles" role="group" aria-label="Tournament pulse">
+      <span className="pulse-tile tnum">
+        <Goal size={13} />
         <b>
           <NumberFlow value={pulse.goals} />
-        </b>{' '}
-        goals
+        </b>
+        <i>goals</i>
       </span>
-      <span className="pulse-item tnum">
+      <span className="pulse-tile tnum">
+        <Target size={13} />
         <b>
           <NumberFlow
             value={pulse.goals / pulse.played}
             format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}
           />
-        </b>{' '}
-        per match
+        </b>
+        <i>per match</i>
       </span>
-      <span className="pulse-item tnum">
+      <span className="pulse-tile tnum">
+        <Flame size={13} />
         <b>
           <NumberFlow value={pulse.upsets} />
-        </b>{' '}
-        upset{pulse.upsets === 1 ? '' : 's'}
+        </b>
+        <i>upset{pulse.upsets === 1 ? '' : 's'}</i>
       </span>
-      <span className="pulse-item tnum">
+      <span className="pulse-tile tnum">
+        <Timer size={13} />
         <b>
           <NumberFlow value={pulse.aet} />
-        </b>{' '}
-        to extra time
+        </b>
+        <i>to extra time</i>
       </span>
-      <span className="pulse-item tnum">
+      <span className="pulse-tile tnum">
         <b>
           <NumberFlow value={pulse.pens} />
-        </b>{' '}
-        shootout{pulse.pens === 1 ? '' : 's'}
+        </b>
+        <i>shootout{pulse.pens === 1 ? '' : 's'}</i>
       </span>
       {pulse.biggest && (
-        <span className="pulse-item">
-          record win <b>{pulse.biggest.label}</b>
+        <span className="pulse-tile record">
+          <i>record win</i>
+          <Flag id={pulse.biggest.home} size={15} />
+          <b>{pulse.biggest.label}</b>
+          <Flag id={pulse.biggest.away} size={15} />
         </span>
       )}
     </div>

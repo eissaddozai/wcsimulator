@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Flag } from './Flag'
+import { ensureBoardFont } from './MatchTheater'
 import { NATION_BY_ID } from '../data/nations'
 import { matchEnvironment } from '../engine/environment'
 import { buildReport } from '../engine/report'
@@ -27,6 +28,7 @@ export function MatchReport({
   onClose: () => void
 }) {
   const masterSeed = useStore((s) => s.masterSeed)
+  useEffect(() => ensureBoardFont(), [])
   const env = useMemo(() => matchEnvironment(masterSeed, matchNo), [masterSeed, matchNo])
   const report = useMemo(
     () => buildReport(r, home, away, env, stageLabel, matchNo),
@@ -50,10 +52,47 @@ export function MatchReport({
   pts.push([total, diff])
   const maxAbs = Math.max(1, ...pts.map(([, d]) => Math.abs(d)))
   const W = 560
-  const H = 72
+  const H = 84
   const xOf = (min: number) => (min / total) * W
-  const yOf = (d: number) => H / 2 - (d / maxAbs) * (H / 2 - 6)
+  const yOf = (d: number) => H / 2 - (d / maxAbs) * (H / 2 - 12)
   const path = pts.map(([m, d], i) => `${i === 0 ? 'M' : 'L'} ${xOf(m).toFixed(1)} ${yOf(d).toFixed(1)}`).join(' ')
+  // 81 · fill the lead area on each side of the axis
+  const areaPath = `${path} L ${W} ${H / 2} L 0 ${H / 2} Z`
+  // 84 · the xG duel as shares of one bar
+  const xgShare = r.stats ? r.stats.xgHome / Math.max(r.stats.xgHome + r.stats.xgAway, 0.01) : 0.5
+
+  // 82 · consecutive same-side bookings collapse into one grouped line
+  type Line = { min: number; kind: string; side?: string; text: string }
+  const groupLines = (lines: readonly Line[]): Line[] => {
+    const out: Line[] = []
+    let buf: Line[] = []
+    const flush = () => {
+      if (buf.length >= 3) {
+        const side = buf[0]!.side === 'home' ? NATION_BY_ID.get(home)?.name : NATION_BY_ID.get(away)?.name
+        const words = ['', '', '', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight']
+        out.push({
+          min: buf[0]!.min,
+          kind: 'yellow',
+          side: buf[0]!.side,
+          text: `${words[buf.length] ?? buf.length} ${side} bookings — ${buf.map((b) => `${b.min}′`).join(', ')}`,
+        })
+      } else {
+        out.push(...buf)
+      }
+      buf = []
+    }
+    for (const l of lines) {
+      if (l.kind === 'yellow' && (buf.length === 0 || buf[buf.length - 1]!.side === l.side)) {
+        buf.push(l)
+      } else {
+        flush()
+        if (l.kind === 'yellow') buf.push(l)
+        else out.push(l)
+      }
+    }
+    flush()
+    return out
+  }
 
   return (
     <div
@@ -78,7 +117,7 @@ export function MatchReport({
                 <Flag id={home} size={26} />
                 <b>{NATION_BY_ID.get(home)?.name}</b>
               </span>
-              <span className="display tnum" style={{ fontSize: 28, color: 'var(--gold)' }}>
+              <span className="report-led tnum">
                 {hFT}–{aFT}
               </span>
               <span className="row" style={{ gap: 8 }}>
@@ -96,12 +135,30 @@ export function MatchReport({
               <span>{NATION_BY_ID.get(away)?.name} ahead</span>
             </div>
             <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+              <defs>
+                <clipPath id="rw-above">
+                  <rect x={0} y={0} width={W} height={H / 2} />
+                </clipPath>
+                <clipPath id="rw-below">
+                  <rect x={0} y={H / 2} width={W} height={H / 2} />
+                </clipPath>
+              </defs>
+              <path d={areaPath} className="rw-area home" clipPath="url(#rw-above)" />
+              <path d={areaPath} className="rw-area away" clipPath="url(#rw-below)" />
               <line x1={0} y1={H / 2} x2={W} y2={H / 2} className="rw-axis" />
               {r.et && <line x1={xOf(90)} y1={0} x2={xOf(90)} y2={H} className="rw-axis" strokeDasharray="3 3" />}
               <path d={path} className="rw-line" />
               {goals.map((g, i) => {
                 const d = goals.slice(0, i + 1).reduce((acc, x) => acc + (x.side === 'home' ? 1 : -1), 0)
-                return <circle key={i} cx={xOf(g.min)} cy={yOf(d)} r={3.2} className="rw-dot" />
+                const y = yOf(d)
+                return (
+                  <g key={i}>
+                    <circle cx={xOf(g.min)} cy={y} r={3.4} className="rw-dot" />
+                    <text x={xOf(g.min)} y={y + (d >= 0 ? -7 : 12)} className="rw-goal-min tnum" textAnchor="middle">
+                      {g.min}′
+                    </text>
+                  </g>
+                )
               })}
             </svg>
           </div>
@@ -112,7 +169,7 @@ export function MatchReport({
               <p className="rc-prose">{ch.prose}</p>
               {ch.lines.length > 0 && (
                 <div className="rc-ledger">
-                  {ch.lines.map((l, i) => (
+                  {groupLines(ch.lines).map((l, i) => (
                     <div key={i} className={`rc-line ${l.kind}${l.side === 'away' ? ' away' : ''}`}>
                       <span className="rc-min tnum">{l.min}′</span>
                       <i className={`rc-ico ${l.kind}`} />
@@ -145,6 +202,15 @@ export function MatchReport({
             </div>
           )}
 
+          {r.stats && (
+            <div className="xg-duel" role="img" aria-label="Expected-goals shares">
+              <span className="tnum">{r.stats.xgHome.toFixed(1)}</span>
+              <span className="xg-bar">
+                <i style={{ width: `${Math.round(xgShare * 100)}%` }} />
+              </span>
+              <span className="tnum">{r.stats.xgAway.toFixed(1)}</span>
+            </div>
+          )}
           <p className="report-verdict serif-accent">{report.verdict}</p>
         </div>
       </div>

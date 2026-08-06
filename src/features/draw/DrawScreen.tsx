@@ -22,6 +22,7 @@ export function DrawScreen() {
 
   const swapGroupSlots = useStore((s) => s.swapGroupSlots)
   const [dragSlot, setDragSlot] = useState<{ group: GroupId; position: Position } | null>(null)
+  const [coachSeen, setCoachSeen] = useState(() => localStorage.getItem('wcsim:coach:swap') === '1')
   const [revealed, setRevealed] = useState(0)
   const [phase, setPhase] = useState<Phase | null>(null)
   const [auto, setAuto] = useState(false)
@@ -141,9 +142,18 @@ export function DrawScreen() {
               Drawing Pot {potOfCurrent} — {Math.min(potCount, potSize)} of {potSize}
             </div>
             <div className="pot-dots" role="img" aria-label={`${Math.min(potCount, potSize)} of ${potSize} drawn from this pot`}>
-              {Array.from({ length: potSize }, (_, i) => (
-                <i key={i} className={i < Math.min(potCount, potSize) ? 'on' : ''} />
-              ))}
+              {(() => {
+                const potBalls = trace.filter((p) => p.pot === potOfCurrent)
+                return Array.from({ length: potSize }, (_, i) => {
+                  const drawnPick = potBalls[i]
+                  const isDrawn = i < Math.min(potCount, potSize)
+                  return (
+                    <i key={i} className={isDrawn ? 'on' : ''} title={isDrawn && drawnPick ? NATION_BY_ID.get(drawnPick.teamId)?.name : undefined}>
+                      {isDrawn && drawnPick && drawnPick.order < revealed && <Flag id={drawnPick.teamId} size={11} />}
+                    </i>
+                  )
+                })
+              })()}
             </div>
             <div className="reveal-stage">
               <div className="podium-rings" aria-hidden />
@@ -224,16 +234,31 @@ export function DrawScreen() {
             <p className="muted" style={{ maxWidth: 300, margin: '0 auto' }}>
               It's yours now — drag any two countries to swap their slots.
             </p>
+            {!coachSeen && (
+              <div className="coach-mark" role="status">
+                <span className="cm-hand" aria-hidden>✥</span>
+                Drag one country onto another to swap their groups
+                <button
+                  className="btn ghost small"
+                  onClick={() => {
+                    localStorage.setItem('wcsim:coach:swap', '1')
+                    setCoachSeen(true)
+                  }}
+                >
+                  Got it
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </div>
 
-      <div className={`board${format === 64 ? ' board-64' : ''}`}>
+      <div className={`board${format === 64 ? ' board-64' : ''}${phase === 'hold' ? ' spotlighting' : ''}`}>
         {groupIds.map((g) => {
           const skippedNow = phase === 'hold' && current?.skipped.some((s) => s.group === g)
           const receiving = phase === 'hold' && current?.group === g
           return (
-            <div key={g} className={`card group-card${receiving ? ' receiving' : ''}`}>
+            <div key={g} className={`card group-card${receiving ? ' receiving' : ''}${skippedNow ? ' skipflash' : ''}`}>
               <h4 className={`display${skippedNow ? ' flash' : ''}`}>
                 <span className="gmedal tnum">{g}</span>
                 Group {g}
@@ -245,7 +270,7 @@ export function DrawScreen() {
                 return pick ? (
                   <div
                     key={pos}
-                    className={`slot landed${done ? ' swappable' : ''}${dragSlot?.group === g && dragSlot.position === pos ? ' dragging' : ''}`}
+                    className={`slot landed${pick.order === revealed - 1 ? ' just' : ''}${done ? ' swappable' : ''}${dragSlot?.group === g && dragSlot.position === pos ? ' dragging' : ''}`}
                     draggable={done}
                     title={done ? 'Drag onto another country to swap groups' : undefined}
                     onDragStart={() => setDragSlot({ group: g, position: pos as Position })}

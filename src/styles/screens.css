@@ -4273,3 +4273,1332 @@ table.standings td:nth-child(7) {
   font-size: 11px;
   line-height: 1.45;
 }
+
+/* ————— Visual Hundred: the landing ————— */
+/* 1 · hero copy floats on a scrim, not on the globe's dots */
+.hero-copy {
+  position: relative;
+  z-index: 2;
+}
+.hero-copy::before {
+  content: '';
+  position: absolute;
+  inset: -40px -80px -28px;
+  background: radial-gradient(58% 78% at 50% 45%, color-mix(in srgb, var(--bg-0) 82%, transparent) 30%, transparent 78%);
+  z-index: -1;
+  pointer-events: none;
+}
+.hero-copy .sub {
+  text-shadow: 0 1px 12px var(--bg-0);
+}
+/* 2 · the fact ticker gets its own masked band and warmer ink */
+.fact-ticker {
+  position: relative;
+  z-index: 2;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  background: color-mix(in srgb, var(--bg-0) 55%, transparent);
+  border-radius: 999px;
+}
+.fact-ticker .ft-item {
+  color: color-mix(in srgb, var(--text-hi) 78%, var(--gold));
+}
+/* 3 · the giant 26 bleeds into the corner deliberately, dimmer behind the cards */
+.landing::before {
+  right: -4%;
+  top: auto;
+  bottom: -12%;
+  transform: none;
+  opacity: 0.32;
+}
+/* 4 · the recommended card leads */
+.setup-card.recommended {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line-1));
+  box-shadow:
+    inset 3px 0 0 var(--gold),
+    0 10px 34px -18px color-mix(in srgb, var(--gold) 55%, transparent);
+  transform: scale(1.02);
+}
+.rec-tag {
+  position: absolute;
+  top: 14px;
+  left: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+/* 5 · icons in faceted medallions */
+.setup-card .icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--gold);
+  background:
+    radial-gradient(120% 120% at 30% 22%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 55%),
+    color-mix(in srgb, var(--gold) 7%, var(--bg-2));
+  border: 1px solid var(--gold-dim);
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--gold) 12%, transparent);
+}
+/* 6 · the globe breathes beneath the hero (the headline sheen already lives) */
+.landing-globe {
+  animation: globe-drift 26s ease-in-out infinite;
+}
+@keyframes globe-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+/* 7 · the number chips are real key-caps */
+.setup-card .kbd {
+  border: 1px solid var(--line-2);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  min-width: 24px;
+  padding: 1px 6px;
+  font-size: 12px;
+  color: var(--text-mid);
+}
+.setup-card:hover .kbd::before {
+  content: attr(data-hint) ' ';
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+/* 8 · the closing line sits between hairlines */
+.landing-foot {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: center;
+  font-size: 13px;
+}
+.landing-foot::before,
+.landing-foot::after {
+  content: '';
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-2));
+}
+.landing-foot::after {
+  background: linear-gradient(270deg, transparent, var(--line-2));
+}
+
+/* ————— Visual Hundred: appbar, stepper, menu ————— */
+/* 9/10 · stepper connectors are lines that fill; done discs go gold, locked ones ghost */
+.stepper .step {
+  position: relative;
+}
+.step-link {
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line-2);
+  margin: 0 -2px 0 6px;
+  transition: background 300ms;
+}
+.step-link.filled {
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.step.done .disc {
+  background: color-mix(in srgb, var(--gold) 16%, var(--bg-2));
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+.step.locked .disc {
+  opacity: 0.45;
+  border-style: dashed;
+}
+/* 13 · the current step glows */
+.step.active .disc {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 18%, transparent), 0 0 16px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+.step.active .lbl {
+  letter-spacing: 0.06em;
+}
+/* 11 · a star above the trophy once someone lifts it */
+.wm-trophy {
+  position: relative;
+  display: inline-flex;
+}
+.wm-star {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-style: normal;
+  font-size: 9px;
+  color: var(--gold);
+  animation: star-pop 700ms cubic-bezier(0.2, 0, 0, 1) both;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--gold) 70%, transparent);
+}
+@keyframes star-pop {
+  from { opacity: 0; transform: translateX(-50%) scale(0.3); }
+}
+/* 12 · zoom controls collapse into a popover */
+.zoom-pop {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-2);
+  box-shadow: var(--shadow-2);
+}
+.zoom-pop .zoom-pct {
+  min-width: 46px;
+  text-align: center;
+  font-size: 12px;
+  border: none;
+  background: none;
+  color: var(--text-mid);
+  cursor: pointer;
+}
+/* 95 · the Tournament menu becomes a sectioned drawer */
+.menu-drawer {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  width: 262px;
+  padding: 10px;
+  z-index: 50;
+  background: var(--bg-2);
+  box-shadow: var(--shadow-2);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.menu-section {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-low);
+  padding: 8px 10px 3px;
+  border-top: 1px solid var(--line-1);
+  margin-top: 4px;
+}
+.menu-drawer .menu-section:first-child {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 2px;
+}
+.seed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px 6px;
+  font-size: 12px;
+}
+.seed-in {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+/* 96 · archive rows carry format + freshness */
+.ar-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fmt-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+  font-style: normal;
+}
+
+/* ————— Visual Hundred: the Laboratory ————— */
+/* 17 · the active chamber wears its tint */
+.chamber-gold { --chamber-c: var(--gold); }
+.chamber-green { --chamber-c: var(--pos-adv); }
+.chamber-blue { --chamber-c: #6ea8d8; }
+.chamber-amber { --chamber-c: var(--pos-third); }
+.chamber-red { --chamber-c: var(--danger); }
+.chamber {
+  border-top: 2px solid var(--chamber-c, var(--line-1));
+}
+.chamber .chamber-head h3 {
+  color: var(--chamber-c, var(--text-hi));
+}
+.chamber .chaos-slider {
+  accent-color: var(--chamber-c, var(--gold));
+}
+/* 18 · dials separate on hairlines */
+.dial-grid .lab-slider {
+  padding-bottom: 10px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--line-1) 80%, transparent);
+}
+/* 19 · every track shows its calibrated default */
+.dial-track {
+  position: relative;
+  display: block;
+}
+.dial-tick {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 12px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--text-low) 70%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+/* 26 · the dial you're touching speaks louder */
+.lab-slider:focus-within .dial-blurb,
+.lab-slider:hover .dial-blurb {
+  color: var(--text-mid);
+  font-size: 12px;
+  transition: font-size 140ms, color 140ms;
+}
+/* 20 · fingerprint deltas */
+.fp-delta {
+  font-style: normal;
+  font-size: 8px;
+  margin-left: 3px;
+  animation: fp-fade 1.4s ease-out both;
+}
+.fp-delta.up { color: var(--pos-adv); }
+.fp-delta.down { color: var(--danger); }
+@keyframes fp-fade {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0.25; }
+}
+/* 21 · the pairing card opens with a face-off */
+.pairing-face {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pairing-face .chip {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+/* 22/23 · preset chips carry a realism meter and a live dot; other tiers step back */
+.pc-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+}
+.pmeter {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.pmeter b {
+  width: 8px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line-2);
+}
+.pmeter b.on {
+  background: var(--tier-c, var(--gold));
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+  animation: live-pulse 1.8s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  50% { opacity: 0.5; }
+}
+.shelf-dimming .preset-tier:not(.has-live) {
+  opacity: 0.55;
+  transition: opacity 220ms;
+}
+.shelf-dimming .preset-tier:not(.has-live):hover {
+  opacity: 1;
+}
+
+/* 24/25 · the squads shelf: confed subheaders, power bars, delta badges */
+.studio-confed {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line-1);
+}
+.studio-confed .tnum {
+  color: var(--text-low);
+  letter-spacing: 0;
+}
+.studio-row .name {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.name-power {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  opacity: 0.75;
+  max-width: 150px;
+}
+.delta-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.delta-badge.up {
+  color: var(--pos-adv);
+  border-color: color-mix(in srgb, var(--pos-adv) 45%, transparent);
+}
+.delta-badge.down {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+/* ————— Visual Hundred: team selection ————— */
+/* 27 · the inactive format invites the switch */
+.fmt-opt:not(.on) {
+  color: var(--text-mid);
+}
+.fmt-opt:not(.on):hover .fmt-n {
+  color: var(--gold);
+  transition: color 160ms;
+}
+.fmt-opt .fmt-copy i {
+  transition: color 200ms;
+}
+/* 28 · the ring re-targets smoothly */
+.ring-fg {
+  transition: stroke-dashoffset 650ms cubic-bezier(0.2, 0, 0, 1);
+}
+/* 29/30 · quota meters you can actually read */
+.quota .meter {
+  height: 6px;
+  gap: 3px;
+}
+.quota .meter i {
+  height: 6px;
+  border-radius: 3px;
+  transition: background 260ms;
+}
+.quota .meter i.over {
+  background: var(--gold);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--gold) 60%, transparent);
+  max-width: 8px;
+}
+.quota .meter i.po-fill,
+.quota .meter i.po-slot {
+  max-width: 7px;
+  transform: rotate(45deg) scale(0.8);
+  border-radius: 2px;
+}
+.quota .meter i.po-fill {
+  background: var(--pos-third);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--pos-third) 55%, transparent);
+}
+/* 31 · a confederation at quota flips its whole tab gold */
+.seg button.filled {
+  border-color: var(--gold-dim);
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
+  color: var(--gold);
+}
+/* 32 · selection states wash the whole card */
+.team-card {
+  transition: transform 150ms cubic-bezier(0.2, 0, 0, 1), border-color 150ms, box-shadow 150ms;
+}
+.team-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px -14px rgba(0, 0, 0, 0.6);
+}
+.team-card.on {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--pos-adv) 10%, transparent), transparent 55%),
+    var(--bg-1);
+  border-color: color-mix(in srgb, var(--pos-adv) 45%, var(--line-1));
+}
+.team-card.po {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--pos-third) 12%, transparent), transparent 55%),
+    var(--bg-1);
+  border-color: color-mix(in srgb, var(--pos-third) 50%, var(--line-1));
+}
+/* 33 · the search is a pill with a real key-cap */
+.search-pill {
+  border: 1px solid var(--line-1);
+  border-radius: 999px;
+  padding: 0 12px;
+  height: 38px;
+  background: color-mix(in srgb, var(--bg-2) 60%, transparent);
+  transition: border-color 150ms;
+}
+.search-pill:focus-within {
+  border-color: var(--gold-dim);
+}
+.search-pill .search-in {
+  border: none;
+  background: none;
+  height: 100%;
+}
+.search-pill .search-in:focus-visible {
+  outline: none;
+}
+.key-hint {
+  font-family: inherit;
+  font-size: 10px;
+  border: 1px solid var(--line-2);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--text-low);
+  background: var(--bg-2);
+}
+/* 34 · the modalities sit on a chalk→anarchy rail */
+.qual-rail {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.qual-rail .qr-end {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.qual-rail .qual-modes {
+  position: relative;
+  flex: 1;
+  padding-bottom: 6px;
+}
+.qual-rail .qual-modes::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--pos-adv), var(--pos-third), var(--danger));
+  opacity: 0.55;
+}
+/* 35 · the play-off band is always visible, ghosted until entrants arrive */
+.ghost-band {
+  border-style: dashed;
+  opacity: 0.8;
+}
+/* 36 · the play-off log reads like a ledger */
+.playoff-log {
+  font-variant-numeric: tabular-nums;
+}
+.playoff-log div {
+  padding: 4px 0 4px 10px;
+  border-left: 2px solid color-mix(in srgb, var(--line-2) 70%, transparent);
+}
+.playoff-log div:nth-child(odd) {
+  background: color-mix(in srgb, var(--bg-2) 40%, transparent);
+}
+
+/* ————— Visual Hundred: host picker & seeding ————— */
+/* 38 · host sockets fill with a flip */
+.as-fill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+/* 40 · pots wear a strength gradient, gold down to slate */
+.pot-tier-1 .gmedal { background: linear-gradient(160deg, var(--gold-hi), var(--gold-dim)); color: var(--gold-ink); border-color: var(--gold); }
+.pot-tier-2 .gmedal { background: linear-gradient(160deg, #c9ccd2, #8f939b); color: #1a1d21; border-color: #a9adb5; }
+.pot-tier-3 .gmedal { background: linear-gradient(160deg, #caa27a, #96714d); color: #221a12; border-color: #b08d63; }
+.pot-tier-4 .gmedal { background: linear-gradient(160deg, #9aa5a0, #5f6a66); color: #141a17; border-color: #7b8781; }
+.pot-tier-1 h3 { border-bottom: 2px solid color-mix(in srgb, var(--gold) 40%, transparent); }
+.pot-tier-2 h3 { border-bottom: 2px solid rgba(160, 165, 173, 0.35); }
+.pot-tier-3 h3 { border-bottom: 2px solid rgba(176, 141, 99, 0.35); }
+.pot-tier-4 h3 { border-bottom: 2px solid rgba(123, 135, 129, 0.35); }
+/* 41 · rating spread sparkline */
+.pot-spark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pot-spark svg {
+  width: 44px;
+  height: 14px;
+  overflow: visible;
+}
+.pot-spark polyline {
+  fill: none;
+  stroke: var(--gold-dim);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.pot-spark .tnum {
+  font-size: 10.5px;
+}
+/* 42 · hosts announce themselves */
+.host-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+/* 43 · rows lift when draggable, targets glow */
+.pot-row {
+  transition: transform 140ms, box-shadow 140ms, border-color 140ms;
+  cursor: grab;
+}
+.pot-row:hover:not(.dragging) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.55);
+}
+.pot-row.drop-target {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+/* 45 · the linter is a diagnostic, not a whisper */
+.linter-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--pos-third) 55%, transparent);
+  background: color-mix(in srgb, var(--pos-third) 9%, transparent);
+  color: var(--pos-third);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+/* ————— Visual Hundred: the draw ————— */
+/* 46 · the idle line breathes */
+.reveal-idle {
+  font-size: 26px;
+  animation: idle-breathe 4s ease-in-out infinite;
+}
+@keyframes idle-breathe {
+  0%, 100% { opacity: 0.65; text-shadow: none; }
+  50% { opacity: 1; text-shadow: 0 0 22px color-mix(in srgb, var(--gold) 35%, transparent); }
+}
+/* 47 · pot progress pills carry their drawn flags */
+.pot-dots i {
+  width: 16px;
+  height: 12px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.pot-dots i .flag {
+  border-radius: 2px;
+}
+/* 48 · a refused group shudders */
+.group-card.skipflash {
+  animation: card-shake 380ms;
+}
+@keyframes card-shake {
+  20% { transform: translateX(-3px); }
+  45% { transform: translateX(3px); }
+  70% { transform: translateX(-2px); }
+  90% { transform: translateX(1px); }
+}
+/* 49 · the flag lands with an impact ring */
+.slot.just {
+  position: relative;
+}
+.slot.just::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid var(--gold);
+  animation: land-ping 650ms cubic-bezier(0.2, 0, 0, 1) both;
+  pointer-events: none;
+}
+@keyframes land-ping {
+  from { opacity: 0.9; transform: scale(0.94); }
+  to { opacity: 0; transform: scale(1.08); }
+}
+/* 50 · the receiving group takes the spotlight */
+.board.spotlighting .group-card:not(.receiving):not(.skipflash) {
+  opacity: 0.72;
+  filter: saturate(0.85);
+  transition: opacity 260ms, filter 260ms;
+}
+/* 51 · one-time coach mark for the swap gesture */
+.coach-mark {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+  border: 1px dashed var(--gold-dim);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-mid);
+  background: color-mix(in srgb, var(--gold) 5%, transparent);
+  animation: footer-rise 400ms 600ms both;
+}
+.cm-hand {
+  color: var(--gold);
+  font-size: 14px;
+}
+/* 52 · the 16-group board tightens its type */
+.board-64 .group-card h4 {
+  font-size: 11.5px;
+}
+.board-64 .group-card h4 .gmedal {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+}
+.board-64 .slot {
+  font-size: 12px;
+}
+
+/* ————— Visual Hundred: the group stage ————— */
+/* 53 · names at width, trigraphs when tight */
+.fixture .fx-tri { display: none; }
+@media (max-width: 1180px) {
+  .fixture .fx-name { display: none; }
+  .fixture .fx-tri { display: inline; }
+}
+.fixture .fx-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 96px;
+  font-size: 12.5px;
+}
+/* 54 · simulated scores are gold, hand-entered stay ivory */
+.fixture.simmed input {
+  color: var(--gold);
+}
+.fixture.simmed .ftag::after {
+  content: '⚄';
+  margin-left: 5px;
+  color: var(--gold-dim);
+  font-size: 10px;
+}
+/* 55 · fixture actions slide in on hover */
+.fx-actions {
+  display: inline-flex;
+  gap: 4px;
+  opacity: 0.35;
+  transform: translateX(2px);
+  transition: opacity 160ms, transform 160ms;
+}
+.fixture:hover .fx-actions,
+.fixture:focus-within .fx-actions {
+  opacity: 1;
+  transform: none;
+}
+/* 56 · group progress is a real bar */
+.gprog {
+  margin-left: auto;
+  width: 54px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--line-1);
+  overflow: hidden;
+}
+.gprog b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  transform-origin: left;
+  transition: transform 400ms cubic-bezier(0.2, 0, 0, 1);
+}
+/* 57 · sealed groups get the wax stamp */
+.ghub-card {
+  position: relative;
+}
+.ghub-card.sealed::after {
+  content: 'SEALED';
+  position: absolute;
+  top: 10px;
+  right: -8px;
+  transform: rotate(12deg);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: color-mix(in srgb, var(--gold) 70%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  border-radius: 4px;
+  padding: 2px 7px;
+  pointer-events: none;
+}
+.ghub-card.sealed .fixtures {
+  filter: saturate(0.85);
+  opacity: 0.94;
+}
+/* 58 · head-to-head verdicts glow amber */
+.tiebreak-note.tb-h2h {
+  color: var(--pos-third);
+}
+/* 59 · matchday tabs carry their counts */
+.seg .md-count {
+  font-size: 9.5px;
+  color: var(--text-low);
+  margin-left: 5px;
+}
+.seg button.on .md-count {
+  color: inherit;
+}
+.md-fill {
+  height: 3px !important;
+}
+/* 60/61/62 · the thirds panel: gold edge, mosaic, a real cut line */
+.thirds-panel {
+  border-left: 2px solid;
+  border-image: linear-gradient(180deg, var(--gold), transparent 70%) 1;
+}
+.thirds-mosaic {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0 2px;
+}
+.thirds-line {
+  border-top: 2px dashed var(--gold-dim);
+  color: var(--gold);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding-top: 5px;
+  margin: 8px 0 4px;
+}
+.thirds-row.below-line {
+  opacity: 0.66;
+  background: color-mix(in srgb, var(--pos-out) 6%, transparent);
+  border-radius: 6px;
+}
+.thirds-row.provisional {
+  animation: prov-pulse 2.6s ease-in-out infinite;
+}
+@keyframes prov-pulse {
+  50% { background: color-mix(in srgb, var(--pos-third) 7%, transparent); }
+}
+
+/* ————— Visual Hundred: the knockout bracket ————— */
+/* 63 · round headers carry their tie counts; the live round pulses */
+.bhead {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+.bh-n {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  color: var(--text-low);
+}
+.bhead.live {
+  color: var(--gold);
+}
+.bhead.live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--gold);
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+.bhead.live .bh-n {
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+/* 64 · the champion's route draws heavier */
+.bconn.champ-road {
+  border-width: 3px;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold) 55%, transparent));
+}
+/* 65 · ghost sources are slotted placeholders */
+.ko-node .src {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: underline dotted color-mix(in srgb, var(--text-low) 60%, transparent);
+  text-underline-offset: 3px;
+}
+/* 66 · upsets fly a flag */
+.upset-chip {
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--pos-third);
+  border: 1px solid color-mix(in srgb, var(--pos-third) 55%, transparent);
+  background: color-mix(in srgb, var(--pos-third) 10%, transparent);
+  border-radius: 3px;
+  padding: 1px 4px;
+  flex: none;
+}
+/* 67 · bronze is bronze, not another gold */
+.ko-node.bronze {
+  border-color: color-mix(in srgb, #b08d57 55%, var(--line-1));
+  background:
+    radial-gradient(200px 60px at 50% -20%, rgba(176, 141, 87, 0.12), transparent 70%),
+    var(--bg-1);
+}
+.ko-node.bronze .mtag {
+  color: #c9a06a;
+}
+/* 68 · shootout digits ride the score column; the chip stands down when compact */
+.pen-sup {
+  font-size: 9px;
+  margin-left: 2px;
+  color: var(--gold);
+}
+.ko-node.compact .verdict.pens {
+  display: none;
+}
+/* 69 · the unclaimed trophy slot breathes */
+.trophy-medal {
+  position: relative;
+}
+.trophy-medal:not(.won)::before,
+.trophy-medal:not(.won)::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in srgb, var(--gold) 30%, transparent);
+  animation: orbit-a 14s linear infinite;
+  pointer-events: none;
+}
+.trophy-medal:not(.won)::after {
+  inset: -14px;
+  border-color: color-mix(in srgb, var(--gold) 16%, transparent);
+  animation: orbit-b 22s linear infinite;
+}
+@keyframes orbit-a { to { transform: rotate(360deg); } }
+@keyframes orbit-b { to { transform: rotate(-360deg); } }
+/* 70 · the zoom dock floats glass over the bracket */
+.bracket-wrap {
+  position: relative;
+}
+.bracket-wrap .zoom-dock {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 6;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--line-2) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-1) 72%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px -16px rgba(0, 0, 0, 0.6);
+}
+/* 71 · importance scales toward the final */
+.ko-node.ks-qf .cname { font-size: 13.5px; }
+.ko-node.ks-sf .cname { font-size: 14.5px; }
+.ko-node.ks-sf { padding-top: 12px; padding-bottom: 12px; }
+.final-node { transform: scale(1.04); }
+
+/* ————— Visual Hundred: the match panel ————— */
+/* 73 · the hero wears its stage color */
+.match-hero { position: relative; }
+.match-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 100%;
+  pointer-events: none;
+  background: radial-gradient(70% 120% at 50% -35%, var(--stage-c, transparent), transparent 72%);
+  opacity: 0.35;
+}
+.match-hero.stage-r32 { --stage-c: #3f6f8f; }
+.match-hero.stage-r16 { --stage-c: #3f8f6f; }
+.match-hero.stage-qf { --stage-c: #8f7a3f; }
+.match-hero.stage-sf { --stage-c: #a08035; }
+.match-hero.stage-third { --stage-c: #b08d57; }
+.match-hero.stage-final { --stage-c: var(--gold); }
+/* 74 · one meta ribbon under the hero */
+.meta-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border: 1px solid var(--line-1);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-2) 55%, transparent);
+  font-size: 11px;
+}
+/* 75 · the score sits on a scoreboard plate */
+.score-plate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--line-2) 80%, transparent);
+  background:
+    radial-gradient(60% 130% at 50% -30%, color-mix(in srgb, var(--gold) 7%, transparent), transparent 70%),
+    color-mix(in srgb, var(--bg-0) 72%, transparent);
+}
+.score-plate input {
+  font-family: 'DSEG7', var(--font-display);
+  color: var(--gold-hi);
+}
+/* 76 · the verdict is a bar, not a whisper */
+.verdict-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 13%, transparent), transparent);
+  color: var(--gold);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+/* 77 · a true minute axis */
+.minute-axis {
+  position: relative;
+  height: 74px;
+  margin: 6px 2px 0;
+}
+.ma-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: var(--line-2);
+  border-radius: 2px;
+}
+.ma-grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+.ma-grid i {
+  position: absolute;
+  top: 16px;
+  bottom: 18px;
+  left: 50%;
+  width: 1px;
+  background: color-mix(in srgb, var(--line-1) 85%, transparent);
+}
+.ma-grid.ft i {
+  background: color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.ma-grid b {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--text-low);
+}
+.ma-event {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ma-event.above { top: 4px; }
+.ma-event.below { top: 50%; margin-top: 4px; }
+.ma-event b {
+  font-size: 8.5px;
+  color: var(--text-mid);
+}
+.ma-event.away .tl-ico {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-hi) 35%, transparent);
+}
+.ma-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  margin-top: 2px;
+}
+/* 79 · the recap hangs off a quotation rule */
+.recap {
+  border-left: 2px solid var(--gold-dim);
+  padding-left: 12px;
+  margin: 4px 8px 0;
+  text-align: left;
+}
+
+/* ————— Visual Hundred: champion scene ————— */
+/* 92 · scoreline chips + caption */
+.sl-chip {
+  margin-left: 10px;
+  font-size: 11px;
+  vertical-align: middle;
+}
+.sl-caption {
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+/* 93 · gold keeps drifting after the burst */
+.champion::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px at 12% 20%, color-mix(in srgb, var(--gold) 55%, transparent), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 12%, color-mix(in srgb, var(--gold) 45%, transparent), transparent 60%),
+    radial-gradient(2px 2px at 42% 6%, color-mix(in srgb, var(--gold) 40%, transparent), transparent 60%),
+    radial-gradient(1.5px 1.5px at 88% 44%, color-mix(in srgb, var(--gold) 35%, transparent), transparent 60%),
+    radial-gradient(2px 2px at 26% 66%, color-mix(in srgb, var(--gold) 30%, transparent), transparent 60%);
+  background-repeat: repeat;
+  background-size: 900px 700px;
+  animation: gold-drift 26s linear infinite;
+  opacity: 0.6;
+}
+@keyframes gold-drift {
+  from { background-position: 0 -700px; }
+  to { background-position: 60px 700px; }
+}
+/* 94 · quiet exits are text links */
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--text-low);
+  font-size: 13px;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.link-btn:hover {
+  color: var(--text-mid);
+}
+
+/* ————— Visual Hundred: pulse tiles, theater, report, ceremonies, empty art ————— */
+/* 72 · the pulse strip becomes stat tiles */
+.pulse-strip.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pulse-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border: 1px solid var(--line-1);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-2) 55%, transparent);
+  font-size: 12px;
+}
+.pulse-tile svg {
+  color: var(--gold-dim);
+}
+.pulse-tile b {
+  font-size: 15px;
+  color: var(--text-hi);
+}
+.pulse-tile i {
+  font-style: normal;
+  color: var(--text-low);
+  font-size: 11px;
+}
+.pulse-tile.record {
+  border-color: color-mix(in srgb, var(--gold) 35%, var(--line-1));
+}
+.pulse-tile.record b {
+  font-size: 12px;
+}
+
+/* 85/86 · the theater is a stadium card; goals land loud */
+.theater-dialog {
+  max-width: 720px;
+  width: calc(100vw - 48px);
+}
+.theater-board {
+  animation: board-flash 500ms cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes board-flash {
+  30% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 45%, transparent), 0 0 34px color-mix(in srgb, var(--gold) 30%, transparent); }
+}
+.th-marker.goal.lit {
+  box-shadow: 0 0 10px var(--gold);
+}
+.th-goal-tag {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8.5px;
+  color: var(--gold);
+  font-style: normal;
+}
+
+/* 81–84 · the report: filled swing, LED scoreline, xG duel */
+.rw-area {
+  stroke: none;
+  opacity: 0.7;
+}
+.rw-area.home { fill: color-mix(in srgb, var(--pos-adv) 16%, transparent); }
+.rw-area.away { fill: color-mix(in srgb, var(--pos-third) 14%, transparent); }
+.rw-goal-min {
+  font-size: 8px;
+  fill: var(--text-mid);
+}
+.report-led {
+  font-family: 'DSEG7', var(--font-display);
+  font-size: 26px;
+  color: var(--gold);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.report-headline {
+  font-size: 34px;
+  line-height: 1.04;
+}
+.report-hero .kicker::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 2px;
+  margin: 6px auto 0;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.xg-duel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-mid);
+}
+.xg-duel .xg-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--pos-third) 30%, transparent);
+  overflow: hidden;
+}
+.xg-duel .xg-bar i {
+  display: block;
+  height: 100%;
+  background: var(--pos-adv);
+  border-radius: 3px;
+}
+
+/* 87 · settled tournaments step back; their winner steps forward */
+.po64-t.settled .po-tree {
+  opacity: 0.88;
+}
+.po64-t.settled .po64-head .chip .flag {
+  transform: scale(1.15);
+}
+/* 88 · entrants shelve by confederation */
+.po-field-grouped {
+  gap: 10px 14px;
+}
+.pf-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line-1);
+}
+.pf-group:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+.pf-label {
+  font-style: normal;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-low);
+}
+/* 89 · the 48 zigzag voids read as flow */
+.po-tree-48 .po-col.ghost {
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--gold-dim) 55%, transparent) 1px, transparent 1.5px);
+  background-size: 14px 14px;
+  opacity: 0.25;
+  min-height: 40px;
+  border-radius: 10px;
+}
+/* 90 · four berth sockets fill with winners */
+.berth-tracker {
+  display: inline-flex;
+  gap: 7px;
+  margin-right: auto;
+}
+.berth-socket {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px dashed var(--line-2);
+  color: var(--text-low);
+  font-size: 10px;
+}
+.berth-socket.won {
+  border: 1px solid var(--gold-dim);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--gold) 25%, transparent);
+}
+
+/* 99 · empty states get their line art */
+.empty-art {
+  width: 120px;
+  height: 48px;
+  margin: 0 auto 14px;
+  display: block;
+  fill: none;
+  stroke: color-mix(in srgb, var(--gold) 35%, transparent);
+  stroke-width: 1.5;
+}

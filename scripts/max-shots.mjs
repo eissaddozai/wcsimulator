@@ -64,7 +64,7 @@ if (await replayBtn.isVisible().catch(() => false)) {
   await page.locator('.theater-dialog .host-close').click().catch(() => {})
   await page.waitForTimeout(200)
 }
-await page.locator('text=Close').first().click().catch(() => {})
+await page.locator('.overlay').first().click({ position: { x: 12, y: 12 } }).catch(() => {})
 await page.waitForTimeout(250)
 
 // groups hub: full tables, thirds panel, edit mode, matchday tabs

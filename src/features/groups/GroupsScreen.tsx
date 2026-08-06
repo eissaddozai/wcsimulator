@@ -70,8 +70,14 @@ export function GroupsScreen() {
 
   if (!groups || !standings) {
     return (
-      <div className="page" style={{ textAlign: 'center', paddingTop: 96 }}>
-        <p className="serif-accent" style={{ fontSize: 19, color: 'var(--text-mid)' }}>
+      <div className="page empty-stage" style={{ textAlign: 'center', paddingTop: 96 }}>
+        <svg className="empty-art" viewBox="0 0 120 48" aria-hidden>
+          <circle cx="24" cy="30" r="13" />
+          <circle cx="60" cy="24" r="16" />
+          <circle cx="96" cy="32" r="11" />
+          <path d="M53 20 a9 9 0 0 1 9 -5" />
+        </svg>
+        <p className="serif-accent" style={{ fontSize: 19, color: 'var(--text-mid)', margin: 0 }}>
           No draw yet — the balls wait in their pots.
         </p>
       </div>
@@ -139,6 +145,7 @@ export function GroupsScreen() {
             return (
               <button key={m} className={md === m ? 'on' : ''} onClick={() => setMd(m as 0 | 1 | 2 | 3)}>
                 {m === 0 ? 'All' : `MD${m}`}
+                <span className="md-count tnum">{mdDone}/{mdFixtures.length}</span>
                 <i
                   className="md-fill"
                   style={{ transform: `scaleX(${mdFixtures.length ? mdDone / mdFixtures.length : 0})` }}
@@ -305,10 +312,17 @@ function GroupCard(props: {
       <h4 className="display">
         <span className="gmedal tnum">{g}</span>
         Group {g}
-        <span className="gdots" title="Fixtures entered">
-          {fixturesOfGroupFor(g, format).map((f) => (
-            <i key={f.number} className={results[f.number] && isScored(results[f.number]!) ? 'on' : ''} />
-          ))}
+        <span
+          className="gprog"
+          title="Fixtures entered"
+          role="img"
+          aria-label={`${fixturesOfGroupFor(g, format).filter((f) => results[f.number] && isScored(results[f.number]!)).length} of 6 entered`}
+        >
+          <b
+            style={{
+              transform: `scaleX(${fixturesOfGroupFor(g, format).filter((f) => results[f.number] && isScored(results[f.number]!)).length / 6})`,
+            }}
+          />
         </span>
       </h4>
       <table className="standings">
@@ -370,7 +384,7 @@ function GroupCard(props: {
                     <span className="nm">{shortName(row.id)}</span>
                     {badge}
                     {row.played > 0 && row.decidedBy && row.decidedBy !== 'points' && (
-                      <span className="tiebreak-note" title={`Separated by ${RUNG_COPY[row.decidedBy]}`}>
+                      <span className={`tiebreak-note tb-${row.decidedBy}`} title={`Separated by ${RUNG_COPY[row.decidedBy]}`}>
                         <Info size={11} />
                       </span>
                     )}
@@ -430,11 +444,12 @@ function GroupCard(props: {
           if (!home || !away) return null
           const r = results[f.number]
           return (
-            <div key={f.number} className="fixture">
+            <div key={f.number} className={`fixture${r?.simulated ? ' simmed' : ''}`}>
               <span className="mtag tnum ftag">Match {f.number}</span>
               <span className="side">
                 <Flag id={home} size={26} />
-                {home}
+                <span className="fx-name">{shortName(home)}</span>
+                <span className="fx-tri tnum">{home}</span>
               </span>
               <span className="mid">
                 <ScoreInput
@@ -461,26 +476,39 @@ function GroupCard(props: {
               </span>
               <span className="side away">
                 <Flag id={away} size={26} />
-                {away}
+                <span className="fx-name">{shortName(away)}</span>
+                <span className="fx-tri tnum">{away}</span>
               </span>
-              <button
-                className="dice-btn"
-                title={r?.simulated ? 'Simulated — press to re-roll' : 'Simulate this match'}
-                onClick={() => onDice(f.number)}
-                aria-label={`Simulate ${home} vs ${away}`}
-              >
-                <Dices size={14} />
-              </button>
-              {r?.events && r.events.length > 0 && (
+              <span className="fx-actions">
                 <button
                   className="dice-btn"
-                  title="Full match report"
-                  onClick={() => onReport(f.number, home, away, `Group ${g} · Matchday ${f.matchday}`)}
-                  aria-label={`Match report: ${home} vs ${away}`}
+                  title={r?.simulated ? 'Simulated — press to re-roll' : 'Simulate this match'}
+                  onClick={() => onDice(f.number)}
+                  aria-label={`Simulate ${home} vs ${away}`}
                 >
-                  <NotebookText size={13} />
+                  <Dices size={14} />
                 </button>
-              )}
+                {r?.events && r.events.length > 0 && (
+                  <button
+                    className="dice-btn"
+                    title="Full match report"
+                    onClick={() => onReport(f.number, home, away, `Group ${g} · Matchday ${f.matchday}`)}
+                    aria-label={`Match report: ${home} vs ${away}`}
+                  >
+                    <NotebookText size={13} />
+                  </button>
+                )}
+                {r && (
+                  <button
+                    className="dice-btn"
+                    title="Clear this score"
+                    onClick={() => onScore(f.number, null)}
+                    aria-label={`Clear ${home} vs ${away}`}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+              </span>
             </div>
           )
         })}
@@ -493,7 +521,7 @@ function ThirdsPanel({ thirds, onClose }: { thirds: ReturnType<typeof liveThirds
   return (
     <>
       <div className="overlay" style={{ background: 'rgba(4,7,6,0.4)' }} onClick={onClose} />
-      <aside className="slideover" aria-label="Third place race">
+      <aside className="slideover thirds-panel" aria-label="Third place race">
         <div style={{ padding: 24 }}>
           <div className="row spread">
             <h3 className="display" style={{ margin: 0, fontSize: 24 }}>
@@ -503,13 +531,20 @@ function ThirdsPanel({ thirds, onClose }: { thirds: ReturnType<typeof liveThirds
               Close
             </button>
           </div>
+          {thirds.length > 0 && (
+            <div className="thirds-mosaic" aria-hidden>
+              {thirds.slice(0, 8).map((t) => (
+                <Flag key={t.id} id={t.id} size={20} />
+              ))}
+            </div>
+          )}
           <p className="low" style={{ fontSize: 12 }}>
             The eight best third-placed teams cross into the Round of 32. Rows from unfinished groups are provisional.
           </p>
           {thirds.length === 0 && <p className="muted">Standings appear once every group has a third-placed team.</p>}
           {thirds.map((t, i) => (
             <motion.div key={t.id} layout transition={{ layout: { duration: 0.5, ease: [0.2, 0, 0, 1] } }}>
-              <div className="thirds-row">
+              <div className={`thirds-row${i > 7 ? ' below-line' : ''}${t.provisional ? ' provisional' : ''}`}>
                 <span className="tnum low">{t.rank}</span>
                 <span className="chip">{t.group}</span>
                 <Flag id={t.id} size={24} />

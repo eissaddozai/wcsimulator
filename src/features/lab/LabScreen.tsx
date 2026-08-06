@@ -1,6 +1,6 @@
 import NumberFlow from '@number-flow/react'
 import { FlaskConical, RotateCcw } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { LabSlider } from '../../components/ModelLab'
 import { TeamStudioBody } from '../../components/TeamStudio'
@@ -56,6 +56,7 @@ export function LabScreen() {
   )
   const [active, setActive] = useState('Scoring & Tempo')
   const activeGroup = LAB_GROUPS.find((g) => g.title === active) ?? null
+  const activeTint = active === 'chaos' ? 'gold' : active === 'squads' ? 'green' : (activeGroup?.tint ?? 'gold')
 
   // the model's fingerprint: three archetype ties, analytic, instant
   const fingerprint = useMemo(
@@ -66,6 +67,19 @@ export function LabScreen() {
       }),
     [chaos.match, modelParams, ratingOverrides],
   )
+
+  // 20 · direction cues: remember the previous fingerprint so every dial move shows its delta
+  const prevFp = useRef(new Map<string, { fav: number; goals: number }>())
+  const fpDeltas = fingerprint.map((f) => {
+    const prev = prevFp.current.get(f.label)
+    return {
+      fav: prev ? f.fav - prev.fav : 0,
+      goals: prev ? f.goals - prev.goals : 0,
+    }
+  })
+  useEffect(() => {
+    for (const f of fingerprint) prevFp.current.set(f.label, { fav: f.fav, goals: f.goals })
+  }, [fingerprint])
 
   const preview = useMemo(() => {
     const byRating = entries.slice().sort((a, b) => ratingOf(b) - ratingOf(a))
@@ -125,7 +139,7 @@ export function LabScreen() {
           })}
         </nav>
 
-        <section className="chamber card">
+        <section className={`chamber card chamber-${activeTint}`}>
           {active === 'chaos' ? (
             <>
               <div className="chamber-head tint-gold">
@@ -201,10 +215,13 @@ export function LabScreen() {
         </section>
 
         <aside className="lab-console-side">
-          <div className="card lab-card">
+          <div className={`card lab-card${activePreset ? ' shelf-dimming' : ''}`}>
             <div className="lab-group-label tint-gold">Calibration presets — realism to arcade</div>
-            {PRESET_TIERS.map((tier) => (
-              <div key={tier.id} className={`preset-tier tier-${tier.id}`}>
+            {PRESET_TIERS.map((tier, ti) => (
+              <div
+                key={tier.id}
+                className={`preset-tier tier-${tier.id}${activePreset?.tier === tier.id ? ' has-live' : ''}`}
+              >
                 <div className="tier-head" title={tier.blurb}>
                   <i className="tier-dot" aria-hidden />
                   {tier.name}
@@ -217,7 +234,15 @@ export function LabScreen() {
                       onClick={() => applyModelPreset(p.params)}
                       title={p.blurb}
                     >
-                      <span className="display">{p.name}</span>
+                      <span className="pc-head">
+                        <span className="display">{p.name}</span>
+                        <i className="pmeter" aria-hidden title={tier.name}>
+                          {[0, 1, 2, 3].map((n) => (
+                            <b key={n} className={n <= ti ? 'on' : ''} />
+                          ))}
+                        </i>
+                        {activePreset?.id === p.id && <i className="live-dot" aria-label="Active" />}
+                      </span>
                       <span className="low">{p.blurb}</span>
                     </button>
                   ))}
@@ -234,7 +259,7 @@ export function LabScreen() {
               <span>draw</span>
               <span>goals</span>
             </div>
-            {fingerprint.map((f) => (
+            {fingerprint.map((f, i) => (
               <div key={f.label} className="fp-row">
                 <span className="fp-label">
                   <Flag id={f.a} size={15} />
@@ -243,12 +268,22 @@ export function LabScreen() {
                 </span>
                 <span className="tnum">
                   <NumberFlow value={f.fav} format={{ style: 'percent', maximumFractionDigits: 0 }} />
+                  {Math.abs(fpDeltas[i]!.fav) > 0.002 && (
+                    <i key={`fav-${f.fav.toFixed(3)}`} className={`fp-delta ${fpDeltas[i]!.fav > 0 ? 'up' : 'down'}`}>
+                      {fpDeltas[i]!.fav > 0 ? '▲' : '▼'}
+                    </i>
+                  )}
                 </span>
                 <span className="tnum low">
                   <NumberFlow value={f.draw} format={{ style: 'percent', maximumFractionDigits: 0 }} />
                 </span>
                 <span className="tnum gold-text">
                   <NumberFlow value={f.goals} format={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }} />
+                  {Math.abs(fpDeltas[i]!.goals) > 0.02 && (
+                    <i key={`g-${f.goals.toFixed(2)}`} className={`fp-delta ${fpDeltas[i]!.goals > 0 ? 'up' : 'down'}`}>
+                      {fpDeltas[i]!.goals > 0 ? '▲' : '▼'}
+                    </i>
+                  )}
                 </span>
               </div>
             ))}
@@ -260,14 +295,15 @@ export function LabScreen() {
           {preview && (
             <div className="card lab-card preview-card">
               <div className="lab-group-label tint-gold">Your strongest pairing</div>
+              <div className="pairing-face" aria-hidden>
+                <Flag id={preview.a} size={30} />
+                <span className="chip">Group-stage odds</span>
+                <Flag id={preview.b} size={30} />
+              </div>
               <div className="row spread" style={{ fontSize: 13, fontWeight: 600 }}>
-                <span className="row" style={{ gap: 6 }}>
-                  <Flag id={preview.a} size={20} /> {shortName(preview.a)}
-                </span>
+                <span>{shortName(preview.a)}</span>
                 <span className="low">vs</span>
-                <span className="row" style={{ gap: 6 }}>
-                  {shortName(preview.b)} <Flag id={preview.b} size={20} />
-                </span>
+                <span>{shortName(preview.b)}</span>
               </div>
               <div className="odds-bar">
                 <i style={{ width: pct(preview.odds.home) }} />

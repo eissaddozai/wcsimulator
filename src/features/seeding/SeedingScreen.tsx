@@ -1,4 +1,5 @@
-import { Dices, Lock } from 'lucide-react'
+import NumberFlow from '@number-flow/react'
+import { AlertTriangle, Dices, Lock } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { NATION_BY_ID, ratingOf } from '../../data/nations'
@@ -99,12 +100,24 @@ export function SeedingScreen() {
         two rows to swap them.
       </p>
 
-      {!check.ok && pots && <div className="linter">{check.reason}</div>}
+      {!check.ok && pots && (
+        <div className="linter linter-card">
+          <AlertTriangle size={14} />
+          <span>{check.reason}</span>
+        </div>
+      )}
 
       {pots && (
         <div className="pots-grid">
-          {pots.map((pot, pi) => (
-            <div key={pi} className="card pot-col">
+          {pots.map((pot, pi) => {
+            const ratings = pot.map((id) => ratingOf(id)).sort((a, b) => b - a)
+            const lo = Math.min(...ratings, 1)
+            const hi = Math.max(...ratings, 1)
+            const sparkPts = ratings
+              .map((r, i) => `${((i / Math.max(ratings.length - 1, 1)) * 44).toFixed(1)},${(12 - ((r - lo) / Math.max(hi - lo, 1)) * 10).toFixed(1)}`)
+              .join(' ')
+            return (
+            <div key={pi} className={`card pot-col pot-tier-${pi + 1}`}>
               <h3 className="display">
                 <span className="row" style={{ gap: 8 }}>
                   <span className="gmedal tnum" style={{ width: 26, height: 26, fontSize: 14 }}>
@@ -112,9 +125,14 @@ export function SeedingScreen() {
                   </span>
                   Pot {pi + 1}
                 </span>
-                <span className="row" style={{ gap: 6 }}>
-                  <span className="chip tnum" title="Average rating">
-                    ⌀ {Math.round(pot.reduce((acc, id) => acc + ratingOf(id), 0) / Math.max(pot.length, 1))}
+                <span className="row" style={{ gap: 8 }}>
+                  <span className="pot-spark" title={`Rating spread — avg ${Math.round(ratings.reduce((a, b) => a + b, 0) / Math.max(ratings.length, 1))}`}>
+                    <svg viewBox="0 0 44 14" aria-hidden>
+                      <polyline points={sparkPts} />
+                    </svg>
+                    <span className="tnum low">
+                      avg <NumberFlow value={Math.round(ratings.reduce((a, b) => a + b, 0) / Math.max(ratings.length, 1))} />
+                    </span>
                   </span>
                   <span className="tnum low" style={{ fontSize: 13 }}>
                     {pot.length}/{potSize}
@@ -150,12 +168,19 @@ export function SeedingScreen() {
                     <span className="grip">⠿</span>
                     <Flag id={id} size={28} />
                     <span className="name">{n.name}</span>
-                    {isHost ? <Lock size={12} className="locked" /> : <span className="chip tnum">#{n.rank}</span>}
+                    {isHost ? (
+                      <span className="host-tag">
+                        <Lock size={10} /> HOST · {['A', 'B', 'D'][hosts.indexOf(id)] ?? 'A'}
+                      </span>
+                    ) : (
+                      <span className="chip tnum">#{n.rank}</span>
+                    )}
                   </div>
                 )
               })}
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

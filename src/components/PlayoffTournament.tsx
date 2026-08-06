@@ -272,16 +272,25 @@ function Playoff64({ onClose }: { onClose: () => void }) {
           </p>
         </div>
         <div className="po-scroll">
-          <div className="po-field">
-            {[...playoffTeams]
-              .sort((a, b) => rankOf(a) - rankOf(b))
-              .map((id) => (
-                <span key={id} className="po-entrant" title={NATION_BY_ID.get(id)?.name}>
-                  <Flag id={id} size={20} />
-                  <span className="pe-name">{NATION_BY_ID.get(id)?.name}</span>
-                  <span className="pe-tag tnum">{designationOf.get(id) ?? `#${rankOf(id)}`}</span>
+          <div className="po-field po-field-grouped">
+            {(['UEFA', 'CAF', 'AFC', 'CONCACAF', 'CONMEBOL', 'OFC'] as const).map((confed) => {
+              const ids = [...playoffTeams]
+                .filter((id) => NATION_BY_ID.get(id)?.confed === confed)
+                .sort((a, b) => rankOf(a) - rankOf(b))
+              if (ids.length === 0) return null
+              return (
+                <span key={confed} className="pf-group">
+                  <i className="pf-label">{confed}</i>
+                  {ids.map((id) => (
+                    <span key={id} className="po-entrant" title={NATION_BY_ID.get(id)?.name}>
+                      <Flag id={id} size={20} />
+                      <span className="pe-name">{NATION_BY_ID.get(id)?.name}</span>
+                      <span className="pe-tag tnum">{designationOf.get(id) ?? `#${rankOf(id)}`}</span>
+                    </span>
+                  ))}
                 </span>
-              ))}
+              )
+            })}
           </div>
           <div className="po64-tournaments">
             {po.tournaments.map((t) => {
@@ -366,22 +375,24 @@ function Playoff64({ onClose }: { onClose: () => void }) {
           )}
         </div>
         <div className="po-foot">
-          {!done ? (
-            <>
-              <span className="low" style={{ fontSize: 12 }}>
-                {4 - po.winners.length} berth{po.winners.length === 3 ? '' : 's'} still on the pitch
+          <span className="berth-tracker" role="group" aria-label="Berths 61 to 64">
+            {po.tournaments.map((t) => (
+              <span key={t.id} className={`berth-socket${t.winner ? ' won' : ''}`} title={`Berth ${t.berth}`}>
+                {t.winner ? <Flag id={t.winner} size={18} /> : <b className="tnum">{t.berth}</b>}
               </span>
-              <button
-                className="btn gold-line small"
-                onClick={() => {
-                  for (const k of PO64_KEYS) {
-                    if (!useStore.getState().playoffResults[k]) simulatePlayoffMatch(k)
-                  }
-                }}
-              >
-                <Dices size={14} /> Simulate all four tournaments
-              </button>
-            </>
+            ))}
+          </span>
+          {!done ? (
+            <button
+              className="btn gold-line small"
+              onClick={() => {
+                for (const k of PO64_KEYS) {
+                  if (!useStore.getState().playoffResults[k]) simulatePlayoffMatch(k)
+                }
+              }}
+            >
+              <Dices size={14} /> Simulate all four tournaments
+            </button>
           ) : (
             <span className="gold-text display" style={{ fontSize: 15, letterSpacing: '0.06em' }}>
               The sixty-four are complete.

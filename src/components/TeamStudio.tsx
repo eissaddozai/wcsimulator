@@ -15,11 +15,17 @@ export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
   const setNationOverride = useStore((s) => s.setNationOverride)
   const [open, setOpen] = useState<string | null>(null)
 
-  // direct picks plus play-off entrants — everyone whose ratings can matter
-  const sorted = useMemo(
-    () => [...new Set([...entries, ...playoffTeams])].sort((a, b) => rankOf(a) - rankOf(b)),
-    [entries, playoffTeams, ratingOverrides],
-  )
+  // direct picks plus play-off entrants, shelved by confederation, best-ranked first
+  const grouped = useMemo(() => {
+    const order = ['UEFA', 'CONMEBOL', 'CONCACAF', 'CAF', 'AFC', 'OFC']
+    const by = new Map<string, string[]>(order.map((c) => [c, []]))
+    for (const id of [...new Set([...entries, ...playoffTeams])]) {
+      by.get(NATION_BY_ID.get(id)?.confed ?? 'UEFA')?.push(id)
+    }
+    for (const arr of by.values()) arr.sort((a, b) => rankOf(a) - rankOf(b))
+    return [...by.entries()].filter(([, arr]) => arr.length > 0)
+  }, [entries, playoffTeams, ratingOverrides])
+  const sorted = useMemo(() => grouped.flatMap(([, ids]) => ids), [grouped])
 
   const patch = (id: string, p: { rank?: number; rating?: number; boosts?: string[] }) => {
     const cur = overrideOf(id) ?? {}
@@ -27,21 +33,41 @@ export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
   }
 
   return (
-    <div style={{ overflowY: 'auto', flex: 1, border: '1px solid var(--line-1)', borderRadius: 8, maxHeight }}>
-          {sorted.map((id) => {
+    <div className="studio-scroll" style={{ overflowY: 'auto', flex: 1, border: '1px solid var(--line-1)', borderRadius: 8, maxHeight }}>
+          {grouped.map(([confed, ids]) => (
+            <div key={confed}>
+              <div className="studio-confed">
+                {confed}
+                <span className="tnum">{ids.length}</span>
+              </div>
+              {ids.map((id) => {
             const n = NATION_BY_ID.get(id)
             if (!n) return null
             const o = ratingOverrides[id]
             const boosts = o?.boosts ?? []
             const expanded = open === id
+            const ratingDelta = o?.rating !== undefined ? o.rating - n.rating : 0
             return (
               <div key={id} className="studio-row-wrap">
                 <div className="studio-row">
                   <Flag id={id} size={24} />
                   <span className="name">
-                    {n.name}
-                    {o && <span className="gold-text" title="Modified"> ●</span>}
+                    <span>
+                      {n.name}
+                      {o && <span className="gold-text" title="Modified"> ●</span>}
+                    </span>
+                    <i
+                      className="name-power"
+                      style={{ width: `${Math.min(Math.max((ratingOf(id) - 1000) / 1150, 0.04), 1) * 100}%` }}
+                      aria-hidden
+                    />
                   </span>
+                  {ratingDelta !== 0 && (
+                    <span className={`delta-badge tnum ${ratingDelta > 0 ? 'up' : 'down'}`} title="Rating vs. baseline">
+                      {ratingDelta > 0 ? '+' : ''}
+                      {ratingDelta}
+                    </span>
+                  )}
                   <label className="low">
                     rank
                     <input
@@ -121,9 +147,11 @@ export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
               </div>
             )
           })}
+            </div>
+          ))}
           {sorted.length === 0 && (
             <p className="muted" style={{ padding: 24, textAlign: 'center' }}>
-              Pick some teams first — the studio edits your chosen 48.
+              Pick some teams first — the studio edits your chosen field.
             </p>
           )}
     </div>

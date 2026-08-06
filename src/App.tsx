@@ -1,9 +1,11 @@
-import { Download, Moon, Plus, Save, Sun, Trash2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
+import { Copy, Download, Moon, Plus, Save, Sun, Trash2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from './components/Flag'
 import { TrophyMark } from './components/TrophyMark'
+import { MODEL_PRESETS } from './components/labSpecs'
 import { NATION_BY_ID } from './data/nations'
-import { currentChampion, deleteRun, listRuns, loadRun, saveRun, type SavedRun } from './store/archive'
+import { currentChampion, deleteRun, listRuns, loadRun, saveRun, type RunSnapshot, type SavedRun } from './store/archive'
 import { DrawScreen } from './features/draw/DrawScreen'
 import { GroupsScreen } from './features/groups/GroupsScreen'
 import { KnockoutScreen } from './features/knockout/KnockoutScreen'
@@ -23,6 +25,30 @@ const STEP_LABELS: Record<Step, string> = {
   knockout: 'Knockout',
 }
 
+/** "2h ago" style timestamps for the archive rows. */
+function relativeTime(ts: number): string {
+  const s = Math.max(1, Math.round((Date.now() - ts) / 1000))
+  if (s < 60) return 'just now'
+  const m = Math.round(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.round(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.round(h / 24)}d ago`
+}
+
+/** Which calibration preset a saved run was using, if any. */
+function presetOf(snap: RunSnapshot): string | null {
+  const params = snap.modelParams ?? {}
+  const keys = Object.keys(params)
+  if (keys.length === 0) return null
+  const hit = MODEL_PRESETS.find(
+    (p) =>
+      Object.keys(p.params).length === keys.length &&
+      Object.entries(p.params).every(([k, v]) => params[k as keyof typeof params] === v),
+  )
+  return hit?.name ?? 'Custom physics'
+}
+
 export default function App() {
   const step = useStore((s) => s.step)
   const theme = useStore((s) => s.theme)
@@ -38,9 +64,20 @@ export default function App() {
   const format = useStore((s) => s.format)
   const uiZoom = useStore((s) => s.uiZoom)
   const setUiZoom = useStore((s) => s.setUiZoom)
+  const masterSeed = useStore((s) => s.masterSeed)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [zoomOpen, setZoomOpen] = useState(false)
   const [runs, setRuns] = useState<SavedRun[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // 11 · the appbar trophy earns a star once a champion is crowned
+  const crowned = useMemo(() => {
+    try {
+      return currentChampion() !== null
+    } catch {
+      return false
+    }
+  }, [results, drawTrace, format]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (menuOpen) setRuns(listRuns())
@@ -121,8 +158,11 @@ export default function App() {
   return (
     <>
       <header className="appbar">
-        <div className="wordmark display row" style={{ gap: 8 }}>
-          <TrophyMark height={22} />
+        <div className={`wordmark display row${crowned ? ' crowned' : ''}`} style={{ gap: 8 }}>
+          <span className="wm-trophy">
+            <TrophyMark height={22} />
+            {crowned && <i className="wm-star" aria-hidden>✦</i>}
+          </span>
           WC26 <b>SIMULATOR</b>
         </div>
         <nav className="stepper" aria-label="Tournament steps">
@@ -140,22 +180,35 @@ export default function App() {
               >
                 <span className="disc tnum">{done ? '✓' : i + 1}</span>
                 <span className="lbl">{STEP_LABELS[s]}</span>
+                {i < STEP_ORDER.length - 1 && <i className={`step-link${done ? ' filled' : ''}`} aria-hidden />}
               </button>
             )
           })}
         </nav>
         <div className="appbar-actions">
-          <span className="ui-zoom" role="group" aria-label="Interface zoom" title="Interface zoom — every screen scales">
-            <button className="dice-btn" onClick={() => setUiZoom(+(uiZoom - 0.05).toFixed(2))} aria-label="Zoom out">
-              <ZoomOut size={13} />
+          <div style={{ position: 'relative' }}>
+            <button
+              className="btn icon ghost"
+              onClick={() => setZoomOpen((o) => !o)}
+              aria-label="Interface zoom"
+              title="Interface zoom — every screen scales"
+            >
+              <ZoomIn size={15} />
             </button>
-            <button className="zoom-pct tnum" onClick={() => setUiZoom(1)} title="Reset to 100%">
-              {Math.round(uiZoom * 100)}%
-            </button>
-            <button className="dice-btn" onClick={() => setUiZoom(+(uiZoom + 0.05).toFixed(2))} aria-label="Zoom in">
-              <ZoomIn size={13} />
-            </button>
-          </span>
+            {zoomOpen && (
+              <div className="zoom-pop card" role="group" aria-label="Interface zoom">
+                <button className="dice-btn" onClick={() => setUiZoom(+(uiZoom - 0.05).toFixed(2))} aria-label="Zoom out">
+                  <ZoomOut size={13} />
+                </button>
+                <button className="zoom-pct tnum" onClick={() => setUiZoom(1)} title="Reset to 100%">
+                  {Math.round(uiZoom * 100)}%
+                </button>
+                <button className="dice-btn" onClick={() => setUiZoom(+(uiZoom + 0.05).toFixed(2))} aria-label="Zoom in">
+                  <ZoomIn size={13} />
+                </button>
+              </div>
+            )}
+          </div>
           <button
             className="btn icon ghost"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -168,29 +221,30 @@ export default function App() {
               Tournament
             </button>
             {menuOpen && (
-              <div
-                className="card"
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: 44,
-                  width: 240,
-                  padding: 8,
-                  zIndex: 50,
-                  background: 'var(--bg-2)',
-                  boxShadow: 'var(--shadow-2)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
-                }}
-              >
-                <SeedRow />
+              <div className="card menu-drawer">
+                <div className="menu-section">Run</div>
+                <div className="seed-row">
+                  <span className="low">Seed</span>
+                  <input
+                    className="seed-in tnum"
+                    defaultValue={masterSeed}
+                    onBlur={(e) => useStore.getState().setSeed(e.target.value)}
+                    aria-label="Master seed"
+                  />
+                  <button
+                    className="dice-btn"
+                    title="Copy the seed"
+                    onClick={() => void navigator.clipboard?.writeText(masterSeed)}
+                  >
+                    <Copy size={12} />
+                  </button>
+                </div>
                 <button className="btn ghost small" style={{ justifyContent: 'flex-start' }} onClick={saveCurrentRun}>
                   <Save size={14} /> Save run as…
                 </button>
                 {runs.length > 0 && (
                   <div className="archive">
-                    <div className="archive-label">Saved runs</div>
+                    <div className="menu-section">Archive</div>
                     {runs.map((r) => (
                       <div key={r.id} className="archive-row">
                         {r.champion ? (
@@ -200,7 +254,7 @@ export default function App() {
                         )}
                         <button
                           className="archive-load"
-                          title={`Load "${r.name}" — saved ${new Date(r.savedAt).toLocaleString()}`}
+                          title={`Load "${r.name}" — saved ${new Date(r.savedAt).toLocaleString()}${presetOf(r.snapshot) ? ` · ${presetOf(r.snapshot)}` : ''}`}
                           onClick={() => {
                             if (confirm(`Load "${r.name}"? The current tournament is replaced.`)) {
                               loadRun(r.id)
@@ -209,7 +263,10 @@ export default function App() {
                           }}
                         >
                           <span className="ar-name">{r.name}</span>
-                          <span className="ar-date tnum">{new Date(r.savedAt).toLocaleDateString()}</span>
+                          <span className="ar-meta">
+                            <i className="fmt-badge tnum">{r.snapshot.format ?? 48}</i>
+                            <span className="ar-date tnum">{relativeTime(r.savedAt)}</span>
+                          </span>
                         </button>
                         <button
                           className="dice-btn"
@@ -225,6 +282,7 @@ export default function App() {
                     ))}
                   </div>
                 )}
+                <div className="menu-section">Data</div>
                 <button className="btn ghost small" style={{ justifyContent: 'flex-start' }} onClick={exportJson}>
                   <Download size={14} /> Export JSON
                 </button>
@@ -264,30 +322,21 @@ export default function App() {
         </div>
       </header>
       <main style={{ zoom: uiZoom }}>
-        {step === 'landing' && <LandingScreen />}
-        {step === 'lab' && <LabScreen />}
-        {step === 'teams' && <SelectionScreen />}
-        {step === 'pots' && <SeedingScreen />}
-        {step === 'draw' && <DrawScreen />}
-        {step === 'groups' && <GroupsScreen />}
-        {step === 'knockout' && <KnockoutScreen />}
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
+        >
+          {step === 'landing' && <LandingScreen />}
+          {step === 'lab' && <LabScreen />}
+          {step === 'teams' && <SelectionScreen />}
+          {step === 'pots' && <SeedingScreen />}
+          {step === 'draw' && <DrawScreen />}
+          {step === 'groups' && <GroupsScreen />}
+          {step === 'knockout' && <KnockoutScreen />}
+        </motion.div>
       </main>
     </>
-  )
-}
-
-function SeedRow() {
-  const masterSeed = useStore((s) => s.masterSeed)
-  const setSeed = useStore((s) => s.setSeed)
-  return (
-    <label className="row" style={{ padding: '6px 10px', gap: 8, fontSize: 12 }}>
-      <span className="low">Seed</span>
-      <input
-        style={{ flex: 1, minWidth: 0, height: 28, padding: '0 8px', fontSize: 12 }}
-        defaultValue={masterSeed}
-        onBlur={(e) => setSeed(e.target.value)}
-        aria-label="Master seed"
-      />
-    </label>
   )
 }

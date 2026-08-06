@@ -1,8 +1,13 @@
-# The Visual Hundred — high-noticeability improvements, identified and unexecuted
+# The Visual Hundred — high-noticeability improvements
 
 Compiled from a maximal screenshot sweep (28 states: every screen, both themes,
 both formats, every modal) plus a pass over the styles. Each item is concrete
-and would be visible at a glance. Nothing here has been executed.
+and visible at a glance.
+
+**Status: all 100 executed** and verified with a full 28-state screenshot
+re-run. Two notes on interpretation: №6's headline shimmer already existed
+(the globe drift is the new motion), and №78's shootout board already
+auto-rendered (its kick-by-kick stagger stands).
 
 ## Landing (1–8)
 

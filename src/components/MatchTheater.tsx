@@ -6,7 +6,7 @@ import { isScored, type MatchResult } from '../engine/types'
 
 /* The seven-segment scoreboard face (keshikan/DSEG, OFL) — loaded once, lazily. */
 let boardFontRequested = false
-function ensureBoardFont() {
+export function ensureBoardFont() {
   if (boardFontRequested || typeof FontFace === 'undefined') return
   boardFontRequested = true
   const face = new FontFace('DSEG7', `url(${dseg7Url})`)
@@ -74,7 +74,7 @@ export function MatchTheater({ r, home, away, autoplay = false }: { r: MatchResu
 
   return (
     <div className="theater">
-      <div className="theater-board">
+      <div className="theater-board" key={`${hGoals}-${aGoals}`}>
         <span className="th-team display">{shortName(home)}</span>
         <span className="th-score led tnum">
           {hGoals}
@@ -108,7 +108,11 @@ export function MatchTheater({ r, home, away, autoplay = false }: { r: MatchResu
             className={`th-marker ${e.type}${e.side === 'away' ? ' away' : ''}${e.min <= minute ? ' lit' : ''}`}
             style={{ left: `${(e.min / total) * 100}%` }}
             title={`${e.min}′ ${e.type} — ${e.side === 'home' ? shortName(home) : shortName(away)}`}
-          />
+          >
+            {e.type === 'goal' && e.min <= minute && (
+              <b className="th-goal-tag display">{(e.side === 'home' ? home : away).slice(0, 1)}</b>
+            )}
+          </span>
         ))}
       </div>
       <div className="row" style={{ justifyContent: 'center', gap: 8 }}>

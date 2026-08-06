@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { Dices, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Flag } from './Flag'
@@ -168,14 +169,20 @@ export function HostPicker({ onClose }: { onClose: () => void }) {
             return (
               <div key={g} className={`anchor-slot${id ? ' filled' : ''}`}>
                 {id ? (
-                  <>
+                  <motion.div
+                    key={id}
+                    className="as-fill"
+                    initial={{ scale: 0.55, opacity: 0, rotateY: 90 }}
+                    animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+                    transition={{ type: 'spring', stiffness: 320, damping: 22, delay: i * 0.09 }}
+                  >
                     <Flag id={id} size={34} ringed />
                     <span className="as-name display">{NATION_BY_ID.get(id)?.name}</span>
-                    <span className="as-sub low">opens Group {g}</span>
+                    <span className="as-sub gold-text">opens Group {g}</span>
                     <button className="as-remove" onClick={() => toggle(id)} aria-label={`Remove ${id}`}>
                       <X size={11} />
                     </button>
-                  </>
+                  </motion.div>
                 ) : (
                   <>
                     <span className="as-ghost tnum">{g}1</span>
