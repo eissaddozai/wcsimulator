@@ -1,7 +1,10 @@
-import { Crown, Dices, FlaskConical, RotateCcw, X } from 'lucide-react'
+import NumberFlow from '@number-flow/react'
+import confetti from 'canvas-confetti'
+import { Dices, FlaskConical, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { MatchTheater } from '../../components/MatchTheater'
+import { TrophyMark } from '../../components/TrophyMark'
 import { ModelLab } from '../../components/ModelLab'
 import { ScoreInput } from '../../components/ScoreInput'
 import { TournamentPulse } from '../../components/TournamentPulse'
@@ -157,7 +160,7 @@ export function KnockoutScreen() {
                 <>
                   <div className="trophy-medal">
                     <div className="champ-ghost">
-                      <Crown size={26} />
+                      <TrophyMark height={46} />
                     </div>
                   </div>
                   <div className="champ-caption dim">The trophy</div>
@@ -381,13 +384,23 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
           <div className="odds-card">
             <div className="row spread" style={{ fontSize: 12, fontWeight: 600 }}>
               <span>
-                {shortName(home)} <span className="gold-text tnum">{pct(odds.advHome)}</span>
+                {shortName(home)}{' '}
+                <NumberFlow
+                  className="gold-text tnum"
+                  value={odds.advHome}
+                  format={{ style: 'percent', maximumFractionDigits: 0 }}
+                />
               </span>
               <span className="low" style={{ fontSize: 10, letterSpacing: '0.12em' }}>
                 TO ADVANCE
               </span>
               <span>
-                <span className="gold-text tnum">{pct(odds.advAway)}</span> {shortName(away)}
+                <NumberFlow
+                  className="gold-text tnum"
+                  value={odds.advAway}
+                  format={{ style: 'percent', maximumFractionDigits: 0 }}
+                />{' '}
+                {shortName(away)}
               </span>
             </div>
             <div className="odds-bar big">
@@ -559,41 +572,59 @@ function ChampionScene({
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    canvas.width = innerWidth
-    canvas.height = innerHeight
-    const colors = ['#d2b064', '#f2efe6', '#1e5c40']
-    const parts = Array.from({ length: 110 }, () => ({
-      x: Math.random() * canvas.width,
-      y: -20 - Math.random() * canvas.height * 0.4,
-      vy: 2 + Math.random() * 3,
-      vx: -1 + Math.random() * 2,
-      s: 4 + Math.random() * 5,
-      c: colors[Math.floor(Math.random() * colors.length)]!,
-      rot: Math.random() * Math.PI,
-    }))
-    let frame = 0
-    let raf = 0
-    const tick = () => {
-      frame++
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      for (const p of parts) {
-        p.y += p.vy
-        p.x += p.vx
-        p.rot += 0.05
-        ctx.save()
-        ctx.translate(p.x, p.y)
-        ctx.rotate(p.rot)
-        ctx.fillStyle = p.c
-        ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6)
-        ctx.restore()
-      }
-      if (frame < 200) raf = requestAnimationFrame(tick)
-      else ctx.clearRect(0, 0, canvas.width, canvas.height)
+    const fire = confetti.create(canvas, { resize: true, useWorker: false })
+    const gold = ['#e5c87f', '#d2b064', '#f2efe6', '#8a7443']
+    // the cup is lifted: one great burst beneath the name
+    fire({ particleCount: 160, spread: 80, startVelocity: 52, origin: { y: 0.62 }, colors: gold, scalar: 1.05 })
+    const t1 = setTimeout(() => {
+      // side cannons
+      fire({ particleCount: 70, angle: 60, spread: 55, origin: { x: 0, y: 0.72 }, colors: gold })
+      fire({ particleCount: 70, angle: 120, spread: 55, origin: { x: 1, y: 0.72 }, colors: gold })
+    }, 380)
+    const t2 = setTimeout(() => {
+      // golden rain from the roof
+      fire({
+        particleCount: 110,
+        spread: 150,
+        startVelocity: 32,
+        decay: 0.92,
+        gravity: 0.8,
+        origin: { y: -0.05 },
+        colors: gold,
+        scalar: 0.9,
+      })
+    }, 950)
+    const t3 = setTimeout(() => {
+      // star-shell fireworks over each shoulder
+      fire({
+        particleCount: 48,
+        spread: 360,
+        startVelocity: 30,
+        gravity: 0.6,
+        ticks: 90,
+        origin: { x: 0.3, y: 0.3 },
+        colors: gold,
+        shapes: ['star'],
+        scalar: 1.15,
+      })
+      fire({
+        particleCount: 48,
+        spread: 360,
+        startVelocity: 30,
+        gravity: 0.6,
+        ticks: 90,
+        origin: { x: 0.7, y: 0.26 },
+        colors: gold,
+        shapes: ['star'],
+        scalar: 1.15,
+      })
+    }, 1550)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+      fire.reset()
     }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
   }, [])
 
   const road: number[] = []
@@ -610,7 +641,8 @@ function ChampionScene({
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
       <div className="scene">
         <div className="crown serif-accent">Champions of the world</div>
-        <Flag id={champion} size={96} ringed />
+        <TrophyMark height={84} className="float" />
+        <Flag id={champion} size={80} ringed />
         <h1 className="display">{nation?.name}</h1>
         <div className="scoreline tnum display">
           {NATION_BY_ID.get(final.home!)?.name} {h}–{a} {NATION_BY_ID.get(final.away!)?.name}

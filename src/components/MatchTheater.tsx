@@ -1,7 +1,20 @@
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import dseg7Url from 'dseg/fonts/DSEG7-Classic/DSEG7Classic-BoldItalic.woff2'
 import { shortName } from '../data/nations'
 import { isScored, type MatchResult } from '../engine/types'
+
+/* The seven-segment scoreboard face (keshikan/DSEG, OFL) — loaded once, lazily. */
+let boardFontRequested = false
+function ensureBoardFont() {
+  if (boardFontRequested || typeof FontFace === 'undefined') return
+  boardFontRequested = true
+  const face = new FontFace('DSEG7', `url(${dseg7Url})`)
+  face
+    .load()
+    .then(() => document.fonts.add(face))
+    .catch(() => {})
+}
 
 /**
  * The Match Theater: replays the minute engine's story in ~7 seconds — the clock runs,
@@ -15,6 +28,10 @@ export function MatchTheater({ r, home, away }: { r: MatchResult; home: string; 
   const last = useRef<number>(0)
 
   const events = useMemo(() => (r.events ?? []).slice().sort((a, b) => a.min - b.min), [r.events])
+
+  useEffect(() => {
+    ensureBoardFont()
+  }, [])
 
   useEffect(() => {
     if (!playing) return
@@ -57,15 +74,27 @@ export function MatchTheater({ r, home, away }: { r: MatchResult; home: string; 
     <div className="theater">
       <div className="theater-board">
         <span className="th-team display">{shortName(home)}</span>
-        <span className="th-score display tnum">
-          {hGoals}–{aGoals}
+        <span className="th-score led tnum">
+          {hGoals}
+          <i className="th-sep">–</i>
+          {aGoals}
         </span>
         <span className="th-team display" style={{ textAlign: 'right' }}>
           {shortName(away)}
         </span>
       </div>
       <div className="theater-clock tnum">
-        {finished ? (r.pens ? 'FT · to penalties' : 'FULL TIME') : `${Math.floor(minute)}′`}
+        {finished ? (
+          r.pens ? (
+            'FT · to penalties'
+          ) : (
+            'FULL TIME'
+          )
+        ) : (
+          <>
+            <span className="led clock-num">{String(Math.floor(minute)).padStart(2, '0')}</span>′
+          </>
+        )}
         {inET && !finished && <span className="low"> · ET</span>}
       </div>
       <div className="theater-rail" role="img" aria-label="Match timeline">

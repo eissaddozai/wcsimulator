@@ -1,3 +1,4 @@
+import NumberFlow from '@number-flow/react'
 import { useMemo } from 'react'
 import { ratingOf, shortName } from '../data/nations'
 import type { BracketState } from '../engine/bracket'
@@ -60,19 +61,37 @@ export function TournamentPulse({
   return (
     <div className="pulse-strip" role="group" aria-label="Tournament pulse">
       <span className="pulse-item tnum">
-        <b>{pulse.goals}</b> goals
+        <b>
+          <NumberFlow value={pulse.goals} />
+        </b>{' '}
+        goals
       </span>
       <span className="pulse-item tnum">
-        <b>{(pulse.goals / pulse.played).toFixed(2)}</b> per match
+        <b>
+          <NumberFlow
+            value={pulse.goals / pulse.played}
+            format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+          />
+        </b>{' '}
+        per match
       </span>
       <span className="pulse-item tnum">
-        <b>{pulse.upsets}</b> upset{pulse.upsets === 1 ? '' : 's'}
+        <b>
+          <NumberFlow value={pulse.upsets} />
+        </b>{' '}
+        upset{pulse.upsets === 1 ? '' : 's'}
       </span>
       <span className="pulse-item tnum">
-        <b>{pulse.aet}</b> to extra time
+        <b>
+          <NumberFlow value={pulse.aet} />
+        </b>{' '}
+        to extra time
       </span>
       <span className="pulse-item tnum">
-        <b>{pulse.pens}</b> shootout{pulse.pens === 1 ? '' : 's'}
+        <b>
+          <NumberFlow value={pulse.pens} />
+        </b>{' '}
+        shootout{pulse.pens === 1 ? '' : 's'}
       </span>
       {pulse.biggest && (
         <span className="pulse-item">

@@ -40,3 +40,16 @@ npm run build      # typecheck + production bundle (dist/)
 
 Rankings and ratings are factual data compiled from public sources (FIFA ranking,
 eloratings.net-style strength estimates). No FIFA marks or imagery are used.
+
+## Open-source materials
+
+The dazzle is standing on other people's shoulders — all of it MIT/OFL open source:
+
+- [HatScripts/circle-flags](https://github.com/HatScripts/circle-flags) + [lipis/flag-icons](https://github.com/lipis/flag-icons) — every nation's circular flag (MIT)
+- [fontsource](https://github.com/fontsource/fontsource) — self-hosted Saira Condensed, Instrument Sans, and Fraunces (OFL)
+- [keshikan/DSEG](https://github.com/keshikan/DSEG) — the seven-segment scoreboard face in the Match Theater (OFL)
+- [shuding/cobe](https://github.com/shuding/cobe) — the turning WebGL globe behind the landing hero (MIT)
+- [barvian/number-flow](https://github.com/barvian/number-flow) — rolling numerals in the pulse strip, odds, and counters (MIT)
+- [catdad/canvas-confetti](https://github.com/catdad/canvas-confetti) — the champion's gold bursts, cannons, rain, and star shells (ISC)
+- [lucide-icons/lucide](https://github.com/lucide-icons/lucide) — iconography (ISC)
+- [framer/motion](https://github.com/motion-division/motion) — draw choreography and live-reordering standings (MIT)

@@ -1,3 +1,5 @@
+import NumberFlow from '@number-flow/react'
+import { motion } from 'framer-motion'
 import { Dices, Info, ListOrdered, Move, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Flag } from '../../components/Flag'
@@ -118,7 +120,7 @@ export function GroupsScreen() {
           ))}
         </div>
         <span className="low tnum" style={{ fontSize: 13 }}>
-          {doneCount} / 72 scored
+          <NumberFlow value={doneCount} /> / 72 scored
         </span>
         <div style={{ flex: 1 }} />
         <button className="btn small" onClick={() => setThirdsOpen(true)}>
@@ -302,22 +304,8 @@ function GroupCard(props: {
             ) : null
             const slotPos = (slots.indexOf(row.id) + 1) as Position
             const isDragging = dragSlot?.group === g && dragSlot.position === slotPos
-            return (
-              <tr
-                key={row.id}
-                className={`${posClass}${editMode ? ' draggable-row' : ''}${isDragging ? ' dragging' : ''}`}
-                draggable={editMode}
-                onDragStart={() => setDragSlot({ group: g, position: slotPos })}
-                onDragEnd={() => setDragSlot(null)}
-                onDragOver={(e) => editMode && e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  if (dragSlot && !(dragSlot.group === g && dragSlot.position === slotPos)) {
-                    onSwap(dragSlot, { group: g, position: slotPos })
-                  }
-                  setDragSlot(null)
-                }}
-              >
+            const cells = (
+              <>
                 <td className="team">
                   <span className="cell">
                     <span className="posn tnum">{row.position}</span>
@@ -341,7 +329,37 @@ function GroupCard(props: {
                 <td className="tnum">
                   <span className="ptsv">{row.points}</span>
                 </td>
+              </>
+            )
+            // In edit mode the row is a native drag source; in play the row glides to its
+            // new position whenever a score reshuffles the table.
+            return editMode ? (
+              <tr
+                key={row.id}
+                className={`${posClass} draggable-row${isDragging ? ' dragging' : ''}`}
+                draggable
+                onDragStart={() => setDragSlot({ group: g, position: slotPos })}
+                onDragEnd={() => setDragSlot(null)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  if (dragSlot && !(dragSlot.group === g && dragSlot.position === slotPos)) {
+                    onSwap(dragSlot, { group: g, position: slotPos })
+                  }
+                  setDragSlot(null)
+                }}
+              >
+                {cells}
               </tr>
+            ) : (
+              <motion.tr
+                key={row.id}
+                layout
+                transition={{ layout: { duration: 0.5, ease: [0.2, 0, 0, 1] } }}
+                className={posClass}
+              >
+                {cells}
+              </motion.tr>
             )
           })}
         </tbody>
@@ -421,7 +439,7 @@ function ThirdsPanel({ thirds, onClose }: { thirds: ReturnType<typeof liveThirds
           </p>
           {thirds.length === 0 && <p className="muted">Standings appear once every group has a third-placed team.</p>}
           {thirds.map((t, i) => (
-            <div key={t.id}>
+            <motion.div key={t.id} layout transition={{ layout: { duration: 0.5, ease: [0.2, 0, 0, 1] } }}>
               <div className="thirds-row">
                 <span className="tnum low">{t.rank}</span>
                 <span className="chip">{t.group}</span>
@@ -436,7 +454,7 @@ function ThirdsPanel({ thirds, onClose }: { thirds: ReturnType<typeof liveThirds
                 {t.qualified ? <span className="badge q">Q</span> : <span className="badge out">OUT</span>}
               </div>
               {i === 7 && <div className="thirds-line">Qualification line</div>}
-            </div>
+            </motion.div>
           ))}
         </div>
       </aside>

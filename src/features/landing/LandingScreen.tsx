@@ -1,4 +1,5 @@
 import { Dices, ListChecks, Trophy } from 'lucide-react'
+import { WorldGlobe } from '../../components/WorldGlobe'
 import { useStore } from '../../store/store'
 
 export function LandingScreen() {
@@ -8,6 +9,9 @@ export function LandingScreen() {
 
   return (
     <section className="landing">
+      <div className="landing-globe" aria-hidden>
+        <WorldGlobe size={680} />
+      </div>
       <div className="overline serif-accent">The 48-team era</div>
       <h1 className="display">
         Simulate the 2026

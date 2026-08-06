@@ -14,6 +14,10 @@
     "@fontsource-variable/instrument-sans": "^5.3.0",
     "@fontsource/fraunces": "^5.1.0",
     "@fontsource/saira-condensed": "^5.3.0",
+    "@number-flow/react": "^0.6.2",
+    "canvas-confetti": "^1.9.4",
+    "cobe": "^2.0.1",
+    "dseg": "^0.46.0",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",
@@ -21,6 +25,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
