@@ -9,7 +9,7 @@ import { KO_BY_NUMBER, KO_MATCHES } from '../../engine/schedule'
 import { detailedOdds, koWinner, stageOfMatch, type MatchContext } from '../../engine/simulate'
 import { allGroupsComplete, bracketState } from '../../engine/tournament'
 import { groupsOf, useStore } from '../../store/store'
-import type { KoSource, MatchResult } from '../../engine/types'
+import type { KoSource, MatchEvent, MatchResult } from '../../engine/types'
 
 /**
  * True mirrored bracket: two wings converging on a center Final column.
@@ -187,6 +187,8 @@ export function KnockoutScreen() {
   )
 }
 
+const STAGE_SHORT: Record<string, string> = { R32: 'R32', R16: 'R16', QF: 'QF', SF: 'SF', THIRD: 'BRZ', FINAL: 'FIN' }
+
 function scoreText(node: ResolvedKo): { home: string; away: string; note: string | null } {
   const r = node.result
   if (!r || node.stale) return { home: '', away: '', note: null }
@@ -240,10 +242,49 @@ function KoNode({
         <span className="score tnum">{as_}</span>
       </span>
       <span className="meta">
-        <span className="tnum">M{node.number}</span>
-        {node.stale ? <span className="stale-chip">set aside</span> : note ? <span>{note}</span> : null}
+        <span className={`mtag tnum stage-${ko.stage.toLowerCase()}`}>
+          <i className="mdot" />
+          {STAGE_SHORT[ko.stage]} · M{node.number}
+        </span>
+        {node.stale ? (
+          <span className="note-badge stale">set aside</span>
+        ) : note ? (
+          <span className={`note-badge${note.startsWith('pens') ? ' pens' : ''}`}>{note}</span>
+        ) : null}
       </span>
     </button>
+  )
+}
+
+/** The minute engine's story of the match: goals and cards on a timeline. */
+function MatchTimeline({ r, home, away }: { r: MatchResult; home: string; away: string }) {
+  if (!r.events || r.events.length === 0) return null
+  const label = (e: MatchEvent) => (e.side === 'home' ? home : away)
+  return (
+    <div className="timeline">
+      {r.stats && (
+        <div className="stat-duel tnum">
+          <span title="Expected goals (accumulated by the minute engine)">
+            xG <b>{r.stats.xgHome.toFixed(1)}</b>–<b>{r.stats.xgAway.toFixed(1)}</b>
+          </span>
+          <span title="Shots">
+            shots <b>{r.stats.shotsHome}</b>–<b>{r.stats.shotsAway}</b>
+          </span>
+          <span title="Possession">
+            poss <b>{Math.round(r.stats.possHome * 100)}%</b>–<b>{Math.round((1 - r.stats.possHome) * 100)}%</b>
+          </span>
+        </div>
+      )}
+      <div className="timeline-rail">
+        {r.events.map((e, i) => (
+          <span key={i} className={`tl-event ${e.type}${e.side === 'away' ? ' away' : ''}`}>
+            <span className="tl-min tnum">{e.min}′</span>
+            <i className={`tl-ico ${e.type}`} aria-label={e.type} />
+            <span className="tl-team">{label(e)}</span>
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -446,6 +487,8 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
               )}
             </div>
           )}
+
+          {r && <MatchTimeline r={r} home={home} away={away} />}
 
           {decided && (
             <p style={{ textAlign: 'center', margin: 0 }} className="gold-text display">

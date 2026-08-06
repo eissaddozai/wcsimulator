@@ -40,12 +40,29 @@ export function isScored(r: MatchResult): boolean {
   return r.score.home !== null && r.score.away !== null
 }
 
+export interface MatchEvent {
+  min: number
+  side: 'home' | 'away'
+  type: 'goal' | 'yellow' | 'red'
+}
+
+export interface MatchStats {
+  xgHome: number
+  xgAway: number
+  shotsHome: number
+  shotsAway: number
+  possHome: number // 0..1
+}
+
 /** User input for one match, keyed by match number in the tournament results record. */
 export interface MatchResult {
   score: ScorePair
   et?: ScorePair // extra-time goals only (added on top of 90' score)
   pens?: ScorePair
   simulated?: boolean
+  /** minute-engine output: goals and cards with minutes (simulated matches only) */
+  events?: MatchEvent[]
+  stats?: MatchStats
   /** participant snapshot when the score was entered — knockout invalidation (stale detection) */
   enteredFor?: [string, string]
 }

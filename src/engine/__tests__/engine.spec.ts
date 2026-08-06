@@ -409,13 +409,14 @@ describe('match simulator', () => {
   })
 
   it('chaos knob is monotone: underdogs win more as θ rises', () => {
+    // moderate gap (NED 2050 vs CRO 1990) so the dominance ceiling never saturates
     const winRate = (theta: number) => {
       const rng = seedRng(`mono-${theta}`)
       let dogWins = 0
       const n = 3000
       for (let i = 0; i < n; i++) {
-        const r = simulateMatch('ESP', 'FIN', { stage: 'r32' }, theta, rng)
-        if (koWinner('ESP', 'FIN', r) === 'FIN') dogWins++
+        const r = simulateMatch('NED', 'CRO', { stage: 'r32' }, theta, rng)
+        if (koWinner('NED', 'CRO', r) === 'CRO') dogWins++
       }
       return dogWins / n
     }

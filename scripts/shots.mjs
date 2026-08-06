@@ -24,13 +24,19 @@ await page.reload()
 await page.waitForSelector('.landing')
 await shot('01-landing')
 
-// —— custom flow: hosts first ——
+// —— custom flow: the Laboratory first ——
 await page.click('text=Start from scratch')
+await page.waitForSelector('.lab-hero')
+await shot('02-laboratory')
+await page.click('text=Cup of Miracles')
+await page.waitForTimeout(250)
+await shot('02b-lab-preset')
+await page.click('text=World Cup 26')
+await page.click('text=Continue to Teams')
 await page.waitForSelector('text=Who\'s hosting?')
-await shot('02-host-picker')
+await shot('03-host-picker')
 await page.click('text=Surprise me') // the simulator decides
 await page.waitForTimeout(250)
-await shot('03-host-surprise')
 await page.click('text=Confirm hosts')
 await page.waitForSelector('.team-grid')
 await page.click('text=Simulate qualification')

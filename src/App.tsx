@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { DrawScreen } from './features/draw/DrawScreen'
 import { GroupsScreen } from './features/groups/GroupsScreen'
 import { KnockoutScreen } from './features/knockout/KnockoutScreen'
+import { LabScreen } from './features/lab/LabScreen'
 import { LandingScreen } from './features/landing/LandingScreen'
 import { SeedingScreen } from './features/seeding/SeedingScreen'
 import { SelectionScreen } from './features/selection/SelectionScreen'
@@ -10,6 +11,7 @@ import { STEP_ORDER, stepGates, useStore, type Step } from './store/store'
 
 const STEP_LABELS: Record<Step, string> = {
   landing: 'Setup',
+  lab: 'Lab',
   teams: 'Teams',
   pots: 'Pots',
   draw: 'Draw',
@@ -36,7 +38,7 @@ export default function App() {
 
   const gates = stepGates({ entries, hosts, pots, drawTrace, results })
   const gateFor = (s: Step): boolean => {
-    if (s === 'landing' || s === 'teams') return true
+    if (s === 'landing' || s === 'lab' || s === 'teams') return true
     if (s === 'pots') return gates.pots
     if (s === 'draw') return gates.draw
     if (s === 'groups') return gates.groups
@@ -184,6 +186,7 @@ export default function App() {
       </header>
       <main>
         {step === 'landing' && <LandingScreen />}
+        {step === 'lab' && <LabScreen />}
         {step === 'teams' && <SelectionScreen />}
         {step === 'pots' && <SeedingScreen />}
         {step === 'draw' && <DrawScreen />}

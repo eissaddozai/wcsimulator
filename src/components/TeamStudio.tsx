@@ -7,19 +7,14 @@ import { useStore } from '../store/store'
 
 const GROUP_ORDER: Booster['group'][] = ['Attack', 'Defense', 'Mentality', 'Physical', 'Fortune', 'Burden']
 
-/**
- * The Team Studio: once the 48 are chosen, tune any nation's world ranking and rating,
- * and hand out boosters — manually assignable modifiers that feed the match model.
- */
-export function TeamStudio({ onClose }: { onClose: () => void }) {
+/** The scrollable studio list — used inline on the Laboratory page and inside the modal. */
+export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
   const entries = useStore((s) => s.entries)
   const ratingOverrides = useStore((s) => s.ratingOverrides)
   const setNationOverride = useStore((s) => s.setNationOverride)
-  const clearAllOverrides = useStore((s) => s.clearAllOverrides)
   const [open, setOpen] = useState<string | null>(null)
 
   const sorted = useMemo(() => entries.slice().sort((a, b) => rankOf(a) - rankOf(b)), [entries, ratingOverrides])
-  const touched = Object.keys(ratingOverrides).length
 
   const patch = (id: string, p: { rank?: number; rating?: number; boosts?: string[] }) => {
     const cur = overrideOf(id) ?? {}
@@ -27,29 +22,7 @@ export function TeamStudio({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="overlay" role="dialog" aria-modal aria-label="Team studio">
-      <div className="dialog studio" style={{ maxWidth: 720, maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
-        <div className="row spread">
-          <h3 className="display" style={{ margin: 0, fontSize: 26 }}>
-            Team Studio
-          </h3>
-          <div className="row">
-            {touched > 0 && (
-              <button className="btn ghost small" onClick={clearAllOverrides}>
-                <RotateCcw size={13} /> Reset all ({touched})
-              </button>
-            )}
-            <button className="btn icon ghost" onClick={onClose} aria-label="Close">
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-        <p className="muted" style={{ margin: '4px 0 12px' }}>
-          Rewrite any nation's world ranking and rating, and stack as many boosters as you dare — they feed straight
-          into seeding, odds, and every simulated minute.
-        </p>
-
-        <div style={{ overflowY: 'auto', flex: 1, border: '1px solid var(--line-1)', borderRadius: 8 }}>
+    <div style={{ overflowY: 'auto', flex: 1, border: '1px solid var(--line-1)', borderRadius: 8, maxHeight }}>
           {sorted.map((id) => {
             const n = NATION_BY_ID.get(id)
             if (!n) return null
@@ -138,7 +111,42 @@ export function TeamStudio({ onClose }: { onClose: () => void }) {
               Pick some teams first — the studio edits your chosen 48.
             </p>
           )}
+    </div>
+  )
+}
+
+/**
+ * The Team Studio modal: tune any chosen nation's world ranking and rating, and stack
+ * boosters — manually assignable modifiers that feed the match model.
+ */
+export function TeamStudio({ onClose }: { onClose: () => void }) {
+  const ratingOverrides = useStore((s) => s.ratingOverrides)
+  const clearAllOverrides = useStore((s) => s.clearAllOverrides)
+  const touched = Object.keys(ratingOverrides).length
+
+  return (
+    <div className="overlay" role="dialog" aria-modal aria-label="Team studio">
+      <div className="dialog studio" style={{ maxWidth: 720, maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="row spread">
+          <h3 className="display" style={{ margin: 0, fontSize: 26 }}>
+            Team Studio
+          </h3>
+          <div className="row">
+            {touched > 0 && (
+              <button className="btn ghost small" onClick={clearAllOverrides}>
+                <RotateCcw size={13} /> Reset all ({touched})
+              </button>
+            )}
+            <button className="btn icon ghost" onClick={onClose} aria-label="Close">
+              <X size={16} />
+            </button>
+          </div>
         </div>
+        <p className="muted" style={{ margin: '4px 0 12px' }}>
+          Rewrite any nation's world ranking and rating, and stack as many boosters as you dare — they feed straight
+          into seeding, odds, and every simulated minute.
+        </p>
+        <TeamStudioBody />
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
           <button className="btn primary" onClick={onClose}>
             Done

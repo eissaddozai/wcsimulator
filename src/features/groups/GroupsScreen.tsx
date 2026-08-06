@@ -349,6 +349,7 @@ function GroupCard(props: {
           const r = results[f.number]
           return (
             <div key={f.number} className="fixture">
+              <span className="mtag tnum ftag">M{f.number}</span>
               <span className="side">
                 <Flag id={home} size={26} />
                 {home}

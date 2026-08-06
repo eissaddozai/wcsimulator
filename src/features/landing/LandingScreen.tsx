@@ -30,14 +30,14 @@ export function LandingScreen() {
           </p>
           <span className="btn primary">Load the real tournament</span>
         </button>
-        <button className="card setup-card" onClick={() => setStep('teams')}>
+        <button className="card setup-card" onClick={() => setStep('lab')}>
           <span className="icon">
             <ListChecks size={28} />
           </span>
           <h3 className="display">Custom</h3>
           <p>
-            Build your own 48 with real confederation quotas, choose a seeding strategy — or five — and let the draw
-            engine handle the rules.
+            Start in the Laboratory — 29 dials over the tournament's physics and every squad's boosters — then build
+            your 48 and let the draw engine handle the rules.
           </p>
           <span className="btn gold-line">Start from scratch</span>
         </button>

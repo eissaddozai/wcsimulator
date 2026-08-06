@@ -14,8 +14,8 @@ import type { BracketState } from '../engine/bracket'
 import type { ChaosKnobs, DrawPick, GroupId, MatchResult, Position, Pots, StrategyId } from '../engine/types'
 import { fixturesOfGroup } from '../engine/schedule'
 
-export type Step = 'landing' | 'teams' | 'pots' | 'draw' | 'groups' | 'knockout'
-export const STEP_ORDER: Step[] = ['landing', 'teams', 'pots', 'draw', 'groups', 'knockout']
+export type Step = 'landing' | 'lab' | 'teams' | 'pots' | 'draw' | 'groups' | 'knockout'
+export const STEP_ORDER: Step[] = ['landing', 'lab', 'teams', 'pots', 'draw', 'groups', 'knockout']
 
 interface TournamentState {
   step: Step
@@ -63,6 +63,7 @@ interface TournamentState {
   setNationOverride: (id: string, o: NationOverride | null) => void
   clearAllOverrides: () => void
   setModelParam: (k: keyof ModelParams, v: number) => void
+  applyModelPreset: (p: Partial<ModelParams>) => void
   resetModelParams: () => void
   swapGroupSlots: (a: { group: GroupId; position: Position }, b: { group: GroupId; position: Position }) => void
 
@@ -309,6 +310,10 @@ export const useStore = create<TournamentState>()(
         const next = { ...get().modelParams, [k]: v }
         setModelParams(next)
         set({ modelParams: next })
+      },
+      applyModelPreset: (p) => {
+        setModelParams(p)
+        set({ modelParams: { ...p } })
       },
       resetModelParams: () => {
         setModelParams({})
