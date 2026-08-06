@@ -11,7 +11,8 @@ export function nation(id: string): Nation {
   return n
 }
 
-export const HOSTS = ['MEX', 'CAN', 'USA'] as const
+/** The real 2026 trio — the default host selection, no longer hard-wired anywhere. */
+export const DEFAULT_HOSTS: string[] = ['MEX', 'CAN', 'USA']
 
 export const CONFEDS: Confed[] = ['UEFA', 'CAF', 'AFC', 'CONCACAF', 'CONMEBOL', 'OFC']
 
@@ -30,8 +31,25 @@ export function byConfed(confed: Confed): Nation[] {
   return NATIONS.filter((n) => n.confed === confed).sort((a, b) => a.rank - b.rank)
 }
 
+/** Runtime overrides from the in-app ratings editor — consulted by every engine read. */
+export interface NationOverride {
+  rank?: number
+  rating?: number
+  boosts?: string[] // booster ids from engine/boosters.ts
+}
+const OVERRIDES = new Map<string, NationOverride>()
+
+export function setNationOverrides(o: Record<string, NationOverride>): void {
+  OVERRIDES.clear()
+  for (const [id, v] of Object.entries(o)) OVERRIDES.set(id, v)
+}
+
+export function overrideOf(id: string): NationOverride | undefined {
+  return OVERRIDES.get(id)
+}
+
 export function rankOf(id: string): number {
-  return nation(id).rank
+  return OVERRIDES.get(id)?.rank ?? nation(id).rank
 }
 
 /** Compact display names for tight tables; everything else uses the full name. */
@@ -72,5 +90,5 @@ export function shortName(id: string): string {
 }
 
 export function ratingOf(id: string): number {
-  return nation(id).rating
+  return OVERRIDES.get(id)?.rating ?? nation(id).rating
 }

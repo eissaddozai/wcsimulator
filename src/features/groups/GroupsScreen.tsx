@@ -1,13 +1,19 @@
-import { Dices, Info, ListOrdered, Trash2 } from 'lucide-react'
+import { Dices, Info, ListOrdered, Move, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { ScoreInput } from '../../components/ScoreInput'
+import { TeamStudio } from '../../components/TeamStudio'
 import { shortName } from '../../data/nations'
 import { staleAfter } from '../../engine/bracket'
 import { GROUP_IDS, fixturesOfGroup } from '../../engine/schedule'
 import { allGroupsComplete, allStandings, contentionFor, liveThirds } from '../../engine/tournament'
 import { groupsOf, useStore } from '../../store/store'
-import type { GroupId, MatchResult, TieBreakRung } from '../../engine/types'
+import { isScored, type GroupId, type MatchResult, type Position, type TieBreakRung } from '../../engine/types'
+
+export interface SlotRef {
+  group: GroupId
+  position: Position
+}
 
 const RUNG_COPY: Record<TieBreakRung, string> = {
   points: 'points',
@@ -29,7 +35,11 @@ export function GroupsScreen() {
 
   const [md, setMd] = useState<0 | 1 | 2 | 3>(1) // 0 = all
   const [thirdsOpen, setThirdsOpen] = useState(false)
+  const [studioOpen, setStudioOpen] = useState(false)
+  const [editGroups, setEditGroups] = useState(false)
+  const [dragSlot, setDragSlot] = useState<SlotRef | null>(null)
   const [pendingEdit, setPendingEdit] = useState<{ n: number; r: MatchResult | null; casualties: number[] } | null>(null)
+  const swapGroupSlots = useStore((s) => s.swapGroupSlots)
 
   const groups = useMemo(() => groupsOf(drawTrace), [drawTrace])
   const standings = useMemo(
@@ -89,7 +99,10 @@ export function GroupsScreen() {
     [complete, standings, thirds, results],
   )
 
-  const doneCount = GROUP_IDS.reduce((acc, g) => acc + fixturesOfGroup(g).filter((f) => results[f.number]).length, 0)
+  const doneCount = GROUP_IDS.reduce(
+    (acc, g) => acc + fixturesOfGroup(g).filter((f) => results[f.number] && isScored(results[f.number]!)).length,
+    0,
+  )
 
   return (
     <div className="page">
@@ -111,6 +124,17 @@ export function GroupsScreen() {
         <button className="btn small" onClick={() => setThirdsOpen(true)}>
           <ListOrdered size={14} /> 3rd place race
         </button>
+        <button className="btn small" onClick={() => setStudioOpen(true)}>
+          <SlidersHorizontal size={14} /> Team studio
+        </button>
+        <button
+          className={`btn small${editGroups ? ' gold-line' : ''}`}
+          onClick={() => setEditGroups((e) => !e)}
+          aria-pressed={editGroups}
+          title="Move countries between groups by dragging"
+        >
+          <Move size={14} /> {editGroups ? 'Done moving' : 'Edit groups'}
+        </button>
         <button className="btn small gold-line" onClick={simulateRemainingGroups}>
           <Dices size={14} /> Simulate remaining
         </button>
@@ -126,7 +150,13 @@ export function GroupsScreen() {
         </button>
       </div>
 
-      <div className="groups-grid">
+      {editGroups && (
+        <p className="muted" style={{ marginTop: -8, marginBottom: 12 }}>
+          Drag any country onto another to swap their group slots. Scores in the affected groups are cleared — FIFA
+          draw constraints are yours to break here.
+        </p>
+      )}
+      <div className={`groups-grid${editGroups ? ' editing' : ''}`}>
         {GROUP_IDS.map((g) => (
           <GroupCard
             key={g}
@@ -139,6 +169,16 @@ export function GroupsScreen() {
             contention={contention?.[g] ?? null}
             onScore={commitScore}
             onDice={simulateGroupMatch}
+            editMode={editGroups}
+            dragSlot={dragSlot}
+            setDragSlot={setDragSlot}
+            onSwap={(a, b) => {
+              const affected = [a.group, b.group].some((gg) =>
+                fixturesOfGroup(gg).some((f) => results[f.number] !== undefined),
+              )
+              if (affected && !confirm('Swapping clears the entered scores of both groups. Continue?')) return
+              swapGroupSlots(a, b)
+            }}
           />
         ))}
       </div>
@@ -151,6 +191,7 @@ export function GroupsScreen() {
       </div>
 
       {thirdsOpen && <ThirdsPanel thirds={thirds} onClose={() => setThirdsOpen(false)} />}
+      {studioOpen && <TeamStudio onClose={() => setStudioOpen(false)} />}
 
       {pendingEdit && (
         <div className="overlay" role="dialog" aria-modal>
@@ -194,8 +235,12 @@ function GroupCard(props: {
   contention: Map<string, { outOfTop2: boolean; outOfTop3: boolean; securedTop2: boolean }> | null
   onScore: (n: number, r: MatchResult | null) => void
   onDice: (n: number) => void
+  editMode: boolean
+  dragSlot: SlotRef | null
+  setDragSlot: (s: SlotRef | null) => void
+  onSwap: (a: SlotRef, b: SlotRef) => void
 }) {
-  const { g, slots, md, results, standings, thirds, contention, onScore, onDice } = props
+  const { g, slots, md, results, standings, thirds, contention, onScore, onDice, editMode, dragSlot, setDragSlot, onSwap } = props
   const fixtures = fixturesOfGroup(g).filter((f) => md === 0 || f.matchday === md)
 
   return (
@@ -249,10 +294,27 @@ function GroupCard(props: {
             ) : row.position === 3 ? (
               <span className="badge t3">3rd?</span>
             ) : null
+            const slotPos = (slots.indexOf(row.id) + 1) as Position
+            const isDragging = dragSlot?.group === g && dragSlot.position === slotPos
             return (
-              <tr key={row.id} className={posClass}>
+              <tr
+                key={row.id}
+                className={`${posClass}${editMode ? ' draggable-row' : ''}${isDragging ? ' dragging' : ''}`}
+                draggable={editMode}
+                onDragStart={() => setDragSlot({ group: g, position: slotPos })}
+                onDragEnd={() => setDragSlot(null)}
+                onDragOver={(e) => editMode && e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  if (dragSlot && !(dragSlot.group === g && dragSlot.position === slotPos)) {
+                    onSwap(dragSlot, { group: g, position: slotPos })
+                  }
+                  setDragSlot(null)
+                }}
+              >
                 <td className="team">
                   <span className="cell">
+                    <span className="posn tnum">{row.position}</span>
                     <Flag id={row.id} size={22} />
                     <span className="nm">{shortName(row.id)}</span>
                     {badge}
@@ -267,9 +329,11 @@ function GroupCard(props: {
                 <td className="tnum">{row.won}</td>
                 <td className="tnum">{row.drawn}</td>
                 <td className="tnum">{row.lost}</td>
-                <td className="tnum">{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
-                <td className="tnum" style={{ color: 'var(--text-hi)', fontWeight: 600 }}>
-                  {row.points}
+                <td className={`tnum gdv${row.gd > 0 ? ' up' : row.gd < 0 ? ' down' : ''}`}>
+                  {row.gd > 0 ? `+${row.gd}` : row.gd}
+                </td>
+                <td className="tnum">
+                  <span className="ptsv">{row.points}</span>
                 </td>
               </tr>
             )
@@ -294,8 +358,9 @@ function GroupCard(props: {
                   label={`${home} goals vs ${away}`}
                   value={r?.score.home ?? null}
                   onCommit={(v) => {
-                    if (v === null && r?.score.away === undefined) onScore(f.number, null)
-                    else onScore(f.number, { score: { home: v ?? 0, away: r?.score.away ?? 0 } })
+                    const away_ = r?.score.away ?? null
+                    if (v === null && away_ === null) onScore(f.number, null)
+                    else onScore(f.number, { score: { home: v, away: away_ } })
                   }}
                 />
                 <span className="low">–</span>
@@ -304,8 +369,9 @@ function GroupCard(props: {
                   label={`${away} goals vs ${home}`}
                   value={r?.score.away ?? null}
                   onCommit={(v) => {
-                    if (v === null && r?.score.home === undefined) onScore(f.number, null)
-                    else onScore(f.number, { score: { home: r?.score.home ?? 0, away: v ?? 0 } })
+                    const home_ = r?.score.home ?? null
+                    if (v === null && home_ === null) onScore(f.number, null)
+                    else onScore(f.number, { score: { home: home_, away: v } })
                   }}
                 />
               </span>

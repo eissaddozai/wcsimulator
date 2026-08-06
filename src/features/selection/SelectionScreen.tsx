@@ -1,7 +1,9 @@
-import { Dices, Lock, Search } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { Crown, Dices, Lock, Search, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
-import { BASE_QUOTA, CONFEDS, FLEX_SLOTS, NATIONS, byConfed } from '../../data/nations'
+import { HostPicker } from '../../components/HostPicker'
+import { TeamStudio } from '../../components/TeamStudio'
+import { BASE_QUOTA, CONFEDS, FLEX_SLOTS, NATIONS, NATION_BY_ID, byConfed } from '../../data/nations'
 import { canAdd, quotaStatus } from '../../engine/selection'
 import { useStore } from '../../store/store'
 import type { Confed } from '../../engine/types'
@@ -16,12 +18,21 @@ export function SelectionScreen() {
   const playoffLog = useStore((s) => s.playoffLog)
   const setStep = useStore((s) => s.setStep)
   const reseedPots = useStore((s) => s.reseedPots)
+  const hosts = useStore((s) => s.hosts)
+  const hostsChosen = useStore((s) => s.hostsChosen)
 
   const [tab, setTab] = useState<Confed>('UEFA')
   const [query, setQuery] = useState('')
+  const [hostPickerOpen, setHostPickerOpen] = useState(false)
+  const [studioOpen, setStudioOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  const status = useMemo(() => quotaStatus(entries), [entries])
+  // the very first thing a custom tournament asks: who is hosting?
+  useEffect(() => {
+    if (!hostsChosen) setHostPickerOpen(true)
+  }, [hostsChosen])
+
+  const status = useMemo(() => quotaStatus(entries, hosts), [entries, hosts])
 
   const list = useMemo(() => {
     if (query.trim()) {
@@ -37,6 +48,23 @@ export function SelectionScreen() {
     <div className="page">
       <div className="selection">
         <aside className="card rail">
+          <div className="quota" style={{ gap: 8 }}>
+            <div className="row spread">
+              <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Crown size={13} className="gold-text" /> Hosts
+              </span>
+              <button className="btn ghost small" onClick={() => setHostPickerOpen(true)}>
+                Change
+              </button>
+            </div>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+              {hosts.map((h) => (
+                <span key={h} className="chip gold">
+                  <Flag id={h} size={16} /> {NATION_BY_ID.get(h)?.name}
+                </span>
+              ))}
+            </div>
+          </div>
           <div>
             <div className="total display tnum">
               {status.total} <span className="low">/ 48</span>
@@ -88,6 +116,9 @@ export function SelectionScreen() {
                 aria-label="Qualification chaos"
               />
             </label>
+            <button className="btn ghost small" onClick={() => setStudioOpen(true)}>
+              <SlidersHorizontal size={13} /> Team studio — ratings & boosters
+            </button>
             <button className="btn ghost small" onClick={clearTeams}>
               Clear picks
             </button>
@@ -126,8 +157,8 @@ export function SelectionScreen() {
           <div className="team-grid">
             {list.map((n) => {
               const on = entries.includes(n.id)
-              const isHost = Boolean(n.host)
-              const addCheck = on ? { ok: true, reason: null } : canAdd(entries, n.id)
+              const isHost = hosts.includes(n.id)
+              const addCheck = on ? { ok: true, reason: null } : canAdd(entries, hosts, n.id)
               return (
                 <button
                   key={n.id}
@@ -168,6 +199,9 @@ export function SelectionScreen() {
           Continue to Pots
         </button>
       </div>
+
+      {hostPickerOpen && <HostPicker onClose={() => setHostPickerOpen(false)} />}
+      {studioOpen && <TeamStudio onClose={() => setStudioOpen(false)} />}
     </div>
   )
 }

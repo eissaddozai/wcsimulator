@@ -23,6 +23,7 @@ export default function App() {
   const setStep = useStore((s) => s.setStep)
   const setTheme = useStore((s) => s.setTheme)
   const entries = useStore((s) => s.entries)
+  const hosts = useStore((s) => s.hosts)
   const pots = useStore((s) => s.pots)
   const drawTrace = useStore((s) => s.drawTrace)
   const results = useStore((s) => s.results)
@@ -33,7 +34,7 @@ export default function App() {
     document.documentElement.dataset.theme = theme
   }, [theme])
 
-  const gates = stepGates({ entries, pots, drawTrace, results })
+  const gates = stepGates({ entries, hosts, pots, drawTrace, results })
   const gateFor = (s: Step): boolean => {
     if (s === 'landing' || s === 'teams') return true
     if (s === 'pots') return gates.pots
@@ -45,10 +46,11 @@ export default function App() {
   const exportJson = () => {
     const s = useStore.getState()
     const payload = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       masterSeed: s.masterSeed,
       chaos: s.chaos,
       strategy: s.strategy,
+      hosts: s.hosts,
       entries: s.entries,
       pots: s.pots,
       drawTrace: s.drawTrace,
@@ -67,11 +69,13 @@ export default function App() {
     void file.text().then((txt) => {
       try {
         const p = JSON.parse(txt)
-        if (p.schemaVersion !== 1 || !Array.isArray(p.entries)) throw new Error('bad file')
+        if (![1, 2].includes(p.schemaVersion) || !Array.isArray(p.entries)) throw new Error('bad file')
         useStore.setState({
           masterSeed: String(p.masterSeed ?? 'IMPORTED'),
           chaos: p.chaos ?? { qualification: 1, seeding: 1, match: 1 },
           strategy: p.strategy ?? 'official',
+          hosts: Array.isArray(p.hosts) && p.hosts.length > 0 ? p.hosts : ['MEX', 'CAN', 'USA'],
+          hostsChosen: true,
           entries: p.entries,
           pots: p.pots ?? null,
           drawTrace: p.drawTrace ?? null,

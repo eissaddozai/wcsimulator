@@ -1,4 +1,4 @@
-import type { GroupFixture, MatchResult } from './types'
+import { isScored, type GroupFixture, type MatchResult } from './types'
 
 export interface Contention {
   /** proven unable to finish in the top 2, even with every remaining result favorable */
@@ -30,9 +30,9 @@ export function groupContention(
     const away = groupSlots[f.awayPos - 1]
     if (!home || !away) continue
     const r = results[f.number]
-    if (r) {
-      if (r.score.home > r.score.away) pts.set(home, (pts.get(home) ?? 0) + 3)
-      else if (r.score.home < r.score.away) pts.set(away, (pts.get(away) ?? 0) + 3)
+    if (r && isScored(r)) {
+      if (r.score.home! > r.score.away!) pts.set(home, (pts.get(home) ?? 0) + 3)
+      else if (r.score.home! < r.score.away!) pts.set(away, (pts.get(away) ?? 0) + 3)
       else {
         pts.set(home, (pts.get(home) ?? 0) + 1)
         pts.set(away, (pts.get(away) ?? 0) + 1)

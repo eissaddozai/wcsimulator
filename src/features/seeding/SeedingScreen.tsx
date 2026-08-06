@@ -1,7 +1,7 @@
 import { Dices, Lock } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Flag } from '../../components/Flag'
-import { HOSTS, NATION_BY_ID } from '../../data/nations'
+import { NATION_BY_ID } from '../../data/nations'
 import { validatePots } from '../../engine/draw'
 import { STRATEGY_BLURBS, STRATEGY_LABELS } from '../../engine/seeding'
 import { useStore } from '../../store/store'
@@ -18,16 +18,20 @@ export function SeedingScreen() {
   const chaos = useStore((s) => s.chaos)
   const setChaos = useStore((s) => s.setChaos)
   const setStep = useStore((s) => s.setStep)
+  const hosts = useStore((s) => s.hosts)
 
   const [drag, setDrag] = useState<{ id: string; pot: number } | null>(null)
   const [over, setOver] = useState<{ id: string; pot: number } | null>(null)
 
-  const check = useMemo(() => (pots ? validatePots(pots) : { ok: false, reason: 'Seed the pots first' }), [pots])
+  const check = useMemo(
+    () => (pots ? validatePots(pots, hosts) : { ok: false, reason: 'Seed the pots first' }),
+    [pots, hosts],
+  )
 
   const move = (fromId: string, toPot: number, toId: string | null) => {
     if (!pots) return
-    if (HOSTS.includes(fromId as (typeof HOSTS)[number])) return
-    if (toId && HOSTS.includes(toId as (typeof HOSTS)[number])) return
+    if (hosts.includes(fromId)) return
+    if (toId && hosts.includes(toId))  return
     const next = pots.map((p) => p.slice())
     const fromPot = next.findIndex((p) => p.includes(fromId))
     if (fromPot < 0) return
@@ -85,8 +89,9 @@ export function SeedingScreen() {
         </div>
       </div>
       <p className="muted" style={{ marginTop: 4 }}>
-        {STRATEGY_BLURBS[strategy]} Hosts stay pinned to Pot 1 — Mexico opens Group A, Canada Group B, the USA Group
-        D. Drag any two rows to swap them.
+        {STRATEGY_BLURBS[strategy]} Hosts stay pinned to Pot 1 —{' '}
+        {hosts.map((h, i) => `${NATION_BY_ID.get(h)?.name} opens Group ${['A', 'B', 'D'][i]}`).join(', ')}. Drag any
+        two rows to swap them.
       </p>
 
       {!check.ok && pots && <div className="linter">{check.reason}</div>}
@@ -103,7 +108,7 @@ export function SeedingScreen() {
               </h3>
               {pot.map((id) => {
                 const n = NATION_BY_ID.get(id)!
-                const isHost = HOSTS.includes(id as (typeof HOSTS)[number])
+                const isHost = hosts.includes(id)
                 const dragging = drag?.id === id
                 const target = over?.id === id && drag && drag.id !== id
                 return (

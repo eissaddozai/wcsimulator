@@ -1,4 +1,4 @@
-import { HOSTS, NATION_BY_ID, rankOf, ratingOf } from '../data/nations'
+import { NATION_BY_ID, rankOf, ratingOf } from '../data/nations'
 import type { Rng } from './rng'
 import { beta, gaussian, shuffle } from './rng'
 import type { Pots, StrategyId } from './types'
@@ -21,12 +21,13 @@ export const STRATEGY_BLURBS: Record<StrategyId, string> = {
 
 const RTILDE = (id: string) => (ratingOf(id) - 1500) / 175
 
-function slice(hostless: string[], hosts: string[]): Pots {
+function slice(hostless: string[], hosts: readonly string[]): Pots {
+  const n = 12 - hosts.length
   return [
-    [...hosts, ...hostless.slice(0, 9)],
-    hostless.slice(9, 21),
-    hostless.slice(21, 33),
-    hostless.slice(33, 45),
+    [...hosts, ...hostless.slice(0, n)],
+    hostless.slice(n, n + 12),
+    hostless.slice(n + 12, n + 24),
+    hostless.slice(n + 24, n + 36),
   ]
 }
 
@@ -34,9 +35,15 @@ function slice(hostless: string[], hosts: string[]): Pots {
  * Five seeding strategies, one signature. Invariants: hosts are always Pot 1; output is 4×12.
  * Manual drag-and-drop is a layered override on the result, not a strategy.
  */
-export function seedPots(entries: readonly string[], strategy: StrategyId, theta: number, rng: Rng): Pots {
-  const hosts = HOSTS.filter((h) => entries.includes(h))
-  const rest = entries.filter((id) => !hosts.includes(id as (typeof HOSTS)[number]))
+export function seedPots(
+  entries: readonly string[],
+  hostList: readonly string[],
+  strategy: StrategyId,
+  theta: number,
+  rng: Rng,
+): Pots {
+  const hosts = hostList.filter((h) => entries.includes(h))
+  const rest = entries.filter((id) => !hosts.includes(id))
 
   const byOfficial = (ids: string[]) =>
     ids.slice().sort((a, b) => rankOf(a) - rankOf(b) || a.localeCompare(b))

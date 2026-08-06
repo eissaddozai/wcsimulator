@@ -23,6 +23,11 @@
   --shadow-2: 0 16px 48px rgba(0, 0, 0, 0.5);
   --gold-ink: #0a0f0d;
   --flag-ring: rgba(255, 255, 255, 0.14);
+  /* type system — self-hosted; fallbacks are named faces, never a bare generic that
+     could resolve to Arial */
+  --font-text: 'Instrument Sans Variable', 'Instrument Sans', 'Segoe UI', 'Helvetica Neue', 'Liberation Sans', sans-serif;
+  --font-display: 'Saira Condensed', 'Arial Narrow', 'Liberation Sans Narrow', sans-serif-condensed, sans-serif;
+  --font-accent: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
 }
 
 :root[data-theme='light'] {
@@ -64,7 +69,8 @@ body,
 body {
   background: var(--bg-0);
   color: var(--text-hi);
-  font-family: 'Inter Variable', system-ui, sans-serif;
+  font-family: var(--font-text);
+  font-synthesis: none;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -115,14 +121,14 @@ input {
 }
 
 .display {
-  font-family: 'Barlow Condensed', 'Inter Variable', sans-serif;
+  font-family: var(--font-display);
   text-transform: uppercase;
   letter-spacing: 0.02em;
   font-weight: 600;
 }
 
 .serif-accent {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--font-accent);
   font-style: italic;
   font-weight: 500;
   text-transform: none;
@@ -343,7 +349,7 @@ input {
   place-items: center;
   background: var(--bg-3);
   color: var(--text-mid);
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
 }
 .flag.ringed {
@@ -357,7 +363,7 @@ input {
   width: 44px;
   height: 44px;
   text-align: center;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 600;
   padding: 0;
@@ -449,6 +455,127 @@ tr.pos-third td.team {
 tr.pos-out td.team {
   border-left-color: var(--pos-out);
 }
+/* sexier standings: position numerals, tinted GD, points pill, state washes */
+table.standings .posn {
+  width: 14px;
+  color: var(--text-low);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  flex: none;
+}
+table.standings .gdv.up {
+  color: var(--pos-adv);
+}
+table.standings .gdv.down {
+  color: var(--pos-out);
+}
+table.standings .ptsv {
+  display: inline-block;
+  min-width: 22px;
+  text-align: center;
+  padding: 1px 4px;
+  border-radius: 5px;
+  font-weight: 700;
+  color: var(--text-hi);
+  background: var(--bg-3);
+}
+tr.pos-adv .ptsv {
+  color: var(--gold-ink);
+  background: var(--gold);
+}
+tr.pos-adv td {
+  background: color-mix(in srgb, var(--pos-adv) 6%, transparent);
+}
+tr.pos-third td {
+  background: color-mix(in srgb, var(--pos-third) 5%, transparent);
+}
+table.standings tr.draggable-row {
+  cursor: grab;
+}
+table.standings tr.draggable-row:hover td {
+  background: var(--bg-2);
+}
+table.standings tr.dragging td {
+  opacity: 0.4;
+}
+.groups-grid.editing .ghub-card {
+  border-style: dashed;
+  border-color: var(--gold-dim);
+}
+
+/* team studio */
+.studio-row-wrap {
+  border-bottom: 1px solid var(--line-1);
+}
+.studio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+.studio-row .name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.studio-in {
+  width: 58px;
+  height: 30px;
+  text-align: center;
+  font-size: 13px;
+  padding: 0 4px;
+}
+.booster-panel {
+  padding: 4px 12px 14px 46px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: color-mix(in srgb, var(--bg-2) 55%, transparent);
+}
+.booster-group-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-low);
+  margin-bottom: 4px;
+}
+.booster-chip {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-mid);
+  border: 1px solid var(--line-2);
+  transition: color 150ms, border-color 150ms, background 150ms;
+}
+.booster-chip:hover {
+  color: var(--text-hi);
+}
+.booster-chip.on {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+}
+.booster-chip.burden.on {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+.booster-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .badge {
   font-size: 10px;
   font-weight: 700;

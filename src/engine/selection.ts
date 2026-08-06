@@ -1,4 +1,4 @@
-import { BASE_QUOTA, FLEX_SLOTS, HOSTS, NATION_BY_ID } from '../data/nations'
+import { BASE_QUOTA, FLEX_SLOTS, NATION_BY_ID } from '../data/nations'
 import type { Confed } from './types'
 
 export interface QuotaStatus {
@@ -10,7 +10,7 @@ export interface QuotaStatus {
   capReason: (confed: Confed) => string | null
 }
 
-export function quotaStatus(entries: readonly string[]): QuotaStatus {
+export function quotaStatus(entries: readonly string[], hosts: readonly string[]): QuotaStatus {
   const counts: Record<Confed, number> = { UEFA: 0, CAF: 0, AFC: 0, CONCACAF: 0, CONMEBOL: 0, OFC: 0 }
   for (const id of entries) {
     const n = NATION_BY_ID.get(id)
@@ -21,7 +21,7 @@ export function quotaStatus(entries: readonly string[]): QuotaStatus {
     0,
   )
   const total = entries.length
-  const hostsIn = HOSTS.every((h) => entries.includes(h))
+  const hostsIn = hosts.every((h) => entries.includes(h))
   const complete =
     total === 48 &&
     hostsIn &&
@@ -42,11 +42,15 @@ export function quotaStatus(entries: readonly string[]): QuotaStatus {
 }
 
 /** true when adding this nation keeps the selection legal */
-export function canAdd(entries: readonly string[], id: string): { ok: boolean; reason: string | null } {
+export function canAdd(
+  entries: readonly string[],
+  hosts: readonly string[],
+  id: string,
+): { ok: boolean; reason: string | null } {
   if (entries.includes(id)) return { ok: false, reason: 'Already selected' }
   if (entries.length >= 48) return { ok: false, reason: 'All 48 slots are filled' }
   const n = NATION_BY_ID.get(id)
   if (!n) return { ok: false, reason: 'Unknown nation' }
-  const reason = quotaStatus(entries).capReason(n.confed)
+  const reason = quotaStatus(entries, hosts).capReason(n.confed)
   return reason ? { ok: false, reason } : { ok: true, reason: null }
 }

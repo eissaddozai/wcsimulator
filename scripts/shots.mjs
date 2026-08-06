@@ -6,7 +6,7 @@ const out = process.argv[2] ?? 'shots'
 const base = 'http://localhost:4173/'
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+const page = await browser.newPage({ viewport: { width: 1600, height: 900 } })
 page.on('console', (m) => {
   if (m.type() === 'error') console.log('[console.error]', m.text())
 })
@@ -24,69 +24,93 @@ await page.reload()
 await page.waitForSelector('.landing')
 await shot('01-landing')
 
-// —— custom flow ——
+// —— custom flow: hosts first ——
 await page.click('text=Start from scratch')
+await page.waitForSelector('text=Who\'s hosting?')
+await shot('02-host-picker')
+await page.click('text=Surprise me') // the simulator decides
+await page.waitForTimeout(250)
+await shot('03-host-surprise')
+await page.click('text=Confirm hosts')
 await page.waitForSelector('.team-grid')
-await shot('02-teams-empty')
 await page.click('text=Simulate qualification')
-await page.waitForTimeout(300)
-await shot('03-teams-simulated')
+await page.waitForTimeout(400)
+await shot('04-teams-simulated')
+
+// —— team studio: ratings + boosters ——
+await page.click('text=Team studio — ratings & boosters')
+await page.waitForSelector('.studio-row')
+await page.locator('.studio-row button:has-text("Boosters")').first().click()
+await page.waitForSelector('.booster-panel')
+await page.locator('.booster-chip:has-text("Golden Generation")').click()
+await page.locator('.booster-chip:has-text("Ice In The Veins")').click()
+await shot('05-team-studio')
+await page.click('text=Done')
+
 await page.click('text=Continue to Pots')
 await page.waitForSelector('.pots-grid')
-await shot('04-pots')
-await page.click('text=Re-roll pots')
-await page.waitForTimeout(300)
+await shot('06-pots')
 await page.click('text=Proceed to the Draw')
 await page.waitForSelector('text=Conduct the draw')
-await shot('05-draw-intro')
 await page.click('text=Conduct the draw')
 await page.waitForSelector('.draw-controls')
 await page.click('text=Draw next')
 await page.waitForTimeout(1300)
-await shot('06-draw-reveal')
+await shot('07-draw-reveal')
 await page.click('text=Skip to result')
 await page.waitForTimeout(400)
-await shot('07-draw-complete')
+await shot('08-draw-complete')
 await page.click('text=Continue to the Group Stage')
 await page.waitForSelector('.groups-grid')
-await shot('08-groups-empty')
 await page.click('text=Simulate remaining')
-await page.waitForTimeout(600)
+await page.waitForTimeout(700)
 await shot('09-groups-scored')
+
+// —— partial score: type one side only ——
+await page.click('text=Clear', { timeout: 3000 }).catch(() => {})
+await page.keyboard.press('Escape')
+
 await page.keyboard.press('t')
 await page.waitForTimeout(300)
 await shot('10-thirds-race')
 await page.keyboard.press('t')
+
+// —— edit groups mode ——
+await page.click('text=Edit groups')
+await page.waitForTimeout(200)
+await shot('11-edit-groups')
+await page.click('text=Done moving')
+
 await page.click('text=Seed the Round of 32')
-await page.waitForSelector('.bracket')
-await shot('11-knockout-r32')
-await page.click('.bracket-wrap .ko-node:not(.ghost)')
-await page.waitForTimeout(300)
-await shot('12-match-panel')
-await page.click('text=Close')
-// simulate the whole knockout
+await page.waitForSelector('.bracket2')
+await shot('12-bracket-mirrored-empty')
 await page.click('text=Simulate remaining')
-await page.waitForTimeout(1200)
+await page.waitForTimeout(1500)
 const championVisible = await page.locator('.champion').isVisible().catch(() => false)
 if (championVisible) {
   await shot('13-champion')
   await page.click('text=Back to the bracket')
+  await page.waitForTimeout(300)
 }
-await page.waitForTimeout(300)
-await shot('14-bracket-final')
+await shot('14-bracket-mirrored-full')
 
-// —— light theme ——
+// —— match panel with odds ——
+await page.locator('.bracket2 .ko-node.done').first().click()
+await page.waitForSelector('.odds-strip')
+await shot('15-match-panel-odds')
+await page.click('text=Close')
+
+// —— light theme + real preset ——
 await page.click('[aria-label="Toggle theme"]')
-await shot('15-light-theme')
+await shot('16-light-theme')
 await page.click('[aria-label="Toggle theme"]')
 
-// —— real 2026 preset ——
 await page.evaluate(() => localStorage.clear())
 await page.goto(base)
 await page.waitForSelector('.landing')
 await page.click('text=Load the real tournament')
 await page.waitForSelector('.groups-grid')
-await shot('16-real-2026')
+await shot('17-real-2026')
 
 await browser.close()
 console.log('done')

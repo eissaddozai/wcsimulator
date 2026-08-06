@@ -31,8 +31,13 @@ export interface DrawPick {
 }
 
 export interface ScorePair {
-  home: number
-  away: number
+  home: number | null // null = not yet entered — one side can be typed without zeroing the other
+  away: number | null
+}
+
+/** A result only counts once both sides of the 90' score are entered. */
+export function isScored(r: MatchResult): boolean {
+  return r.score.home !== null && r.score.away !== null
 }
 
 /** User input for one match, keyed by match number in the tournament results record. */

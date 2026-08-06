@@ -1,22 +1,32 @@
-import { Dices, RotateCcw, X } from 'lucide-react'
+import { Crown, Dices, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { ScoreInput } from '../../components/ScoreInput'
-import { NATION_BY_ID } from '../../data/nations'
+import { NATION_BY_ID, shortName } from '../../data/nations'
 import type { ResolvedKo } from '../../engine/bracket'
 import { KO_BY_NUMBER, KO_MATCHES } from '../../engine/schedule'
-import { koWinner } from '../../engine/simulate'
+import { koWinner, matchOdds, stageOfMatch, type MatchContext } from '../../engine/simulate'
 import { allGroupsComplete, bracketState } from '../../engine/tournament'
 import { groupsOf, useStore } from '../../store/store'
 import type { KoSource, MatchResult } from '../../engine/types'
 
-const ROUNDS: { key: string; label: string; matches: number[] }[] = [
-  { key: 'R32', label: 'Round of 32', matches: [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88] },
-  { key: 'R16', label: 'Round of 16', matches: [89, 90, 91, 92, 93, 94, 95, 96] },
-  { key: 'QF', label: 'Quarterfinals', matches: [97, 98, 99, 100] },
-  { key: 'SF', label: 'Semifinals', matches: [101, 102] },
-  { key: 'F', label: 'Final & Bronze', matches: [104, 103] },
-]
+/**
+ * True mirrored bracket: two wings converging on a center Final column.
+ * One CSS grid, 16 rows; node cells span 2/4/8/16 rows so every round centers on its
+ * feeders, with elbow connectors drawn between columns — the champion's road turns gold.
+ */
+const LEFT = {
+  r32: [74, 77, 73, 75, 83, 84, 81, 82],
+  r16: [89, 90, 93, 94],
+  qf: [97, 98],
+  sf: [101],
+}
+const RIGHT = {
+  r32: [76, 78, 79, 80, 86, 88, 85, 87],
+  r16: [91, 92, 95, 96],
+  qf: [99, 100],
+  sf: [102],
+}
 
 function sourceLabel(src: KoSource): string {
   switch (src.kind) {
@@ -25,7 +35,7 @@ function sourceLabel(src: KoSource): string {
     case 'runnerUp':
       return `2${src.group}`
     case 'third':
-      return `3rd of ${src.cands.join('/')}`
+      return `3rd ${src.cands.join('/')}`
     case 'matchWinner':
       return `W${src.match}`
     case 'matchLoser':
@@ -60,6 +70,24 @@ export function KnockoutScreen() {
   const champion = bracket[104]?.winner ?? null
   const finalMatch = bracket[104]
 
+  const node = (n: number, row: string, col: number, compact = false) => (
+    <div key={n} style={{ gridRow: row, gridColumn: col, display: 'flex', alignItems: 'center', minWidth: 0 }}>
+      <KoNode node={bracket[n]!} compact={compact} onOpen={() => setOpenMatch(n)} />
+    </div>
+  )
+
+  const conn = (childMatch: number, row: string, col: number, side: 'l' | 'r', straight = false) => {
+    const decided = Boolean(bracket[childMatch]?.winner)
+    return (
+      <div
+        key={`c${col}-${row}`}
+        className={`bconn ${side}${straight ? ' straight' : ''}${decided ? ' won' : ''}`}
+        style={{ gridRow: row, gridColumn: col }}
+        aria-hidden
+      />
+    )
+  }
+
   return (
     <div className="page">
       <div className="row spread" style={{ flexWrap: 'wrap', marginBottom: 20 }}>
@@ -67,7 +95,7 @@ export function KnockoutScreen() {
           Knockout Stage
         </h2>
         {!complete && (
-          <span className="chip">Awaiting the group stage — nodes fill in once all 72 scores are entered</span>
+          <span className="chip">Awaiting the group stage — the wings fill once all 72 scores are entered</span>
         )}
         {complete && (
           <button
@@ -77,8 +105,8 @@ export function KnockoutScreen() {
                 const cur = useStore.getState()
                 const gs = groupsOf(cur.drawTrace)!
                 const st = bracketState(gs, cur.results, cur.masterSeed)
-                const node = st.bracket[m.number]!
-                if (!node.result && node.home && node.away) simulateKoMatch(m.number)
+                const nd = st.bracket[m.number]!
+                if (!nd.result && nd.home && nd.away) simulateKoMatch(m.number)
               }
             }}
           >
@@ -88,15 +116,58 @@ export function KnockoutScreen() {
       </div>
 
       <div className="bracket-wrap">
-        <div className="bracket">
-          {ROUNDS.map((round) => (
-            <div key={round.key} className="round-col">
-              <h5>{round.label}</h5>
-              {round.matches.map((n) => (
-                <KoNode key={n} node={bracket[n]!} onOpen={() => setOpenMatch(n)} />
-              ))}
+        <div className="bracket2">
+          {/* round headers */}
+          <div className="bhead" style={{ gridColumn: 1 }}>Round of 32</div>
+          <div className="bhead" style={{ gridColumn: 3 }}>Round of 16</div>
+          <div className="bhead" style={{ gridColumn: 5 }}>Quarterfinal</div>
+          <div className="bhead" style={{ gridColumn: 7 }}>Semifinal</div>
+          <div className="bhead gold-text" style={{ gridColumn: 9 }}>Final</div>
+          <div className="bhead" style={{ gridColumn: 11 }}>Semifinal</div>
+          <div className="bhead" style={{ gridColumn: 13 }}>Quarterfinal</div>
+          <div className="bhead" style={{ gridColumn: 15 }}>Round of 16</div>
+          <div className="bhead" style={{ gridColumn: 17 }}>Round of 32</div>
+
+          {/* left wing */}
+          {LEFT.r32.map((n, i) => node(n, `${2 * i + 2} / span 2`, 1, true))}
+          {LEFT.r16.map((n, j) => [conn(n, `${4 * j + 2} / span 4`, 2, 'l'), node(n, `${4 * j + 2} / span 4`, 3)])}
+          {LEFT.qf.map((n, k) => [conn(n, `${8 * k + 2} / span 8`, 4, 'l'), node(n, `${8 * k + 2} / span 8`, 5)])}
+          {LEFT.sf.map((n) => [conn(n, `2 / span 16`, 6, 'l'), node(n, `2 / span 16`, 7)])}
+          {conn(104, `2 / span 16`, 8, 'l', true)}
+
+          {/* center: champion, final, bronze */}
+          <div className="bcenter" style={{ gridRow: '2 / span 16', gridColumn: 9 }}>
+            <div className="champ-slot">
+              {champion ? (
+                <>
+                  <Flag id={champion} size={64} ringed />
+                  <div className="display gold-text" style={{ fontSize: 26, lineHeight: 1 }}>
+                    {NATION_BY_ID.get(champion)?.name}
+                  </div>
+                  <div className="low" style={{ fontSize: 11, letterSpacing: '0.14em' }}>CHAMPIONS</div>
+                </>
+              ) : (
+                <>
+                  <div className="champ-ghost">
+                    <Crown size={26} />
+                  </div>
+                  <div className="low" style={{ fontSize: 11, letterSpacing: '0.14em' }}>THE TROPHY</div>
+                </>
+              )}
             </div>
-          ))}
+            <KoNode node={bracket[104]!} onOpen={() => setOpenMatch(104)} final />
+            <div className="bronze-wrap">
+              <div className="low" style={{ fontSize: 10, letterSpacing: '0.14em', marginBottom: 4 }}>BRONZE</div>
+              <KoNode node={bracket[103]!} compact onOpen={() => setOpenMatch(103)} />
+            </div>
+          </div>
+
+          {/* right wing (mirrored) */}
+          {conn(104, `2 / span 16`, 10, 'r', true)}
+          {RIGHT.sf.map((n) => [node(n, `2 / span 16`, 11), conn(n, `2 / span 16`, 12, 'r')])}
+          {RIGHT.qf.map((n, k) => [node(n, `${8 * k + 2} / span 8`, 13), conn(n, `${8 * k + 2} / span 8`, 14, 'r')])}
+          {RIGHT.r16.map((n, j) => [node(n, `${4 * j + 2} / span 4`, 15), conn(n, `${4 * j + 2} / span 4`, 16, 'r')])}
+          {RIGHT.r32.map((n, i) => node(n, `${2 * i + 2} / span 2`, 17, true))}
         </div>
       </div>
 
@@ -109,12 +180,7 @@ export function KnockoutScreen() {
       )}
 
       {champion && finalMatch?.result && showChampion && (
-        <ChampionScene
-          champion={champion}
-          final={finalMatch}
-          bracket={bracket}
-          onClose={() => setShowChampion(false)}
-        />
+        <ChampionScene champion={champion} final={finalMatch} bracket={bracket} onClose={() => setShowChampion(false)} />
       )}
     </div>
   )
@@ -123,21 +189,31 @@ export function KnockoutScreen() {
 function scoreText(node: ResolvedKo): { home: string; away: string; note: string | null } {
   const r = node.result
   if (!r || node.stale) return { home: '', away: '', note: null }
-  const h = r.score.home + (r.et?.home ?? 0)
-  const a = r.score.away + (r.et?.away ?? 0)
+  const h = r.score.home === null ? '' : String(r.score.home + (r.et?.home ?? 0))
+  const a = r.score.away === null ? '' : String(r.score.away + (r.et?.away ?? 0))
   let note: string | null = null
-  if (r.pens) note = `AET · pens ${r.pens.home}–${r.pens.away}`
-  else if (r.et) note = 'AET'
-  return { home: String(h), away: String(a), note }
+  if (r.pens) note = `pens ${r.pens.home ?? '·'}–${r.pens.away ?? '·'}`
+  else if (r.et) note = 'aet'
+  return { home: h, away: a, note }
 }
 
-function KoNode({ node, onOpen }: { node: ResolvedKo; onOpen: () => void }) {
+function KoNode({
+  node,
+  onOpen,
+  compact = false,
+  final = false,
+}: {
+  node: ResolvedKo
+  onOpen: () => void
+  compact?: boolean
+  final?: boolean
+}) {
   const ko = KO_BY_NUMBER[node.number]!
   const { home: hs, away: as_, note } = scoreText(node)
   const ghost = !node.home || !node.away
   return (
     <button
-      className={`card ko-node${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}`}
+      className={`card ko-node${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}${compact ? ' compact' : ''}${final ? ' final-node' : ''}`}
       onClick={onOpen}
       disabled={ghost}
       aria-label={`Match ${node.number}`}
@@ -145,7 +221,7 @@ function KoNode({ node, onOpen }: { node: ResolvedKo; onOpen: () => void }) {
       <span className={`side${node.winner && node.winner === node.home ? ' winner' : ''}`}>
         {node.home ? (
           <>
-            <Flag id={node.home} size={22} /> {node.home}
+            <Flag id={node.home} size={compact ? 18 : 22} /> {node.home}
           </>
         ) : (
           <span className="low">{sourceLabel(ko.home)}</span>
@@ -155,7 +231,7 @@ function KoNode({ node, onOpen }: { node: ResolvedKo; onOpen: () => void }) {
       <span className={`side${node.winner && node.winner === node.away ? ' winner' : ''}`}>
         {node.away ? (
           <>
-            <Flag id={node.away} size={22} /> {node.away}
+            <Flag id={node.away} size={compact ? 18 : 22} /> {node.away}
           </>
         ) : (
           <span className="low">{sourceLabel(ko.away)}</span>
@@ -163,10 +239,7 @@ function KoNode({ node, onOpen }: { node: ResolvedKo; onOpen: () => void }) {
         <span className="score tnum">{as_}</span>
       </span>
       <span className="meta">
-        <span className="tnum">
-          M{node.number}
-          {ko.stage === 'THIRD' ? ' · Bronze' : ko.stage === 'FINAL' ? ' · Final' : ''}
-        </span>
+        <span className="tnum">M{node.number}</span>
         {node.stale ? <span className="stale-chip">set aside</span> : note ? <span>{note}</span> : null}
       </span>
     </button>
@@ -175,27 +248,40 @@ function KoNode({ node, onOpen }: { node: ResolvedKo; onOpen: () => void }) {
 
 function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () => void; onDice: () => void }) {
   const setResult = useStore((s) => s.setResult)
+  const hosts = useStore((s) => s.hosts)
+  const chaos = useStore((s) => s.chaos)
   const ko = KO_BY_NUMBER[node.number]!
   const r = node.result && !node.stale ? node.result : null
   const home = node.home!
   const away = node.away!
 
+  const ctx: MatchContext = useMemo(
+    () => ({
+      stage: stageOfMatch(node.number),
+      homeHost: hosts.includes(home),
+      awayHost: hosts.includes(away),
+    }),
+    [node.number, home, away, hosts],
+  )
+  const odds = useMemo(() => matchOdds(home, away, ctx, chaos.match), [home, away, ctx, chaos.match])
+  const pct = (x: number) => `${Math.round(x * 100)}%`
+
   const commit = (patch: Partial<MatchResult>) => {
-    const base: MatchResult = r ?? { score: { home: 0, away: 0 } }
+    const base: MatchResult = r ?? { score: { home: null, away: null } }
     const next: MatchResult = { ...base, ...patch, enteredFor: [home, away] }
-    // drop decider layers that no longer apply
-    if (next.score.home !== next.score.away) {
+    const partial = next.score.home === null || next.score.away === null
+    if (partial || next.score.home !== next.score.away) {
       delete next.et
       delete next.pens
-    } else if (next.et && next.et.home !== next.et.away) {
+    } else if (next.et && next.et.home !== null && next.et.home !== next.et.away) {
       delete next.pens
     }
     delete next.simulated
     setResult(node.number, next)
   }
 
-  const level90 = r ? r.score.home === r.score.away : false
-  const levelET = r?.et ? r.et.home === r.et.away : false
+  const level90 = r ? r.score.home !== null && r.score.home === r.score.away : false
+  const levelET = r?.et ? r.et.home !== null && r.et.home === r.et.away : false
   const needsPens = level90 && levelET && r?.et !== undefined
   const decided = r ? koWinner(home, away, r) : null
 
@@ -205,8 +291,9 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
       <aside className="slideover" aria-label={`Match ${node.number}`}>
         <div className="match-hero">
           <div className="team">
-            <Flag id={home} size={64} />
+            <Flag id={home} size={64} ringed={hosts.includes(home)} />
             <span className="nm display">{NATION_BY_ID.get(home)?.name}</span>
+            {hosts.includes(home) && <span className="chip gold">Host nation</span>}
           </div>
           <div className="display low" style={{ fontSize: 14, textAlign: 'center' }}>
             M{node.number}
@@ -214,16 +301,38 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
             {ko.stage === 'THIRD' ? 'BRONZE' : ko.stage}
           </div>
           <div className="team">
-            <Flag id={away} size={64} />
+            <Flag id={away} size={64} ringed={hosts.includes(away)} />
             <span className="nm display">{NATION_BY_ID.get(away)?.name}</span>
+            {hosts.includes(away) && <span className="chip gold">Host nation</span>}
           </div>
         </div>
         <div className="match-panel-body">
+          <div className="odds-strip" title="90-minute probabilities from the match model">
+            <div className="odds-bar">
+              <i style={{ width: pct(odds.home) }} />
+              <i className="d" style={{ width: pct(odds.draw) }} />
+              <i className="a" style={{ width: pct(odds.away) }} />
+            </div>
+            <div className="row spread low" style={{ fontSize: 11 }}>
+              <span>
+                {shortName(home)} {pct(odds.home)}
+              </span>
+              <span>draw {pct(odds.draw)}</span>
+              <span>
+                {shortName(away)} {pct(odds.away)}
+              </span>
+            </div>
+            <div className="low" style={{ fontSize: 11, textAlign: 'center' }}>
+              xG {odds.lamHome.toFixed(2)} – {odds.lamAway.toFixed(2)} · model factors: form, style, stage tension
+              {hosts.includes(home) || hosts.includes(away) ? ', host advantage' : ''}
+            </div>
+          </div>
+
           <div className="row" style={{ justifyContent: 'center', gap: 16 }}>
             <ScoreInput
               label={`${home} goals`}
               value={r?.score.home ?? null}
-              onCommit={(v) => commit({ score: { home: v ?? 0, away: r?.score.away ?? 0 } })}
+              onCommit={(v) => commit({ score: { home: v, away: r?.score.away ?? null } })}
             />
             <span className="display low" style={{ fontSize: 24 }}>
               –
@@ -231,7 +340,7 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
             <ScoreInput
               label={`${away} goals`}
               value={r?.score.away ?? null}
-              onCommit={(v) => commit({ score: { home: r?.score.home ?? 0, away: v ?? 0 } })}
+              onCommit={(v) => commit({ score: { home: r?.score.home ?? null, away: v } })}
             />
           </div>
 
@@ -245,14 +354,14 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
                   small
                   label={`${home} extra-time goals`}
                   value={r.et?.home ?? null}
-                  onCommit={(v) => commit({ et: { home: v ?? 0, away: r.et?.away ?? 0 } })}
+                  onCommit={(v) => commit({ et: { home: v, away: r.et?.away ?? null } })}
                 />
                 <span className="low">ET</span>
                 <ScoreInput
                   small
                   label={`${away} extra-time goals`}
                   value={r.et?.away ?? null}
-                  onCommit={(v) => commit({ et: { home: r.et?.home ?? 0, away: v ?? 0 } })}
+                  onCommit={(v) => commit({ et: { home: r.et?.home ?? null, away: v } })}
                 />
               </div>
             </div>
@@ -268,14 +377,14 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
                   small
                   label={`${home} penalties`}
                   value={r.pens?.home ?? null}
-                  onCommit={(v) => commit({ pens: { home: v ?? 0, away: r.pens?.away ?? 0 } })}
+                  onCommit={(v) => commit({ pens: { home: v, away: r.pens?.away ?? null } })}
                 />
                 <span className="low">pens</span>
                 <ScoreInput
                   small
                   label={`${away} penalties`}
                   value={r.pens?.away ?? null}
-                  onCommit={(v) => commit({ pens: { home: r.pens?.home ?? 0, away: v ?? 0 } })}
+                  onCommit={(v) => commit({ pens: { home: r.pens?.home ?? null, away: v } })}
                 />
               </div>
               {r.pens && r.pens.home === r.pens.away && (
@@ -367,14 +476,13 @@ function ChampionScene({
   }, [])
 
   const road: number[] = []
-  for (const round of [73, 89, 97, 101, 104]) void round
   for (let n = 73; n <= 104; n++) {
     const m = bracket[n]
     if (m && (m.home === champion || m.away === champion)) road.push(n)
   }
 
-  const h = r.score.home + (r.et?.home ?? 0)
-  const a = r.score.away + (r.et?.away ?? 0)
+  const h = (r.score.home ?? 0) + (r.et?.home ?? 0)
+  const a = (r.score.away ?? 0) + (r.et?.away ?? 0)
 
   return (
     <div className="champion" role="dialog" aria-label="Champions">

@@ -5,7 +5,7 @@ import { stream } from './rng'
 import { GROUP_IDS, fixturesOfGroup } from './schedule'
 import { rankGroup, type PlayedMatch } from './standings'
 import { rankThirds } from './thirds'
-import type { GroupId, MatchResult, StandingRow, ThirdRank } from './types'
+import { isScored, type GroupId, type MatchResult, type StandingRow, type ThirdRank } from './types'
 
 export type Groups = Record<GroupId, (string | null)[]>
 
@@ -15,13 +15,16 @@ export function playedMatches(group: GroupId, slots: readonly (string | null)[],
     const home = slots[f.homePos - 1]
     const away = slots[f.awayPos - 1]
     const r = results[f.number]
-    if (home && away && r) out.push({ home, away, hs: r.score.home, as: r.score.away })
+    if (home && away && r && isScored(r)) out.push({ home, away, hs: r.score.home!, as: r.score.away! })
   }
   return out
 }
 
 export function groupComplete(group: GroupId, results: Record<number, MatchResult>): boolean {
-  return fixturesOfGroup(group).every((f) => results[f.number] !== undefined)
+  return fixturesOfGroup(group).every((f) => {
+    const r = results[f.number]
+    return r !== undefined && isScored(r)
+  })
 }
 
 export function allGroupsComplete(results: Record<number, MatchResult>): boolean {

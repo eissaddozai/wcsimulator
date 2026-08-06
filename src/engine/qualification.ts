@@ -1,4 +1,4 @@
-import { BASE_QUOTA, HOSTS, NATIONS, NATION_BY_ID, byConfed, ratingOf } from '../data/nations'
+import { BASE_QUOTA, NATIONS, NATION_BY_ID, byConfed, ratingOf } from '../data/nations'
 import type { Rng } from './rng'
 import { beta, gumbel } from './rng'
 import { simulateMatch, koWinner } from './simulate'
@@ -37,9 +37,14 @@ export interface QualificationOutcome {
  * Tournament (6 entrants: 1 AFC / 1 CAF / 1 CONMEBOL / 1 OFC / 2 CONCACAF; the two
  * highest-rated get byes to the finals) — unless manual overflow already consumed them.
  */
-export function completeQualification(partial: readonly string[], theta: number, rng: Rng): QualificationOutcome {
+export function completeQualification(
+  partial: readonly string[],
+  hosts: readonly string[],
+  theta: number,
+  rng: Rng,
+): QualificationOutcome {
   const picked = new Set(partial)
-  for (const h of HOSTS) picked.add(h)
+  for (const h of hosts) picked.add(h)
   const log: string[] = []
 
   const countOf = (c: Confed) => [...picked].filter((id) => NATION_BY_ID.get(id)?.confed === c).length
@@ -80,11 +85,11 @@ export function completeQualification(partial: readonly string[], theta: number,
     const name = (id: string | undefined) => (id ? NATION_BY_ID.get(id)?.name ?? id : '?')
     const winners: string[] = []
     const play = (h: string, a: string): string => {
-      const r = simulateMatch(h, a, true, theta, rng)
+      const r = simulateMatch(h, a, { stage: 'r32' }, theta, rng)
       const w = koWinner(h, a, r)!
       const suffix = r.pens ? ` (pens ${r.pens.home}–${r.pens.away})` : r.et ? ' (aet)' : ''
       log.push(
-        `${name(h)} ${r.score.home + (r.et?.home ?? 0)}–${r.score.away + (r.et?.away ?? 0)} ${name(a)}${suffix} — ${name(w)} advance`,
+        `${name(h)} ${(r.score.home ?? 0) + (r.et?.home ?? 0)}–${(r.score.away ?? 0) + (r.et?.away ?? 0)} ${name(a)}${suffix} — ${name(w)} advance`,
       )
       return w
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NATIONS, NATION_BY_ID, rankOf } from '../../data/nations'
+import { DEFAULT_HOSTS, NATIONS, NATION_BY_ID, rankOf } from '../../data/nations'
 import { PRESET_GROUPS, PRESET_POTS } from '../../data/preset2026'
 import { allocateThirds } from '../bracket'
 import { groupsFromTrace, runDraw, top4Pairs, validatePots } from '../draw'
@@ -7,7 +7,7 @@ import { completeQualification } from '../qualification'
 import { makeRng, stream } from '../rng'
 import { GROUP_FIXTURES, GROUP_IDS, KO_BY_NUMBER, KO_MATCHES, halfOfGroup } from '../schedule'
 import { seedPots } from '../seeding'
-import { simulateMatch, koWinner } from '../simulate'
+import { expectedGoals, koWinner, matchOdds, simulateMatch, GROUP_CTX } from '../simulate'
 import { rankGroup } from '../standings'
 import { rankThirds } from '../thirds'
 import { allGroupsComplete, allStandings, bracketState, liveThirds } from '../tournament'
@@ -225,7 +225,7 @@ function assertLegalDraw(groups: Record<GroupId, (string | null)[]>, pots: Pots)
   // top-4 separation
   const groupOf = new Map<string, GroupId>()
   for (const g of GROUP_IDS) for (const id of groups[g]) if (id) groupOf.set(id, g)
-  for (const [x, y] of top4Pairs(pots.flat())) {
+  for (const [x, y] of top4Pairs(pots.flat(), DEFAULT_HOSTS)) {
     expect(halfOfGroup(groupOf.get(x)!)).not.toBe(halfOfGroup(groupOf.get(y)!))
   }
 }
@@ -239,7 +239,7 @@ describe('the draw', () => {
 
   it('Monte Carlo: 200 seeded draws, zero violations, zero dead-ends', () => {
     for (let i = 0; i < 200; i++) {
-      const trace = runDraw(PRESET_POTS, seedRng(`draw-${i}`))
+      const trace = runDraw(PRESET_POTS, DEFAULT_HOSTS, seedRng(`draw-${i}`))
       expect(trace.length).toBe(48)
       assertLegalDraw(groupsFromTrace(trace), PRESET_POTS)
     }
@@ -248,11 +248,25 @@ describe('the draw', () => {
   it('produces variety across seeds', () => {
     const signatures = new Set<string>()
     for (let i = 0; i < 25; i++) {
-      const trace = runDraw(PRESET_POTS, seedRng(`variety-${i}`))
+      const trace = runDraw(PRESET_POTS, DEFAULT_HOSTS, seedRng(`variety-${i}`))
       const groups = groupsFromTrace(trace)
       signatures.add(GROUP_IDS.map((g) => groups[g].join(',')).join('|'))
     }
     expect(signatures.size).toBeGreaterThan(20)
+  })
+
+  it('supports custom hosts: a single host anchors Group A and pins Pot 1', () => {
+    const hosts = ['ENG']
+    const entries = PRESET_POTS.flat() // ENG is in the field; MEX/CAN/USA become regular teams
+    const pots = seedPots(entries, hosts, 'official', 1, seedRng('h'))
+    expect(pots[0]).toContain('ENG')
+    const trace = runDraw(pots, hosts, seedRng('hostdraw'))
+    const groups = groupsFromTrace(trace)
+    expect(groups.A[0]).toBe('ENG')
+    // no other group anchor: every group still legal
+    for (const g of GROUP_IDS) {
+      expect(groups[g].filter(Boolean).length).toBe(4)
+    }
   })
 
   it('validatePots flags impossible pot configurations with a reason', () => {
@@ -266,7 +280,7 @@ describe('the draw', () => {
       ['ARG', 'BRA', 'COL', 'URU', 'ECU', 'PAR', 'PER', 'VEN', 'CHI', 'BOL', 'JPN', 'IRN'],
     ]
     // 33 UEFA teams cannot fit 12 groups at ≤2 each with only 12 non-UEFA short — must fail
-    const check = validatePots(bad)
+    const check = validatePots(bad, DEFAULT_HOSTS)
     expect(check.ok).toBe(false)
     expect(check.reason).toBeTruthy()
   })
@@ -275,8 +289,8 @@ describe('the draw', () => {
 describe('seeding strategies', () => {
   const entries = PRESET_POTS.flat()
   it('official is deterministic with hosts in pot 1', () => {
-    const a = seedPots(entries, 'official', 1, seedRng('x'))
-    const b = seedPots(entries, 'official', 1, seedRng('y'))
+    const a = seedPots(entries, DEFAULT_HOSTS, 'official', 1, seedRng('x'))
+    const b = seedPots(entries, DEFAULT_HOSTS, 'official', 1, seedRng('y'))
     expect(a).toEqual(b)
     for (const h of ['MEX', 'CAN', 'USA']) expect(a[0]).toContain(h)
     expect(a.every((p) => p.length === 12)).toBe(true)
@@ -285,7 +299,7 @@ describe('seeding strategies', () => {
     for (const strategy of ['noisy', 'pl-draft', 'form', 'chaos'] as const) {
       const sigs = new Set<string>()
       for (let i = 0; i < 20; i++) {
-        const pots = seedPots(entries, strategy, 1, seedRng(`${strategy}-${i}`))
+        const pots = seedPots(entries, DEFAULT_HOSTS, strategy, 1, seedRng(`${strategy}-${i}`))
         expect(pots.every((p) => p.length === 12)).toBe(true)
         for (const h of ['MEX', 'CAN', 'USA']) expect(pots[0]).toContain(h)
         sigs.add(pots.map((p) => p.slice().sort().join(',')).join('|'))
@@ -294,8 +308,8 @@ describe('seeding strategies', () => {
     }
   })
   it('same seed reproduces identical pots (determinism contract)', () => {
-    const a = seedPots(entries, 'pl-draft', 1.2, seedRng('same'))
-    const b = seedPots(entries, 'pl-draft', 1.2, seedRng('same'))
+    const a = seedPots(entries, DEFAULT_HOSTS, 'pl-draft', 1.2, seedRng('same'))
+    const b = seedPots(entries, DEFAULT_HOSTS, 'pl-draft', 1.2, seedRng('same'))
     expect(a).toEqual(b)
   })
 })
@@ -303,7 +317,7 @@ describe('seeding strategies', () => {
 describe('qualification simulator', () => {
   it('always produces exactly 48 with legal quotas and hosts locked', () => {
     for (let i = 0; i < 100; i++) {
-      const { entries } = completeQualification([], 1, seedRng(`q-${i}`))
+      const { entries } = completeQualification([], DEFAULT_HOSTS, 1, seedRng(`q-${i}`))
       expect(entries.length).toBe(48)
       expect(new Set(entries).size).toBe(48)
       for (const h of ['MEX', 'CAN', 'USA']) expect(entries).toContain(h)
@@ -320,12 +334,12 @@ describe('qualification simulator', () => {
   })
   it('respects manual picks', () => {
     const manual = ['ITA', 'NGA', 'PER', 'NZL']
-    const { entries } = completeQualification(manual, 1, seedRng('manual'))
+    const { entries } = completeQualification(manual, DEFAULT_HOSTS, 1, seedRng('manual'))
     for (const id of manual) expect(entries).toContain(id)
     expect(entries.length).toBe(48)
   })
   it('chalk mode (θ=0) qualifies strictly the top rated per confederation', () => {
-    const { entries } = completeQualification([], 0, seedRng('chalk'))
+    const { entries } = completeQualification([], DEFAULT_HOSTS, 0, seedRng('chalk'))
     expect(entries).toContain('ITA') // top-16 UEFA rating
     expect(entries).toContain('ESP')
   })
@@ -335,7 +349,7 @@ describe('match simulator', () => {
   it('knockout matches always decide a winner', () => {
     const rng = seedRng('ko')
     for (let i = 0; i < 500; i++) {
-      const r = simulateMatch('ESP', 'SMR', true, 1, rng)
+      const r = simulateMatch('ESP', 'SMR', { stage: 'r32' }, 1, rng)
       expect(koWinner('ESP', 'SMR', r)).toBeTruthy()
     }
   })
@@ -345,13 +359,53 @@ describe('match simulator', () => {
     let favWins = 0
     const n = 2000
     for (let i = 0; i < n; i++) {
-      const r = simulateMatch('ESP', 'NED', false, 1, rng) // ~95-point gap
-      goals += r.score.home + r.score.away
-      if (r.score.home > r.score.away) favWins++
+      const r = simulateMatch('ESP', 'NED', GROUP_CTX, 1, rng) // ~95-point gap
+      goals += r.score.home! + r.score.away!
+      if (r.score.home! > r.score.away!) favWins++
     }
     expect(goals / n).toBeGreaterThan(1.8)
     expect(goals / n).toBeLessThan(3.6)
     expect(favWins / n).toBeGreaterThan(0.45)
+  })
+
+  it('draw rates between near-equals match real football (Dixon–Coles)', () => {
+    const rng = seedRng('dc')
+    let draws = 0
+    let nilNil = 0
+    let goals = 0
+    const n = 3000
+    for (let i = 0; i < n; i++) {
+      const r = simulateMatch('CRO', 'SUI', GROUP_CTX, 1, rng) // near-equal sides
+      if (r.score.home === r.score.away) draws++
+      if (r.score.home === 0 && r.score.away === 0) nilNil++
+      goals += r.score.home! + r.score.away!
+    }
+    expect(draws / n).toBeGreaterThan(0.2)
+    expect(draws / n).toBeLessThan(0.34)
+    expect(nilNil / n).toBeGreaterThan(0.04)
+    expect(nilNil / n).toBeLessThan(0.14)
+    expect(goals / n).toBeGreaterThan(2.1)
+    expect(goals / n).toBeLessThan(3.3)
+  })
+
+  it('host advantage measurably lifts win probability', () => {
+    const neutral = matchOdds('MEX', 'SUI', GROUP_CTX, 1)
+    const atHome = matchOdds('MEX', 'SUI', { stage: 'group', homeHost: true }, 1)
+    expect(atHome.home).toBeGreaterThan(neutral.home + 0.03)
+  })
+
+  it('fatigue from a long previous knockout dents the tired side', () => {
+    const fresh = matchOdds('FRA', 'GER', { stage: 'qf' }, 1)
+    const tired = matchOdds('FRA', 'GER', { stage: 'qf', awayFreshness: 0.85 }, 1)
+    expect(tired.home).toBeGreaterThan(fresh.home)
+  })
+
+  it('stage tension tightens matches: the final is cagier than the groups, bronze is open', () => {
+    const grp = expectedGoals('ESP', 'ARG', GROUP_CTX, 1)
+    const fin = expectedGoals('ESP', 'ARG', { stage: 'final' }, 1)
+    const brz = expectedGoals('ESP', 'ARG', { stage: 'third' }, 1)
+    expect(fin.lamHome + fin.lamAway).toBeLessThan(grp.lamHome + grp.lamAway)
+    expect(brz.lamHome + brz.lamAway).toBeGreaterThan(grp.lamHome + grp.lamAway)
   })
 
   it('chaos knob is monotone: underdogs win more as θ rises', () => {
@@ -360,7 +414,7 @@ describe('match simulator', () => {
       let dogWins = 0
       const n = 3000
       for (let i = 0; i < n; i++) {
-        const r = simulateMatch('ESP', 'FIN', true, theta, rng)
+        const r = simulateMatch('ESP', 'FIN', { stage: 'r32' }, theta, rng)
         if (koWinner('ESP', 'FIN', r) === 'FIN') dogWins++
       }
       return dogWins / n
@@ -370,6 +424,44 @@ describe('match simulator', () => {
     const mayhem = winRate(2)
     expect(chalk).toBeLessThan(real)
     expect(real).toBeLessThan(mayhem)
+  })
+})
+
+describe('boosters & overrides', () => {
+  it('boosters shift the odds the way their effects say', async () => {
+    const { setNationOverrides } = await import('../../data/nations')
+    const base = matchOdds('MAR', 'SEN', GROUP_CTX, 1)
+    setNationOverrides({ MAR: { boosts: ['star-striker', 'keeper-form'] } })
+    const boosted = matchOdds('MAR', 'SEN', GROUP_CTX, 1)
+    setNationOverrides({})
+    expect(boosted.home).toBeGreaterThan(base.home + 0.05)
+  })
+  it('rating overrides feed the engine reads', async () => {
+    const { setNationOverrides, ratingOf, rankOf } = await import('../../data/nations')
+    setNationOverrides({ SMR: { rating: 2200, rank: 1 } })
+    expect(ratingOf('SMR')).toBe(2200)
+    expect(rankOf('SMR')).toBe(1)
+    setNationOverrides({})
+    expect(ratingOf('SMR')).toBe(1000)
+  })
+  it('a burden makes a team worse', async () => {
+    const { setNationOverrides } = await import('../../data/nations')
+    const base = matchOdds('GER', 'JPN', GROUP_CTX, 1)
+    setNationOverrides({ GER: { boosts: ['injury-crisis', 'dressing-rift'] } })
+    const cursed = matchOdds('GER', 'JPN', GROUP_CTX, 1)
+    setNationOverrides({})
+    expect(cursed.home).toBeLessThan(base.home - 0.05)
+  })
+})
+
+describe('partial score entry', () => {
+  it('a one-sided score never counts as played or complete', () => {
+    const groups = {} as Record<GroupId, (string | null)[]>
+    for (const g of GROUP_IDS) groups[g] = PRESET_GROUPS[g].slice()
+    const results: Record<number, MatchResult> = { 1: { score: { home: 2, away: null } } }
+    const standings = allStandings(groups, results, 'partial')
+    expect(standings.A!.every((r) => r.played === 0)).toBe(true)
+    expect(allGroupsComplete(results)).toBe(false)
   })
 })
 
@@ -384,7 +476,7 @@ describe('full tournament integration', () => {
     for (const f of GROUP_FIXTURES) {
       const home = groups[f.group][f.homePos - 1]!
       const away = groups[f.group][f.awayPos - 1]!
-      results[f.number] = simulateMatch(home, away, false, 1, stream(masterSeed, `match:${f.number}`))
+      results[f.number] = simulateMatch(home, away, GROUP_CTX, 1, stream(masterSeed, `match:${f.number}`))
     }
     expect(allGroupsComplete(results)).toBe(true)
 
@@ -400,7 +492,7 @@ describe('full tournament integration', () => {
       const m = bracket[n]!
       expect(m.home).toBeTruthy()
       expect(m.away).toBeTruthy()
-      const r = simulateMatch(m.home!, m.away!, true, 1, stream(masterSeed, `match:${n}`))
+      const r = simulateMatch(m.home!, m.away!, { stage: 'r32' }, 1, stream(masterSeed, `match:${n}`))
       r.enteredFor = [m.home!, m.away!]
       results[n] = r
     }
@@ -428,12 +520,12 @@ describe('full tournament integration', () => {
     for (const f of GROUP_FIXTURES) {
       const home = groups[f.group][f.homePos - 1]!
       const away = groups[f.group][f.awayPos - 1]!
-      results[f.number] = simulateMatch(home, away, false, 1, stream(masterSeed, `match:${f.number}`))
+      results[f.number] = simulateMatch(home, away, GROUP_CTX, 1, stream(masterSeed, `match:${f.number}`))
     }
     // enter one R32 result
     const { bracket } = bracketState(groups, results, masterSeed)
     const m73 = bracket[73]!
-    const r = simulateMatch(m73.home!, m73.away!, true, 1, stream(masterSeed, 'match:73'))
+    const r = simulateMatch(m73.home!, m73.away!, { stage: 'r32' }, 1, stream(masterSeed, 'match:73'))
     r.enteredFor = [m73.home!, m73.away!]
     results[73] = r
     // now force a different Group A outcome: make position-4 team win huge on MD3

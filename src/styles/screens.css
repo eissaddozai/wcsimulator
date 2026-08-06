@@ -410,7 +410,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -462,32 +462,163 @@
   text-align: right;
 }
 
-/* ————— knockout ————— */
+/* ————— knockout: mirrored bracket ————— */
 .bracket-wrap {
   overflow-x: auto;
   padding-bottom: 24px;
 }
-.bracket {
+.bracket2 {
+  --node-w: 176px;
+  --conn-w: 22px;
+  --center-w: 224px;
   display: grid;
-  grid-auto-flow: column;
-  gap: 20px;
-  min-width: 1240px;
-  align-items: stretch;
+  grid-template-rows: 24px repeat(16, 46px);
+  grid-template-columns:
+    var(--node-w) var(--conn-w) var(--node-w) var(--conn-w) var(--node-w) var(--conn-w) var(--node-w)
+    var(--conn-w) var(--center-w) var(--conn-w)
+    var(--node-w) var(--conn-w) var(--node-w) var(--conn-w) var(--node-w) var(--conn-w) var(--node-w);
+  min-width: 1660px;
+  margin: 0 auto;
 }
-.round-col {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  gap: 10px;
-  min-width: 210px;
-}
-.round-col h5 {
-  margin: 0 0 4px;
+.bhead {
+  grid-row: 1;
+  align-self: center;
   text-align: center;
   color: var(--text-low);
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* elbow connectors: two feeders at 25%/75% join into the child at 50% */
+.bconn {
+  position: relative;
+}
+.bconn.l::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 50%;
+  top: 25%;
+  bottom: 25%;
+  border-top: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line-2);
+  border-right: 1px solid var(--line-2);
+  border-radius: 0 8px 8px 0;
+}
+.bconn.l::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid var(--line-2);
+}
+.bconn.r::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  left: 50%;
+  top: 25%;
+  bottom: 25%;
+  border-top: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line-2);
+  border-left: 1px solid var(--line-2);
+  border-radius: 8px 0 0 8px;
+}
+.bconn.r::after {
+  content: '';
+  position: absolute;
+  right: 50%;
+  left: 0;
+  top: 50%;
+  border-top: 1px solid var(--line-2);
+}
+.bconn.straight::before {
+  display: none;
+}
+.bconn.straight::after {
+  left: 0;
+  right: 0;
+}
+.bconn.won::before,
+.bconn.won::after {
+  border-color: var(--gold-dim);
+}
+
+/* center column: trophy, final, bronze */
+.bcenter {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 20px;
+  padding: 0 4px;
+}
+.champ-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  min-height: 120px;
+  justify-content: flex-end;
+}
+.champ-ghost {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px dashed var(--line-2);
+  display: grid;
+  place-items: center;
+  color: var(--gold-dim);
+}
+.final-node {
+  border-color: var(--gold-dim);
+}
+.final-node .side {
+  font-size: 18px;
+}
+.bronze-wrap {
+  text-align: center;
+}
+.ko-node.compact {
+  padding: 5px 8px;
+  gap: 2px;
+}
+.ko-node.compact .side {
+  font-size: 14px;
+  min-height: 20px;
+}
+.ko-node.compact .side .score {
+  font-size: 17px;
+}
+.ko-node.compact .meta {
+  font-size: 10px;
+}
+
+/* odds strip in the match panel */
+.odds-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.odds-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-3);
+}
+.odds-bar i {
+  background: var(--pos-adv);
+}
+.odds-bar i.d {
+  background: var(--line-2);
+}
+.odds-bar i.a {
+  background: var(--pos-third);
 }
 .ko-node {
   width: 100%;
@@ -512,7 +643,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
   min-height: 24px;
