@@ -1,6 +1,9 @@
-import { Download, Moon, Plus, Sun, Upload } from 'lucide-react'
+import { Download, Moon, Plus, Save, Sun, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { Flag } from './components/Flag'
 import { TrophyMark } from './components/TrophyMark'
+import { NATION_BY_ID } from './data/nations'
+import { currentChampion, deleteRun, listRuns, loadRun, saveRun, type SavedRun } from './store/archive'
 import { DrawScreen } from './features/draw/DrawScreen'
 import { GroupsScreen } from './features/groups/GroupsScreen'
 import { KnockoutScreen } from './features/knockout/KnockoutScreen'
@@ -33,7 +36,23 @@ export default function App() {
   const drawTrace = useStore((s) => s.drawTrace)
   const results = useStore((s) => s.results)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [runs, setRuns] = useState<SavedRun[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (menuOpen) setRuns(listRuns())
+  }, [menuOpen])
+
+  const saveCurrentRun = () => {
+    const champ = currentChampion()
+    const suggestion = champ
+      ? `${NATION_BY_ID.get(champ)?.name ?? champ} lift it`
+      : `Run of ${new Date().toLocaleDateString()}`
+    const name = prompt('Name this tournament run:', suggestion)
+    if (name === null) return
+    saveRun(name)
+    setRuns(listRuns())
+  }
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -150,6 +169,46 @@ export default function App() {
                 }}
               >
                 <SeedRow />
+                <button className="btn ghost small" style={{ justifyContent: 'flex-start' }} onClick={saveCurrentRun}>
+                  <Save size={14} /> Save run as…
+                </button>
+                {runs.length > 0 && (
+                  <div className="archive">
+                    <div className="archive-label">Saved runs</div>
+                    {runs.map((r) => (
+                      <div key={r.id} className="archive-row">
+                        {r.champion ? (
+                          <Flag id={r.champion} size={18} />
+                        ) : (
+                          <TrophyMark height={16} className="dim" />
+                        )}
+                        <button
+                          className="archive-load"
+                          title={`Load "${r.name}" — saved ${new Date(r.savedAt).toLocaleString()}`}
+                          onClick={() => {
+                            if (confirm(`Load "${r.name}"? The current tournament is replaced.`)) {
+                              loadRun(r.id)
+                              setMenuOpen(false)
+                            }
+                          }}
+                        >
+                          <span className="ar-name">{r.name}</span>
+                          <span className="ar-date tnum">{new Date(r.savedAt).toLocaleDateString()}</span>
+                        </button>
+                        <button
+                          className="dice-btn"
+                          title="Delete this saved run"
+                          onClick={() => {
+                            deleteRun(r.id)
+                            setRuns(listRuns())
+                          }}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <button className="btn ghost small" style={{ justifyContent: 'flex-start' }} onClick={exportJson}>
                   <Download size={14} /> Export JSON
                 </button>

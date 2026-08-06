@@ -36,52 +36,52 @@ export function LabSlider({ sl }: { sl: SliderSpec }) {
   )
 }
 
-/** Compact modal over the full 26-domain engine — the Laboratory page shows the same dials expanded. */
+/**
+ * The pocket Laboratory as a LEFT-side drawer: it docks beside the match panel instead of
+ * covering the screen, so every dial you move re-rolls the odds live in front of you.
+ */
 export function ModelLab({ onClose }: { onClose: () => void }) {
   const modelParams = useStore((s) => s.modelParams)
   const resetModelParams = useStore((s) => s.resetModelParams)
   const touched = Object.keys(modelParams).length > 0
 
   return (
-    <div className="overlay" role="dialog" aria-modal aria-label="Model lab">
-      <div className="dialog" style={{ maxWidth: 520, maxHeight: '86vh', display: 'flex', flexDirection: 'column' }}>
-        <div className="row spread">
-          <h3 className="display" style={{ margin: 0, fontSize: 26, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <FlaskConical size={20} className="gold-text" /> Model Lab
-          </h3>
-          <div className="row">
-            {touched && (
-              <button className="btn ghost small" onClick={resetModelParams}>
-                <RotateCcw size={13} /> Defaults
-              </button>
-            )}
-            <button className="btn icon ghost" onClick={onClose} aria-label="Close">
-              <X size={16} />
+    <aside className="slideover left lab-drawer" role="dialog" aria-label="Model lab">
+      <div className="lab-drawer-head">
+        <h3 className="display" style={{ margin: 0, fontSize: 24, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <FlaskConical size={18} className="gold-text" /> Model Lab
+        </h3>
+        <div className="row">
+          {touched && (
+            <button className="btn ghost small" onClick={resetModelParams}>
+              <RotateCcw size={13} /> Defaults
             </button>
-          </div>
-        </div>
-        <p className="muted" style={{ margin: '4px 0 12px' }}>
-          Twenty-six live dials over the simulation engine — the full Laboratory sits in the main flow, this is the
-          pocket version.
-        </p>
-        <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 18, paddingRight: 4 }}>
-          {LAB_GROUPS.map((g) => (
-            <div key={g.title}>
-              <div className={`lab-group-label tint-${g.tint}`}>{g.title}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {g.items.map((sl) => (
-                  <LabSlider key={sl.key} sl={sl} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
-          <button className="btn primary" onClick={onClose}>
-            Done
+          )}
+          <button className="btn icon ghost" onClick={onClose} aria-label="Close">
+            <X size={16} />
           </button>
         </div>
       </div>
-    </div>
+      <p className="low" style={{ margin: '0 0 4px', fontSize: 12 }}>
+        Thirty-three live dials — every move re-rolls the odds beside you instantly.
+      </p>
+      <div className="lab-drawer-body">
+        {LAB_GROUPS.map((g) => (
+          <div key={g.title}>
+            <div className={`lab-group-label tint-${g.tint}`}>{g.title}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {g.items.map((sl) => (
+                <LabSlider key={sl.key} sl={sl} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="lab-drawer-foot">
+        <button className="btn primary small" onClick={onClose}>
+          Done
+        </button>
+      </div>
+    </aside>
   )
 }

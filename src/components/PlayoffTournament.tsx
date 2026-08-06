@@ -81,17 +81,31 @@ export function PlayoffTournament({ onClose }: { onClose: () => void }) {
           </p>
         </div>
         <div className="po-scroll">
-          <div className="po-cols">
-            <div className="po-col">
-              <div className="po-stage">Semifinals</div>
-              <PlayoffMatchCard k="sf1" home={po.sf1[0]} away={po.sf1[1]} />
-              <PlayoffMatchCard k="sf2" home={po.sf2[0]} away={po.sf2[1]} />
+          <div className="po-field">
+            {[...playoffTeams]
+              .sort((a, b) => rankOf(a) - rankOf(b))
+              .map((id, i) => (
+                <span key={id} className={`po-entrant${i < 2 ? ' seeded' : ''}`} title={NATION_BY_ID.get(id)?.name}>
+                  <Flag id={id} size={20} />
+                  <span className="pe-name">{NATION_BY_ID.get(id)?.name}</span>
+                  <span className="pe-tag tnum">{i < 2 ? `SEED ${i + 1}` : `#${rankOf(id)}`}</span>
+                </span>
+              ))}
+          </div>
+          <div className="po-grid2">
+            <div className="po-stage">① Semifinals — one-off ties</div>
+            <div />
+            <div className="po-stage">② Finals — winner qualifies</div>
+            <PlayoffMatchCard k="sf1" home={po.sf1[0]} away={po.sf1[1]} />
+            <div className="po-arrow" aria-hidden>
+              <i />
             </div>
-            <div className="po-col">
-              <div className="po-stage">Finals — winner qualifies</div>
-              <PlayoffMatchCard k="f1" home={po.f1[0]} away={po.f1[1]} seeded />
-              <PlayoffMatchCard k="f2" home={po.f2[0]} away={po.f2[1]} seeded />
+            <PlayoffMatchCard k="f1" home={po.f1[0]} away={po.f1[1]} seeded />
+            <PlayoffMatchCard k="sf2" home={po.sf2[0]} away={po.sf2[1]} />
+            <div className="po-arrow" aria-hidden>
+              <i />
             </div>
+            <PlayoffMatchCard k="f2" home={po.f2[0]} away={po.f2[1]} seeded />
           </div>
           {po.winners.length > 0 && (
             <div className="po-qualified">
@@ -208,7 +222,7 @@ function PlayoffMatchCard({
   const as_ = r && r.score.away !== null ? String(r.score.away + (r.et?.away ?? 0)) : ''
 
   return (
-    <div className={`card pom${decided ? ' done' : ''}`}>
+    <div className={`card pom${decided ? ' done' : ''}${!away ? ' waiting' : ''}`}>
 
       {seeded && <span className="po-bye">seed</span>}
       <div className="pom-head">

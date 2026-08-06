@@ -81,9 +81,12 @@ export interface ModelParams {
   penBase: number // baseline penalty conversion (default 0.74)
   penPressure: number // how much team strength sways a shootout (default 0.04)
   penKeeperWeight: number // shooter-vs-keeper quality effect in shootouts (default 0)
+  // — realism governors —
+  mercyRule: number // how hard big leads take the foot off the gas (default 1)
+  lamCeiling: number // soft ceiling that pulls monster expected-goal counts to earth (default 2.6)
   // — randomness & drama —
   varianceBoost: number // chance of a wild end-to-end classic (default 0)
-  redCardRate: number // chance of a match-turning sending-off (default 0)
+  redCardRate: number // per-match chance of a sending-off (default 0.09)
   miracleRate: number // chance the underdog catches divine fire (default 0)
   // — the elements —
   weatherInfluence: number // how much heat, rain, and altitude bend matches (default 1)
@@ -114,8 +117,10 @@ export const DEFAULT_MODEL: ModelParams = {
   penBase: 0.74,
   penPressure: 0.04,
   penKeeperWeight: 0,
+  mercyRule: 1,
+  lamCeiling: 2.6,
   varianceBoost: 0,
-  redCardRate: 0,
+  redCardRate: 0.09,
   miracleRate: 0,
   weatherInfluence: 1,
   refInfluence: 1,
@@ -233,8 +238,12 @@ export function expectedGoals(
   const openness =
     1 + MODEL.styleOpenness * (styleOf(homeId) + styleOf(awayId)) + MODEL.mismatchOpenness * Math.abs(edge)
   const mu = tempo * openness
-  const lamHome = Math.min((mu / 2) * Math.exp(MODEL.edgeWeight * edge), 5.5)
-  const lamAway = Math.min((mu / 2) * Math.exp(-MODEL.edgeWeight * edge), 5.5)
+  // scoring gravity: expected goals compress hard above the ceiling — 8-0 should be
+  // a once-a-generation event, not a fixture of every mismatch
+  const gravity = (lam: number): number =>
+    lam > MODEL.lamCeiling ? MODEL.lamCeiling + (lam - MODEL.lamCeiling) * 0.5 : lam
+  const lamHome = gravity(Math.min((mu / 2) * Math.exp(MODEL.edgeWeight * edge), 5.5))
+  const lamAway = gravity(Math.min((mu / 2) * Math.exp(-MODEL.edgeWeight * edge), 5.5))
   return { lamHome, lamAway, edge, H, A }
 }
 
@@ -397,7 +406,7 @@ export function simulateMatch(
   // hazards per side-minute: intrinsic cards, the referee's temperament, the Lab's dial
   const refTemper = 1 + ((ctx.refStrictness ?? 1) - 1) * MODEL.refInfluence
   const yellowHazard = 0.021 * refTemper
-  const directRedHazard = (0.0009 + MODEL.redCardRate / 110) * refTemper
+  const directRedHazard = (MODEL.redCardRate / 95) * refTemper // per-match probability, spread over the minutes
 
   const playMinute = (min: number, intensity: number) => {
     const curve = timeCurve(Math.min(min, 90)) * intensity
@@ -408,8 +417,14 @@ export function simulateMatch(
       // score-state momentum: chasers push, leaders shell and counter
       const diff = st.goals - ost.goals
       let mood = 1
-      if (diff < 0) mood = min > 60 ? 1.3 : 1.15 // chasing, desperate late
-      else if (diff > 0) mood = 0.85 // seeing it out
+      if (diff < 0) {
+        // one or two down: chase. Three or more down: heads drop.
+        mood = -diff <= 2 ? (min > 60 ? 1.3 : 1.15) : 0.85
+      } else if (diff > 0) {
+        // game management: the bigger the lead, the harder the foot comes off the gas
+        const eased = [1, 0.85, 0.7, 0.56, 0.45][Math.min(diff, 4)]!
+        mood = 1 - (1 - eased) * MODEL.mercyRule
+      }
       // numbers down
       let numbers = 1
       if (st.red) numbers *= 0.68
@@ -422,7 +437,10 @@ export function simulateMatch(
         const chanceQuality = Math.min(0.08 + -Math.log(1 - rng()) * 0.14, 0.85) // sampled xG
         st.xg += chanceQuality
         // conversion follows chance quality, calibrated so E[goals] tracks λ
-        if (st.goals < cap && rng() < Math.min(chanceQuality * 1.48, 0.9)) {
+        // conversion fatigue: past a third goal the opposition packs the box,
+        // the keeper grows, and finishing regresses
+        const convFade = Math.pow(0.88, Math.max(0, st.goals - 2))
+        if (st.goals < cap && rng() < Math.min(chanceQuality * 1.48 * convFade, 0.9)) {
           st.goals++
           events.push({ min, side, type: 'goal' })
         }

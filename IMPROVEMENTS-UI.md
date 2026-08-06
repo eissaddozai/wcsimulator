@@ -1,7 +1,7 @@
 # 150 High-Impact UI Improvements — the GitHub Excavation List
 
 Compiled after mining the open-source landscape (each cited library is MIT/OFL/ISC unless
-noted). Items marked ✦ have been executed (33 of 150 so far, across three rounds).
+noted). Items marked ✦ have been executed (36 of 150 so far, across four rounds).
 
 ## I. The Play-off Tournament (1–12)
 1. ✦ Lift the play-off bracket out of the page into a ceremony pop-up of its own.
@@ -47,8 +47,8 @@ noted). Items marked ✦ have been executed (33 of 150 so far, across three roun
 37. ✦ Keyboard hints (1/2/3) on the landing cards.
 38. Lab preset cards preview their physics as micro-sparklines (goals curve per preset).
 39. Slider thumbs become gold discs with value tooltips while dragging.
-40. Dial values flash amber when they leave the FIFA-calibrated default.
-41. "Reset group" per lab card, not only global.
+40. ✦ Dial values flash amber (gold dot on touched dials) when they leave the FIFA-calibrated default.
+41. ✦ "Reset group" per lab card, not only global.
 42. A/B compare toggle: pin one model, tune another, preview odds side by side.
 43. Live preview picks the two strongest *rivals* (different confederations) for spice.
 44. Chaos knob cards get seismograph mini-viz that shakes with the value.
@@ -115,7 +115,7 @@ noted). Items marked ✦ have been executed (33 of 150 so far, across three roun
 97. ✦ Champion's road glows as one continuous animated gold thread (SVG overlay).
 98. Bracket minimap for horizontal navigation on narrow screens.
 99. Wing entrance: nodes cascade in from the outer rounds on first visit.
-100. Zoom-to-fit toggle that scales the bracket to viewport width.
+100. ✦ Zoom-to-fit toggle that scales the bracket to viewport width.
 101. Node hover shows head-to-head record chip (from this tournament's group stage if met).
 102. ✦ Upset marker: lower-ranked winner gets a tiny dagger glyph beside the score.
 103. Extra-time matches show a subtle split score (90′ + ET) on hover.

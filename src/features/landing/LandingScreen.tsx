@@ -45,7 +45,7 @@ export function LandingScreen() {
                 '211 eligible teams',
                 'A hand-played play-off tournament',
                 '34 boosters',
-                '31 laboratory dials',
+                '33 laboratory dials',
                 '5 seeding strategies',
                 'Every FIFA rule',
               ].map((f) => (
@@ -78,7 +78,7 @@ export function LandingScreen() {
           <span className="kbd tnum">2</span>
           <h3 className="display">Custom</h3>
           <p>
-            Start in the Laboratory — 31 dials over the tournament's physics and every squad's boosters — then build
+            Start in the Laboratory — 33 dials over the tournament's physics and every squad's boosters — then build
             your 48 and let the draw engine handle the rules.
           </p>
           <span className="btn gold-line">Start from scratch</span>

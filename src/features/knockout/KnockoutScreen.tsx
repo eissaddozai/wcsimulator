@@ -1,7 +1,7 @@
 import NumberFlow from '@number-flow/react'
 import confetti from 'canvas-confetti'
 import { motion } from 'framer-motion'
-import { CloudRain, CloudSun, Dices, FlaskConical, Mountain, RotateCcw, Sun, Timer, X } from 'lucide-react'
+import { CloudRain, CloudSun, Dices, FlaskConical, Maximize2, Mountain, RotateCcw, Sun, Timer, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { MatchTheater } from '../../components/MatchTheater'
@@ -59,6 +59,25 @@ export function KnockoutScreen() {
   const simulateKoMatch = useStore((s) => s.simulateKoMatch)
   const [openMatch, setOpenMatch] = useState<number | null>(null)
   const [showChampion, setShowChampion] = useState(true)
+  const [screenLabOpen, setScreenLabOpen] = useState(false)
+  const [zoom, setZoom] = useState(1)
+  const [fitMode, setFitMode] = useState(true)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const BRACKET_W = 2056
+
+  const fitZoom = () => {
+    const w = wrapRef.current?.clientWidth ?? 0
+    return w > 0 ? Math.min(1.25, Math.max(0.45, +(w / BRACKET_W).toFixed(2))) : 1
+  }
+  useLayoutEffect(() => {
+    if (fitMode) setZoom(fitZoom())
+  }, [fitMode])
+  useEffect(() => {
+    if (!fitMode) return
+    const onR = () => setZoom(fitZoom())
+    window.addEventListener('resize', onR)
+    return () => window.removeEventListener('resize', onR)
+  }, [fitMode])
 
   const groups = useMemo(() => groupsOf(drawTrace), [drawTrace])
   const complete = allGroupsComplete(results)
@@ -128,6 +147,9 @@ export function KnockoutScreen() {
         {!complete && (
           <span className="chip">Awaiting the group stage — the wings fill once all 72 scores are entered</span>
         )}
+        <button className="btn small" onClick={() => setScreenLabOpen(true)} title="Tune the simulation engine — dials apply to every match you simulate from here">
+          <FlaskConical size={14} /> Model Lab
+        </button>
         {complete && (
           <button
             className="btn small gold-line"
@@ -148,9 +170,51 @@ export function KnockoutScreen() {
 
       <TournamentPulse groups={groups} bracket={bracket} results={results} />
 
-      <div className="bracket-wrap">
-        <div className="bracket2">
-          <ChampionThread champion={champion} bracket={bracket} />
+      <div className="zoom-dock" role="group" aria-label="Bracket zoom">
+        <button
+          className="dice-btn"
+          onClick={() => {
+            setFitMode(false)
+            setZoom((z) => Math.max(0.45, +(z - 0.05).toFixed(2)))
+          }}
+          title="Zoom out"
+        >
+          <ZoomOut size={14} />
+        </button>
+        <input
+          className="chaos-slider zoom-slider"
+          type="range"
+          min={45}
+          max={125}
+          value={Math.round(zoom * 100)}
+          onChange={(e) => {
+            setFitMode(false)
+            setZoom(Number(e.target.value) / 100)
+          }}
+          aria-label="Bracket zoom"
+        />
+        <button
+          className="dice-btn"
+          onClick={() => {
+            setFitMode(false)
+            setZoom((z) => Math.min(1.25, +(z + 0.05).toFixed(2)))
+          }}
+          title="Zoom in"
+        >
+          <ZoomIn size={14} />
+        </button>
+        <span className="tnum zoom-pct">{Math.round(zoom * 100)}%</span>
+        <button className={`btn small${fitMode ? ' gold-line' : ''}`} onClick={() => setFitMode(true)} title="Fit the whole bracket to your screen">
+          <Maximize2 size={13} /> Fit
+        </button>
+        <button className="btn small" onClick={() => { setFitMode(false); setZoom(1) }} title="Actual size">
+          1:1
+        </button>
+      </div>
+
+      <div className="bracket-wrap" ref={wrapRef}>
+        <div className="bracket2" style={{ zoom }}>
+          <ChampionThread champion={champion} bracket={bracket} zoom={zoom} />
           {/* round headers */}
           <div className={headClass('R32')} style={{ gridColumn: 1 }}>Round of 32</div>
           <div className={headClass('R16')} style={{ gridColumn: 3 }}>Round of 16</div>
@@ -217,6 +281,8 @@ export function KnockoutScreen() {
         />
       )}
 
+      {screenLabOpen && <ModelLab onClose={() => setScreenLabOpen(false)} />}
+
       {champion && finalMatch?.result && showChampion && (
         <ChampionScene champion={champion} final={finalMatch} bracket={bracket} onClose={() => setShowChampion(false)} />
       )}
@@ -225,7 +291,7 @@ export function KnockoutScreen() {
 }
 
 /** One continuous molten thread tracing the champion's road from Round of 32 to the trophy. */
-function ChampionThread({ champion, bracket }: { champion: string | null; bracket: Record<number, ResolvedKo> }) {
+function ChampionThread({ champion, bracket, zoom = 1 }: { champion: string | null; bracket: Record<number, ResolvedKo>; zoom?: number }) {
   const [path, setPath] = useState<string | null>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
 
@@ -253,7 +319,7 @@ function ChampionThread({ champion, bracket }: { champion: string | null; bracke
         const el = grid.querySelector(`[data-m="${n}"]`)
         if (!el) continue
         const r = el.getBoundingClientRect()
-        pts.push([r.left - gr.left + r.width / 2, r.top - gr.top + r.height / 2])
+        pts.push([(r.left - gr.left + r.width / 2) / zoom, (r.top - gr.top + r.height / 2) / zoom])
       }
       if (pts.length < 2) {
         setPath(null)
@@ -276,7 +342,7 @@ function ChampionThread({ champion, bracket }: { champion: string | null; bracke
       clearTimeout(settle)
       window.removeEventListener('resize', compute)
     }
-  }, [champion, road])
+  }, [champion, road, zoom])
 
   if (!path) return null
   return (

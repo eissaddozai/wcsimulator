@@ -3172,3 +3172,310 @@ table.standings td:nth-child(7) {
 .landing-foot::after {
   background: linear-gradient(90deg, var(--line-2), transparent);
 }
+
+/* ————— realism round: organized lab, jeweled boosters, bracket-flow play-offs ————— */
+
+/* lab group headers hold their own controls */
+.lab-group-label {
+  justify-content: space-between;
+}
+.lab-group-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.lab-group-meta .btn.small {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 10.5px;
+}
+
+/* booster studio: six tinted chambers and a resolved net effect */
+.bg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.bg-section {
+  --bg-tint: var(--gold);
+  padding: 8px 10px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--bg-tint) 22%, var(--line-1));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-tint) 5%, transparent), transparent 60%);
+}
+.bg-attack { --bg-tint: var(--gold); }
+.bg-defense { --bg-tint: var(--pos-adv); }
+.bg-mentality { --bg-tint: #7ba7c9; }
+.bg-physical { --bg-tint: var(--pos-third); }
+.bg-fortune { --bg-tint: var(--gold-hi); }
+.bg-burden { --bg-tint: var(--danger); }
+.bg-section .booster-group-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: color-mix(in srgb, var(--bg-tint) 80%, var(--text-mid));
+  margin-bottom: 7px;
+}
+.bg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bg-tint);
+  box-shadow: 0 0 7px -1px var(--bg-tint);
+}
+.bg-count {
+  margin-left: auto;
+  color: var(--bg-tint);
+  font-size: 10px;
+  font-weight: 700;
+}
+.bg-section .booster-chip.on {
+  color: var(--gold-ink);
+  border-color: var(--bg-tint);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-tint) 92%, #fff), var(--bg-tint));
+  box-shadow: 0 2px 10px -5px var(--bg-tint);
+}
+.bg-burden .booster-chip.burden.on {
+  color: #fff;
+}
+.net-effect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid;
+  border-image: linear-gradient(90deg, var(--gold-dim), transparent 85%) 1;
+}
+.ne-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-right: 4px;
+}
+.ne-chip {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--pos-adv);
+  border: 1px solid color-mix(in srgb, var(--pos-adv) 40%, transparent);
+  background: color-mix(in srgb, var(--pos-adv) 8%, transparent);
+}
+.ne-chip.bad {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+/* play-off tournament: the field, the flow, the arrows */
+.po-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, transparent, var(--line-2), transparent) 1;
+}
+.po-entrant {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 10px 0 5px;
+  border-radius: 999px;
+  border: 1px solid var(--line-1);
+  background: var(--bg-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.po-entrant.seeded {
+  border-color: var(--gold-dim);
+  background: color-mix(in srgb, var(--gold) 7%, var(--bg-2));
+}
+.po-entrant .pe-name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.po-entrant .pe-tag {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-low);
+}
+.po-entrant.seeded .pe-tag {
+  color: var(--gold);
+}
+.po-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 30px 1fr;
+  gap: 10px 0;
+  align-items: stretch;
+}
+.po-grid2 .po-stage {
+  border: none;
+  padding-bottom: 0;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--pos-third);
+}
+.po-arrow {
+  display: grid;
+  place-items: center;
+}
+.po-arrow i {
+  width: 18px;
+  height: 18px;
+  border-top: 2px solid var(--gold-dim);
+  border-right: 2px solid var(--gold-dim);
+  transform: rotate(45deg) scale(0.7);
+  border-radius: 2px;
+  opacity: 0.8;
+}
+.pom.waiting {
+  border-style: dashed;
+  opacity: 0.75;
+  background: color-mix(in srgb, var(--bg-1) 55%, transparent);
+}
+.pom-controls {
+  border-top: 1px solid color-mix(in srgb, var(--line-1) 70%, transparent);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+@media (max-width: 900px) {
+  .po-grid2 {
+    grid-template-columns: 1fr;
+  }
+  .po-arrow {
+    display: none;
+  }
+  .po-grid2 .po-stage:nth-child(2) {
+    display: none;
+  }
+}
+
+/* ————— the Model Lab docks left as a drawer — tune while the odds move ————— */
+.slideover.left {
+  left: 0;
+  right: auto;
+  border-left: none;
+  border-right: 1px solid color-mix(in srgb, var(--gold) 24%, var(--line-2));
+  box-shadow: 28px 0 90px -44px rgba(0, 0, 0, 0.75);
+  animation: slide-in-left 280ms cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+}
+.lab-drawer {
+  width: 380px;
+  max-width: 88vw;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 18px 12px;
+  gap: 10px;
+}
+.lab-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.lab-drawer-body {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-right: 6px;
+}
+.lab-drawer-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-1);
+}
+
+/* ————— natural bracket zoom: fit the whole story on one screen ————— */
+.zoom-dock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: -8px 0 12px;
+}
+.zoom-slider {
+  width: 130px;
+}
+.zoom-pct {
+  font-size: 11.5px;
+  color: var(--text-low);
+  min-width: 38px;
+  text-align: center;
+}
+
+/* ————— the tournament archive ————— */
+.archive {
+  border-top: 1px solid var(--line-1);
+  border-bottom: 1px solid var(--line-1);
+  margin: 4px 0;
+  padding: 6px 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.archive-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-low);
+  padding: 2px 8px 6px;
+}
+.archive-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.archive-row:hover {
+  background: var(--bg-3);
+}
+.archive-load {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-align: left;
+}
+.archive-load .ar-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.archive-load:hover .ar-name {
+  color: var(--gold);
+}
+.archive-load .ar-date {
+  font-size: 10px;
+  color: var(--text-low);
+  flex: none;
+}

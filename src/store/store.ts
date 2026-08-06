@@ -74,6 +74,7 @@ interface TournamentState {
   clearAllOverrides: () => void
   setModelParam: (k: keyof ModelParams, v: number) => void
   applyModelPreset: (p: Partial<ModelParams>) => void
+  clearModelParams: (keys: (keyof ModelParams)[]) => void
   resetModelParams: () => void
   swapGroupSlots: (a: { group: GroupId; position: Position }, b: { group: GroupId; position: Position }) => void
 
@@ -409,6 +410,13 @@ export const useStore = create<TournamentState>()(
         setModelParams(p)
         set({ modelParams: { ...p } })
       },
+      clearModelParams: (keys) => {
+        const next = { ...get().modelParams }
+        for (const k of keys) delete next[k]
+        setModelParams(next)
+        set({ modelParams: next })
+      },
+
       resetModelParams: () => {
         setModelParams({})
         set({ modelParams: {} })

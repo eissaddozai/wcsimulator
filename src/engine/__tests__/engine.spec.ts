@@ -388,6 +388,20 @@ describe('match simulator', () => {
     expect(goals / n).toBeLessThan(3.3)
   })
 
+  it('routs are rare: gross mismatches stay in single figures and 6+ margins are exceptional', () => {
+    const n = 400
+    let big = 0
+    let maxMargin = 0
+    for (let i = 0; i < n; i++) {
+      const r = simulateMatch('ESP', 'NZL', GROUP_CTX, 1, seedRng(`rout:${i}`)) // ~500-point gap
+      const margin = Math.abs(r.score.home! - r.score.away!)
+      maxMargin = Math.max(maxMargin, margin)
+      if (margin >= 6) big++
+    }
+    expect(big / n).toBeLessThan(0.04) // an 8-0 should be a once-a-generation event
+    expect(maxMargin).toBeLessThanOrEqual(9)
+  })
+
   it('host advantage measurably lifts win probability', () => {
     const neutral = matchOdds('MEX', 'SUI', GROUP_CTX, 1)
     const atHome = matchOdds('MEX', 'SUI', { stage: 'group', homeHost: true }, 1)

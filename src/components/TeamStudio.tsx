@@ -2,7 +2,7 @@ import { RotateCcw, Sparkles, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Flag } from './Flag'
 import { NATION_BY_ID, overrideOf, rankOf, ratingOf } from '../data/nations'
-import { BOOSTERS, type Booster } from '../engine/boosters'
+import { BOOSTERS, combinedFx, type Booster } from '../engine/boosters'
 import { useStore } from '../store/store'
 
 const GROUP_ORDER: Booster['group'][] = ['Attack', 'Defense', 'Mentality', 'Physical', 'Fortune', 'Burden']
@@ -83,29 +83,39 @@ export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
                 </div>
                 {expanded && (
                   <div className="booster-panel">
-                    {GROUP_ORDER.map((grp) => (
-                      <div key={grp}>
-                        <div className="booster-group-label">{grp}</div>
-                        <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
-                          {BOOSTERS.filter((b) => b.group === grp).map((b) => {
-                            const on = boosts.includes(b.id)
-                            return (
-                              <button
-                                key={b.id}
-                                className={`booster-chip${on ? ' on' : ''}${b.group === 'Burden' ? ' burden' : ''}`}
-                                title={b.blurb}
-                                aria-pressed={on}
-                                onClick={() =>
-                                  patch(id, { boosts: on ? boosts.filter((x) => x !== b.id) : [...boosts, b.id] })
-                                }
-                              >
-                                {b.name}
-                              </button>
-                            )
-                          })}
+                    <div className="bg-grid">
+                      {GROUP_ORDER.map((grp) => (
+                        <div key={grp} className={`bg-section bg-${grp.toLowerCase()}`}>
+                          <div className="booster-group-label">
+                            <i className="bg-dot" />
+                            {grp}
+                            <span className="bg-count tnum">
+                              {boosts.filter((x) => BOOSTERS.find((b) => b.id === x)?.group === grp).length ||
+                                ''}
+                            </span>
+                          </div>
+                          <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                            {BOOSTERS.filter((b) => b.group === grp).map((b) => {
+                              const on = boosts.includes(b.id)
+                              return (
+                                <button
+                                  key={b.id}
+                                  className={`booster-chip${on ? ' on' : ''}${b.group === 'Burden' ? ' burden' : ''}`}
+                                  title={b.blurb}
+                                  aria-pressed={on}
+                                  onClick={() =>
+                                    patch(id, { boosts: on ? boosts.filter((x) => x !== b.id) : [...boosts, b.id] })
+                                  }
+                                >
+                                  {b.name}
+                                </button>
+                              )
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    {boosts.length > 0 && <NetEffect id={id} />}
                   </div>
                 )}
               </div>
@@ -116,6 +126,34 @@ export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
               Pick some teams first — the studio edits your chosen 48.
             </p>
           )}
+    </div>
+  )
+}
+
+/** The stacked boosters, resolved: every non-neutral effect axis as a readable chip. */
+function NetEffect({ id }: { id: string }) {
+  const fx = combinedFx(id)
+  const chips: { label: string; good: boolean }[] = []
+  const num = (v: number, suffix = '') => `${v > 0 ? '+' : ''}${Math.round(v)}${suffix}`
+  if (fx.att !== 0) chips.push({ label: `attack ${num(fx.att)}`, good: fx.att > 0 })
+  if (fx.def !== 0) chips.push({ label: `defense ${num(fx.def)}`, good: fx.def > 0 })
+  if (fx.bigGame !== 0) chips.push({ label: `big games ${num(fx.bigGame)}`, good: fx.bigGame > 0 })
+  if (fx.underdog !== 0) chips.push({ label: `as underdog ${num(fx.underdog)}`, good: fx.underdog > 0 })
+  if (fx.homeAmp !== 1) chips.push({ label: `home roar ×${fx.homeAmp.toFixed(2)}`, good: fx.homeAmp > 1 })
+  if (fx.tempo !== 1) chips.push({ label: `tempo ×${fx.tempo.toFixed(2)}`, good: true })
+  if (fx.pens !== 0)
+    chips.push({ label: `penalties ${fx.pens > 0 ? '+' : ''}${Math.round(fx.pens * 100)}%`, good: fx.pens > 0 })
+  if (fx.stamina !== 0) chips.push({ label: `stamina +${Math.round(fx.stamina * 100)}%`, good: true })
+  if (fx.clutch !== 0) chips.push({ label: `extra time ${num(fx.clutch)}`, good: fx.clutch > 0 })
+  if (chips.length === 0) return null
+  return (
+    <div className="net-effect">
+      <span className="ne-label">Net effect</span>
+      {chips.map((c) => (
+        <span key={c.label} className={`ne-chip tnum${c.good ? '' : ' bad'}`}>
+          {c.label}
+        </span>
+      ))}
     </div>
   )
 }

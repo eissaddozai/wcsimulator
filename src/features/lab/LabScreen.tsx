@@ -18,6 +18,7 @@ export function LabScreen() {
   const ratingOverrides = useStore((s) => s.ratingOverrides)
   const resetModelParams = useStore((s) => s.resetModelParams)
   const applyModelPreset = useStore((s) => s.applyModelPreset)
+  const clearModelParams = useStore((s) => s.clearModelParams)
   const chaos = useStore((s) => s.chaos)
   const setChaos = useStore((s) => s.setChaos)
   const entries = useStore((s) => s.entries)
@@ -51,7 +52,7 @@ export function LabScreen() {
             The Laboratory
           </h2>
           <p className="muted" style={{ maxWidth: 620, margin: '8px 0 0' }}>
-            Thirty-one dials over the tournament's physics — scoring, upsets, nerves, fatigue, shootouts, chaos —
+            Thirty-three dials over the tournament's physics — scoring, upsets, nerves, fatigue, shootouts, chaos —
             plus every squad's ratings and boosters. Everything here feeds the minute-by-minute match engine.
           </p>
         </div>
@@ -115,14 +116,35 @@ export function LabScreen() {
               </label>
             ))}
           </div>
-          {LAB_GROUPS.map((g) => (
-            <div key={g.title} className="card lab-card">
-              <div className={`lab-group-label tint-${g.tint}`}>{g.title}</div>
-              {g.items.map((sl) => (
-                <LabSlider key={sl.key} sl={sl} />
-              ))}
-            </div>
-          ))}
+          {LAB_GROUPS.map((g) => {
+            const touchedKeys = g.items.filter((sl) => modelParams[sl.key] !== undefined)
+            return (
+              <div key={g.title} className="card lab-card">
+                <div className={`lab-group-label tint-${g.tint}`}>
+                  {g.title}
+                  <span className="lab-group-meta">
+                    {touchedKeys.length > 0 && (
+                      <>
+                        <span className="chip gold tnum" title="Dials moved off their calibrated default">
+                          {touchedKeys.length} touched
+                        </span>
+                        <button
+                          className="btn ghost small"
+                          onClick={() => clearModelParams(touchedKeys.map((sl) => sl.key))}
+                          title="Return this group to the calibrated defaults"
+                        >
+                          Reset
+                        </button>
+                      </>
+                    )}
+                  </span>
+                </div>
+                {g.items.map((sl) => (
+                  <LabSlider key={sl.key} sl={sl} />
+                ))}
+              </div>
+            )
+          })}
         </div>
 
         <aside className="lab-side">
