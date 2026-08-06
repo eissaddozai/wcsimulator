@@ -2,6 +2,7 @@ import { NATION_BY_ID, ratingOf } from '../data/nations'
 import { combinedFx, type CombinedFx } from './boosters'
 import type { Rng } from './rng'
 import { makeRng } from './rng'
+import type { Weather } from './environment'
 import type { MatchEvent, MatchResult } from './types'
 
 /**
@@ -30,6 +31,9 @@ export interface MatchContext {
   awayFreshness?: number
   /** MD3 fixture where both sides' fates are already sealed */
   deadRubber?: boolean
+  /** deterministic per-match conditions from engine/environment */
+  weather?: Weather
+  refStrictness?: number
 }
 
 export const GROUP_CTX: MatchContext = { stage: 'group' }
@@ -81,6 +85,9 @@ export interface ModelParams {
   varianceBoost: number // chance of a wild end-to-end classic (default 0)
   redCardRate: number // chance of a match-turning sending-off (default 0)
   miracleRate: number // chance the underdog catches divine fire (default 0)
+  // — the elements —
+  weatherInfluence: number // how much heat, rain, and altitude bend matches (default 1)
+  refInfluence: number // how much the referee's temperament shapes the cards (default 1)
 }
 
 export const DEFAULT_MODEL: ModelParams = {
@@ -110,6 +117,8 @@ export const DEFAULT_MODEL: ModelParams = {
   varianceBoost: 0,
   redCardRate: 0,
   miracleRate: 0,
+  weatherInfluence: 1,
+  refInfluence: 1,
 }
 
 let MODEL: ModelParams = { ...DEFAULT_MODEL }
@@ -215,8 +224,12 @@ export function expectedGoals(
   let stageTempo = STAGE_TEMPO.group + (STAGE_TEMPO[ctx.stage] - STAGE_TEMPO.group) * MODEL.tension
   if (ctx.stage === 'third') stageTempo *= MODEL.bronzeSpirit
   let tempo = stageTempo * MODEL.tempo * H.fx.tempo * A.fx.tempo
+  // the elements: heat slows the game, altitude stretches legs and opens it up
+  if (ctx.weather === 'heat') tempo *= 1 - 0.07 * MODEL.weatherInfluence
+  if (ctx.weather === 'altitude') tempo *= 1 + 0.06 * MODEL.weatherInfluence
   if (ctx.deadRubber && MODEL.deadRubberEffect > 0) tempo *= 1 + 0.2 * MODEL.deadRubberEffect
   // attack-leaning matchups raise the tempo a touch; mismatches raise it more
+  if (ctx.weather === 'rain') edge *= 1 - 0.12 * MODEL.weatherInfluence // a leveller
   const openness =
     1 + MODEL.styleOpenness * (styleOf(homeId) + styleOf(awayId)) + MODEL.mismatchOpenness * Math.abs(edge)
   const mu = tempo * openness
@@ -381,9 +394,10 @@ export function simulateMatch(
   const away: SideState = { goals: 0, yellows: new Set(), red: false, xg: 0, shots: 0 }
   const cap = goalCap()
 
-  // hazards per side-minute: intrinsic cards plus the Lab's red-card dial
-  const yellowHazard = 0.021
-  const directRedHazard = 0.0009 + MODEL.redCardRate / 110
+  // hazards per side-minute: intrinsic cards, the referee's temperament, the Lab's dial
+  const refTemper = 1 + ((ctx.refStrictness ?? 1) - 1) * MODEL.refInfluence
+  const yellowHazard = 0.021 * refTemper
+  const directRedHazard = (0.0009 + MODEL.redCardRate / 110) * refTemper
 
   const playMinute = (min: number, intensity: number) => {
     const curve = timeCurve(Math.min(min, 90)) * intensity

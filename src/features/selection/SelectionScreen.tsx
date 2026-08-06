@@ -169,7 +169,10 @@ export function SelectionScreen() {
                   aria-pressed={on}
                 >
                   <Flag id={n.id} size={24} ringed={on} />
-                  <span className="name">{n.name}</span>
+                  <span className="nm-wrap">
+                    <span className="name">{n.name}</span>
+                    <i className="power" style={{ width: `${Math.min(Math.max((n.rating - 1000) / 1150, 0.04), 1) * 100}%` }} />
+                  </span>
                   {isHost ? <Lock size={12} className="gold-text" aria-label="Host — locked in" /> : (
                     <span className="rank tnum">#{n.rank}</span>
                   )}

@@ -248,6 +248,11 @@ function GroupCard(props: {
       <h4 className="display">
         <span className="gmedal tnum">{g}</span>
         Group {g}
+        <span className="gdots" title="Fixtures entered">
+          {fixturesOfGroup(g).map((f) => (
+            <i key={f.number} className={results[f.number] && isScored(results[f.number]!) ? 'on' : ''} />
+          ))}
+        </span>
       </h4>
       <table className="standings">
         <thead>

@@ -36,7 +36,7 @@ export function LandingScreen() {
           </span>
           <h3 className="display">Custom</h3>
           <p>
-            Start in the Laboratory — 29 dials over the tournament's physics and every squad's boosters — then build
+            Start in the Laboratory — 31 dials over the tournament's physics and every squad's boosters — then build
             your 48 and let the draw engine handle the rules.
           </p>
           <span className="btn gold-line">Start from scratch</span>

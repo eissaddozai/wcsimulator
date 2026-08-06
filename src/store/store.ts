@@ -8,6 +8,7 @@ import { makeRng, mintSeed, stream } from '../engine/rng'
 import { GROUP_FIXTURES, KO_BY_NUMBER, GROUP_IDS, POT_TO_POSITION } from '../engine/schedule'
 import { seedPots } from '../engine/seeding'
 import { quotaStatus } from '../engine/selection'
+import { matchEnvironment } from '../engine/environment'
 import { setModelParams, simulateMatch, stageOfMatch, type MatchContext, type ModelParams } from '../engine/simulate'
 import { allGroupsComplete, bracketState, type Groups } from '../engine/tournament'
 import type { BracketState } from '../engine/bracket'
@@ -93,13 +94,14 @@ function presetTrace(): DrawPick[] {
 
 export const groupsOf = (trace: DrawPick[] | null): Groups | null => (trace ? groupsFromTrace(trace) : null)
 
-/** Context for simulating match n: stage, host home advantage, knockout fatigue. */
-function contextFor(
+/** Context for simulating match n: stage, hosts, fatigue, weather, and the referee. */
+export function contextFor(
   n: number,
   home: string,
   away: string,
   hosts: readonly string[],
   bracket: BracketState | null,
+  masterSeed?: string,
 ): MatchContext {
   const stage = stageOfMatch(n)
   const ctx: MatchContext = {
@@ -110,6 +112,11 @@ function contextFor(
   if (stage !== 'group' && stage !== 'r32' && bracket) {
     ctx.homeFreshness = freshness(n, home, bracket)
     ctx.awayFreshness = freshness(n, away, bracket)
+  }
+  if (masterSeed) {
+    const env = matchEnvironment(masterSeed, n)
+    ctx.weather = env.weather
+    ctx.refStrictness = env.refStrictness
   }
   return ctx
 }
@@ -258,7 +265,7 @@ export const useStore = create<TournamentState>()(
         const home = groups[f.group][f.homePos - 1]
         const away = groups[f.group][f.awayPos - 1]
         if (!home || !away) return
-        const ctx = contextFor(n, home, away, hosts, null)
+        const ctx = contextFor(n, home, away, hosts, null, masterSeed)
         const r = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${n}:${Date.now() % 100000}`))
         get().setResult(n, r)
       },
@@ -273,7 +280,7 @@ export const useStore = create<TournamentState>()(
           const home = groups[f.group][f.homePos - 1]
           const away = groups[f.group][f.awayPos - 1]
           if (!home || !away) continue
-          const ctx = contextFor(f.number, home, away, hosts, null)
+          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed)
           next[f.number] = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${f.number}`))
         }
         set({ results: next })
@@ -286,7 +293,7 @@ export const useStore = create<TournamentState>()(
         const { bracket } = bracketState(groups, results, masterSeed)
         const m = bracket[n]
         if (!m?.home || !m.away) return
-        const ctx = contextFor(n, m.home, m.away, hosts, bracket)
+        const ctx = contextFor(n, m.home, m.away, hosts, bracket, masterSeed)
         const r = simulateMatch(m.home, m.away, ctx, chaos.match, stream(masterSeed, `match:${n}:${Date.now() % 100000}`))
         r.enteredFor = [m.home, m.away]
         get().setResult(n, r)
@@ -364,7 +371,7 @@ export const useStore = create<TournamentState>()(
         for (const f of GROUP_FIXTURES) {
           const home = groups[f.group][f.homePos - 1]!
           const away = groups[f.group][f.awayPos - 1]!
-          const ctx = contextFor(f.number, home, away, hosts, null)
+          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed)
           results[f.number] = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${f.number}`))
         }
         for (let n = 73; n <= 104; n++) {

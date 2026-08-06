@@ -1,7 +1,7 @@
 import { Dices, Lock } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Flag } from '../../components/Flag'
-import { NATION_BY_ID } from '../../data/nations'
+import { NATION_BY_ID, ratingOf } from '../../data/nations'
 import { validatePots } from '../../engine/draw'
 import { STRATEGY_BLURBS, STRATEGY_LABELS } from '../../engine/seeding'
 import { useStore } from '../../store/store'
@@ -102,8 +102,13 @@ export function SeedingScreen() {
             <div key={pi} className="card pot-col">
               <h3 className="display">
                 Pot {pi + 1}
-                <span className="tnum low" style={{ fontSize: 13 }}>
-                  {pot.length}/12
+                <span className="row" style={{ gap: 6 }}>
+                  <span className="chip tnum" title="Average rating">
+                    ⌀ {Math.round(pot.reduce((acc, id) => acc + ratingOf(id), 0) / Math.max(pot.length, 1))}
+                  </span>
+                  <span className="tnum low" style={{ fontSize: 13 }}>
+                    {pot.length}/12
+                  </span>
                 </span>
               </h3>
               {pot.map((id) => {

@@ -55,6 +55,7 @@ export const LAB_GROUPS: SliderGroup[] = [
       { key: 'underdogFire', label: 'Underdog fire', blurb: 'How fiercely minnows punch above their weight.', min: 0, max: 2, step: 0.1, format: x() },
       { key: 'giantNerves', label: 'Giant nerves', blurb: 'Heavy favorites tighten up when it is win-or-go-home.', min: 0, max: 2, step: 0.1, format: x() },
       { key: 'deadRubberEffect', label: 'Dead rubbers', blurb: 'MD3 games with nothing at stake turn loose and strange.', min: 0, max: 2, step: 0.1, format: x() },
+      { key: 'weatherInfluence', label: 'The elements', blurb: 'Heat slows it, rain levels it, altitude opens it up.', min: 0, max: 2, step: 0.1, format: x() },
     ],
   },
   {
@@ -75,6 +76,7 @@ export const LAB_GROUPS: SliderGroup[] = [
       { key: 'varianceBoost', label: 'Classic frequency', blurb: 'Chance a match erupts into an end-to-end classic.', min: 0, max: 2, step: 0.1, format: x() },
       { key: 'redCardRate', label: 'Red card rate', blurb: 'Chance of a match-turning sending-off.', min: 0, max: 0.2, step: 0.01, format: pctOf },
       { key: 'miracleRate', label: 'Miracle rate', blurb: 'Chance the underdog catches divine fire.', min: 0, max: 2, step: 0.1, format: x() },
+      { key: 'refInfluence', label: 'Referee temperament', blurb: 'How much each appointed official shapes the cards.', min: 0, max: 2, step: 0.1, format: x() },
     ],
   },
 ]

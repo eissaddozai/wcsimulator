@@ -455,6 +455,36 @@ describe('boosters & overrides', () => {
   })
 })
 
+describe('environment & modalities', () => {
+  it('match environment is deterministic per seed and match', async () => {
+    const { matchEnvironment } = await import('../environment')
+    const a = matchEnvironment('SEED-X', 74)
+    const b = matchEnvironment('SEED-X', 74)
+    const c = matchEnvironment('SEED-Y', 74)
+    expect(a).toEqual(b)
+    expect(JSON.stringify(a) === JSON.stringify(c)).toBe(false)
+    expect(a.refName.length).toBeGreaterThan(2)
+  })
+  it('heat slows matches down; altitude opens them up', () => {
+    const heat = expectedGoals('BRA', 'GER', { stage: 'group', weather: 'heat' }, 1)
+    const alt = expectedGoals('BRA', 'GER', { stage: 'group', weather: 'altitude' }, 1)
+    const base = expectedGoals('BRA', 'GER', GROUP_CTX, 1)
+    expect(heat.lamHome + heat.lamAway).toBeLessThan(base.lamHome + base.lamAway)
+    expect(alt.lamHome + alt.lamAway).toBeGreaterThan(base.lamHome + base.lamAway)
+  })
+  it('a strict referee books more', () => {
+    let strictCards = 0
+    let lenientCards = 0
+    const rngA = seedRng('ref-a')
+    const rngB = seedRng('ref-b')
+    for (let i = 0; i < 400; i++) {
+      strictCards += simulateMatch('ITA', 'URU', { stage: 'group', refStrictness: 1.35 }, 1, rngA).events!.filter((e) => e.type !== 'goal').length
+      lenientCards += simulateMatch('ITA', 'URU', { stage: 'group', refStrictness: 0.8 }, 1, rngB).events!.filter((e) => e.type !== 'goal').length
+    }
+    expect(strictCards).toBeGreaterThan(lenientCards * 1.2)
+  })
+})
+
 describe('partial score entry', () => {
   it('a one-sided score never counts as played or complete', () => {
     const groups = {} as Record<GroupId, (string | null)[]>

@@ -51,7 +51,7 @@ export function LabScreen() {
             The Laboratory
           </h2>
           <p className="muted" style={{ maxWidth: 620, margin: '8px 0 0' }}>
-            Twenty-nine dials over the tournament's physics — scoring, upsets, nerves, fatigue, shootouts, chaos —
+            Thirty-one dials over the tournament's physics — scoring, upsets, nerves, fatigue, shootouts, chaos —
             plus every squad's ratings and boosters. Everything here feeds the minute-by-minute match engine.
           </p>
         </div>

@@ -1,9 +1,13 @@
 import { Crown, Dices, FlaskConical, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
+import { MatchTheater } from '../../components/MatchTheater'
 import { ModelLab } from '../../components/ModelLab'
 import { ScoreInput } from '../../components/ScoreInput'
+import { TournamentPulse } from '../../components/TournamentPulse'
 import { NATION_BY_ID, shortName } from '../../data/nations'
+import { WEATHER_LABEL, matchEnvironment } from '../../engine/environment'
+import { matchRecap } from '../../engine/narrative'
 import type { ResolvedKo } from '../../engine/bracket'
 import { KO_BY_NUMBER, KO_MATCHES } from '../../engine/schedule'
 import { detailedOdds, koWinner, stageOfMatch, type MatchContext } from '../../engine/simulate'
@@ -115,6 +119,8 @@ export function KnockoutScreen() {
           </button>
         )}
       </div>
+
+      <TournamentPulse groups={groups} bracket={bracket} results={results} />
 
       <div className="bracket-wrap">
         <div className="bracket2">
@@ -328,6 +334,12 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
     setResult(node.number, next)
   }
 
+  const env = useMemo(() => {
+    const seed = useStore.getState().masterSeed
+    return matchEnvironment(seed, node.number)
+  }, [node.number])
+  const recap = r ? matchRecap(r, home, away) : null
+
   const level90 = r ? r.score.home !== null && r.score.home === r.score.away : false
   const levelET = r?.et ? r.et.home !== null && r.et.home === r.et.away : false
   const needsPens = level90 && levelET && r?.et !== undefined
@@ -355,6 +367,15 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
           </div>
         </div>
         <div className="match-panel-body">
+          <div className="env-row">
+            <span className={`env-chip wx-${env.weather}`}>
+              {WEATHER_LABEL[env.weather]} · {env.tempC}°C
+            </span>
+            <span className="env-chip" title={env.refStrictness > 1.15 ? 'Books everything' : env.refStrictness < 0.9 ? 'Lets play flow' : 'Even-tempered'}>
+              Referee {env.refName} ({env.refCountry})
+              {env.refStrictness > 1.15 ? ' · strict' : env.refStrictness < 0.9 ? ' · lenient' : ''}
+            </span>
+          </div>
           <div className="odds-card">
             <div className="row spread" style={{ fontSize: 12, fontWeight: 600 }}>
               <span>
@@ -488,7 +509,9 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
             </div>
           )}
 
+          {r && r.events && r.events.length > 0 && <MatchTheater r={r} home={home} away={away} />}
           {r && <MatchTimeline r={r} home={home} away={away} />}
+          {recap && <p className="recap serif-accent">{recap}</p>}
 
           {decided && (
             <p style={{ textAlign: 'center', margin: 0 }} className="gold-text display">
