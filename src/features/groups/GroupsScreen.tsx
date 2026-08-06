@@ -479,11 +479,6 @@ function GroupCard(props: {
           return (
             <div key={f.number} className={`fixture${r?.simulated ? ' simmed' : ''}`}>
               <span className="mtag tnum ftag">Match {f.number}</span>
-              {r?.tags?.[0] && (
-                <span className={`tag-chip t-${r.tags[0]}`} role="img" aria-label={r.tags[0]}>
-                  {r.tags[0].replace(/-/g, ' ')}
-                </span>
-              )}
               <span className="side">
                 <Flag id={home} size={26} />
                 <span className="fx-name">{shortName(home)}</span>

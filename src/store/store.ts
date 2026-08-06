@@ -630,10 +630,17 @@ export const useStore = create<TournamentState>()(
         })
       },
 
-      reset: () =>
+      // a true factory reset: nothing carries over — a run survives only in the archive
+      reset: () => {
+        setNationOverrides({})
+        setModelParams({})
         set({
           step: 'landing',
+          format: 48,
+          qualMode: 'balanced',
           masterSeed: mintSeed(),
+          chaos: { qualification: 1, seeding: 1, match: 1 },
+          strategy: 'official',
           hosts: [...DEFAULT_HOSTS],
           hostsChosen: false,
           entries: [...DEFAULT_HOSTS],
@@ -643,8 +650,10 @@ export const useStore = create<TournamentState>()(
           drawTrace: null,
           results: {},
           playoffLog: [],
-          strategy: 'official',
-        }),
+          ratingOverrides: {},
+          modelParams: {},
+        })
+      },
     }),
     {
       name: 'wcsim:tournament',

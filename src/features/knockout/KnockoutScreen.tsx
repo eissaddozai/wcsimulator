@@ -11,7 +11,7 @@ import { TrophyMark } from '../../components/TrophyMark'
 import { ModelLab } from '../../components/ModelLab'
 import { ScoreInput } from '../../components/ScoreInput'
 import { TournamentPulse } from '../../components/TournamentPulse'
-import { NATION_BY_ID, rankOf, shortName } from '../../data/nations'
+import { NATION_BY_ID, shortName } from '../../data/nations'
 import { WEATHER_LABEL, matchEnvironment } from '../../engine/environment'
 import { matchRecap } from '../../engine/narrative'
 import type { ResolvedKo } from '../../engine/bracket'
@@ -480,8 +480,6 @@ function KoNode({
   const { home: hs, away: as_, note } = scoreText(node)
   const ghost = !node.home || !node.away
   const nameOf = (id: string) => NATION_BY_ID.get(id)?.name ?? id
-  const loser = node.winner ? (node.winner === node.home ? node.away : node.home) : null
-  const upset = Boolean(node.winner && loser && rankOf(node.winner) > rankOf(loser))
   const pens = node.result && !node.stale ? node.result.pens : undefined
   return (
     <button
@@ -497,9 +495,6 @@ function KoNode({
             <span className="cname" title={nameOf(node.home)}>
               {nameOf(node.home)}
             </span>
-            {upset && node.winner === node.home && (
-              <span className="upset-chip" title="Upset — the lower-ranked side advances">UPSET</span>
-            )}
           </>
         ) : (
           <span className="low src">{sourceLabel(ko.home)}</span>
@@ -516,9 +511,6 @@ function KoNode({
             <span className="cname" title={nameOf(node.away)}>
               {nameOf(node.away)}
             </span>
-            {upset && node.winner === node.away && (
-              <span className="upset-chip" title="Upset — the lower-ranked side advances">UPSET</span>
-            )}
           </>
         ) : (
           <span className="low src">{sourceLabel(ko.away)}</span>
@@ -555,11 +547,6 @@ function KoNode({
           {ko.stage === 'THIRD' && <Medal size={9} />}
           {STAGE_FULL[ko.stage]}
         </span>
-        {node.result?.tags?.[0] && node.result.tags[0] !== 'derby' && (
-          <span className={`tag-chip t-${node.result.tags[0]}`} role="img" aria-label={node.result.tags[0]}>
-            {node.result.tags[0].replace(/-/g, ' ')}
-          </span>
-        )}
         <span className="mnum tnum">Match {node.number}</span>
       </span>
     </button>
@@ -1215,12 +1202,7 @@ function ChampionScene({
               >
                 <span className="glory-stage">{STAGE_FULL[koByNumberFor(format)[n]!.stage]}</span>
                 <Flag id={opp} size={26} />
-                <span className="glory-opp">
-                  {NATION_BY_ID.get(opp)?.name}
-                  {mr.tags?.[0] && mr.tags[0] !== 'derby' && (
-                    <em className={`tag-chip t-${mr.tags[0]}`}>{mr.tags[0].replace(/-/g, ' ')}</em>
-                  )}
-                </span>
+                <span className="glory-opp">{NATION_BY_ID.get(opp)?.name}</span>
                 <span className="glory-score display tnum">
                   {mine}–{theirs}
                   {note && <em>{note}</em>}
@@ -1257,7 +1239,8 @@ function ChampionScene({
           <button
             className="link-btn"
             onClick={() => {
-              if (confirm('Start a new tournament?')) useStore.getState().reset()
+              if (confirm('Start a new tournament? Everything resets — save this run first if you want to keep it.'))
+                useStore.getState().reset()
             }}
           >
             New tournament

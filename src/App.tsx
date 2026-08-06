@@ -325,7 +325,7 @@ export default function App() {
                   className="btn ghost small danger"
                   style={{ justifyContent: 'flex-start' }}
                   onClick={() => {
-                    if (confirm('Start a new tournament? The current one is discarded.')) {
+                    if (confirm('Start a new tournament? Everything resets — teams, scores, ratings, boosters, and lab settings. Only saved runs in the archive are kept.')) {
                       useStore.getState().reset()
                       setMenuOpen(false)
                     }
