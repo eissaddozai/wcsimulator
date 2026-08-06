@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NATION_BY_ID } from '../data/nations'
+import { CIRCLE_FLAG } from './flagAssets'
 
 interface FlagProps {
   id: string
@@ -23,7 +24,9 @@ export function Flag({ id, size = 24, ringed = false, rect = false }: FlagProps)
       </span>
     )
   }
-  const src = `${import.meta.env.BASE_URL}flags/${rect ? 'rect' : 'circle'}/${code}.svg`
+  const src = rect
+    ? `${import.meta.env.BASE_URL}flags/rect/${code}.svg`
+    : (CIRCLE_FLAG[code] ?? `${import.meta.env.BASE_URL}flags/circle/${code}.svg`)
   return (
     <span className={`flag${ringed ? ' ringed' : ''}`} style={style}>
       <img src={src} alt={nation.name} loading="lazy" width={size} height={size} onError={() => setFailed(true)} />

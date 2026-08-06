@@ -11,16 +11,20 @@ const nations = JSON.parse(readFileSync(join(root, 'src/data/nations.json'), 'ut
 const circleSrc = join(root, 'node_modules/circle-flags/flags')
 const rectSrc = join(root, 'node_modules/flag-icons/flags/4x3')
 const circleDst = join(root, 'public/flags/circle')
+const circleSrcDst = join(root, 'src/assets/flags/circle') // processed by Vite → inlinable
 const rectDst = join(root, 'public/flags/rect')
 mkdirSync(circleDst, { recursive: true })
+mkdirSync(circleSrcDst, { recursive: true })
 mkdirSync(rectDst, { recursive: true })
 
 const missing = []
 for (const n of nations) {
   const circle = join(circleSrc, `${n.flag}.svg`)
   const rect = join(rectSrc, `${n.flag}.svg`)
-  if (existsSync(circle)) copyFileSync(circle, join(circleDst, `${n.flag}.svg`))
-  else missing.push(`circle:${n.id}:${n.flag}`)
+  if (existsSync(circle)) {
+    copyFileSync(circle, join(circleDst, `${n.flag}.svg`))
+    copyFileSync(circle, join(circleSrcDst, `${n.flag}.svg`))
+  } else missing.push(`circle:${n.id}:${n.flag}`)
   if (existsSync(rect)) copyFileSync(rect, join(rectDst, `${n.flag}.svg`))
   else missing.push(`rect:${n.id}:${n.flag}`)
 }
