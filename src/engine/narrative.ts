@@ -16,6 +16,12 @@ export function matchRecap(r: MatchResult, homeId: string, awayId: string): stri
   const late = goals.find((g) => g.min >= 85 && g.min <= 90)
   const etGoal = goals.find((g) => g.min > 90)
 
+  // tag-aware openers — the match knows what it was
+  const tags = new Set(r.tags ?? [])
+  if (tags.has('shock')) bits.push('An upset for the ages.')
+  else if (tags.has('smash-and-grab')) bits.push('Daylight robbery.')
+  else if (tags.has('derby')) bits.push('A derby that lived up to its billing.')
+
   if (r.pens) {
     bits.push(`Nothing could separate them in ${goals.length === 0 ? 'a cagey stalemate' : '120 breathless minutes'} — it took the shootout, ${r.pens.home}–${r.pens.away}.`)
   } else if (etGoal) {

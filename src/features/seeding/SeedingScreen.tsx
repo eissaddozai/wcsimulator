@@ -168,6 +168,7 @@ export function SeedingScreen() {
                     <span className="grip">⠿</span>
                     <Flag id={id} size={28} />
                     <span className="name">{n.name}</span>
+                    <i className={`confed-dot c-${n.confed.toLowerCase()}`} title={n.confed} aria-label={n.confed} role="img" />
                     {isHost ? (
                       <span className="host-tag">
                         <Lock size={10} /> HOST · {['A', 'B', 'D'][hosts.indexOf(id)] ?? 'A'}

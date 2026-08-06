@@ -165,15 +165,24 @@ export function MatchReport({
 
           {report.chapters.map((ch) => (
             <div key={ch.title} className="report-chapter">
-              <div className="rc-title">{ch.title}</div>
+              <div className="rc-title">
+                {ch.title}
+                <span className="rc-range tnum">{ch.range}</span>
+              </div>
               <p className="rc-prose">{ch.prose}</p>
               {ch.lines.length > 0 && (
                 <div className="rc-ledger">
                   {groupLines(ch.lines).map((l, i) => (
                     <div key={i} className={`rc-line ${l.kind}${l.side === 'away' ? ' away' : ''}`}>
-                      <span className="rc-min tnum">{l.min}′</span>
+                      <span className="rc-min tnum">
+                        {l.min}
+                        {(l as { plus?: number }).plus ? `+${(l as { plus?: number }).plus}` : ''}′
+                      </span>
                       <i className={`rc-ico ${l.kind}`} />
                       <span className="rc-text">{l.text}</span>
+                      {(l as { xg?: number }).xg !== undefined && (
+                        <i className="rc-xg tnum">{(l as { xg?: number }).xg!.toFixed(2)} xG</i>
+                      )}
                     </div>
                   ))}
                 </div>

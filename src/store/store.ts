@@ -16,6 +16,15 @@ import {
 import { seedPots } from '../engine/seeding'
 import { playoffState, playoff64State, type PlayoffMatchKey, type Playoff64Key } from '../engine/playoffs'
 import { canAddPlayoff, fieldSizeFor, quotaStatus } from '../engine/selection'
+import {
+  HOST_SURGE,
+  bothSafe,
+  formDriftOf,
+  isRivalry,
+  stakesOf,
+  suspensionBurden,
+  type CampaignSources,
+} from '../engine/campaign'
 import { matchEnvironment } from '../engine/environment'
 import { setModelParams, simulateMatch, stageOfMatchFor, type MatchContext, type ModelParams } from '../engine/simulate'
 import { allGroupsComplete, bracketState, type Groups } from '../engine/tournament'
@@ -123,7 +132,7 @@ function presetTrace(): DrawPick[] {
 export const groupsOf = (trace: DrawPick[] | null, format: Format = 48): Groups | null =>
   trace ? groupsFromTrace(trace, format) : null
 
-/** Context for simulating match n: stage, hosts, fatigue, and the weather. */
+/** Context for simulating match n: stage, hosts, fatigue, weather — and the campaign systems. */
 export function contextFor(
   n: number,
   home: string,
@@ -132,6 +141,7 @@ export function contextFor(
   bracket: BracketState | null,
   masterSeed?: string,
   format: Format = 48,
+  enrich?: { groups: Groups; results: Record<number, MatchResult> },
 ): MatchContext {
   const stage = stageOfMatchFor(n, format)
   const ctx: MatchContext = {
@@ -139,33 +149,82 @@ export function contextFor(
     homeHost: hosts.includes(home),
     awayHost: hosts.includes(away),
   }
-  if (stage !== 'group' && stage !== 'r32' && bracket) {
-    ctx.homeFreshness = freshness(n, home, bracket, format)
-    ctx.awayFreshness = freshness(n, away, bracket, format)
+  if (stage !== 'group' && bracket) {
+    const fh = deepFreshness(n, home, bracket, format)
+    const fa = deepFreshness(n, away, bracket, format)
+    if (fh.freshness < 1) ctx.homeFreshness = fh.freshness
+    if (fa.freshness < 1) ctx.awayFreshness = fa.freshness
+    // the comeback carries: climbing off the canvas banks belief for the next round
+    if (fh.comebackCarry) ctx.formHome = (ctx.formHome ?? 0) + 15
+    if (fa.comebackCarry) ctx.formAway = (ctx.formAway ?? 0) + 15
   }
   if (masterSeed) {
-    const env = matchEnvironment(masterSeed, n)
+    const env = matchEnvironment(masterSeed, n, stage !== 'group')
     ctx.weather = env.weather
     ctx.refStrictness = env.refStrictness
+  }
+  // campaign systems: rivalry, live form, suspensions, stakes, the host surge
+  ctx.rivalry = isRivalry(home, away)
+  ctx.hostSurge = HOST_SURGE[stage] ?? 1
+  if (enrich) {
+    const src: CampaignSources = { groups: enrich.groups, results: enrich.results, bracket, format }
+    ctx.formHome = (ctx.formHome ?? 0) + formDriftOf(home, src)
+    ctx.formAway = (ctx.formAway ?? 0) + formDriftOf(away, src)
+    ctx.suspHome = suspensionBurden(home, n, stage, src)
+    ctx.suspAway = suspensionBurden(away, n, stage, src)
+    if (stage === 'group') {
+      const f = groupFixturesFor(format).find((x) => x.number === n)
+      if (f) {
+        const sh = stakesOf(home, f.group, f.matchday, src)
+        const sa = stakesOf(away, f.group, f.matchday, src)
+        ctx.stakesHome = sh
+        ctx.stakesAway = sa
+        if (bothSafe(sh, sa)) ctx.deadRubber = true
+      }
+    }
   }
   return ctx
 }
 
-/** 1 = fresh; 0.9 if the team's previous knockout went to extra time; 0.85 after pens. */
-function freshness(n: number, teamId: string, bracket: BracketState, format: Format = 48): number {
-  const ko = koByNumberFor(format)[n]
-  if (!ko) return 1
-  for (const src of [ko.home, ko.away]) {
-    if (src.kind !== 'matchWinner' && src.kind !== 'matchLoser') continue
-    const feeder = bracket[src.match]
-    if (!feeder || (feeder.winner !== teamId && feeder.loser !== teamId)) continue
-    const r = feeder.result
-    if (!r || feeder.stale) return 1
-    if (r.pens) return 0.85
-    if (r.et) return 0.9
-    return 1
+/**
+ * Deep fatigue: walk the feeder chain (up to three rounds back, decaying) —
+ * extra time, shootouts, marathon shootouts, and knocks all leave residue.
+ */
+function deepFreshness(
+  n: number,
+  teamId: string,
+  bracket: BracketState,
+  format: Format,
+): { freshness: number; comebackCarry: boolean } {
+  let penalty = 0
+  let comebackCarry = false
+  let match = n
+  let weight = 1
+  for (let depth = 0; depth < 3; depth++) {
+    const ko = koByNumberFor(format)[match]
+    if (!ko) break
+    let feederMatch: number | null = null
+    for (const src of [ko.home, ko.away]) {
+      if (src.kind !== 'matchWinner' && src.kind !== 'matchLoser') continue
+      const feeder = bracket[src.match]
+      if (!feeder || (feeder.winner !== teamId && feeder.loser !== teamId)) continue
+      feederMatch = src.match
+      const r = feeder.result
+      if (!r || feeder.stale) break
+      if (r.pens) penalty += 0.15 * weight
+      else if (r.et) penalty += 0.1 * weight
+      if (r.pensDetail && r.pensDetail.home.length >= 8) penalty += 0.05 * weight // the marathon toll
+      const side = feeder.home === teamId ? 'home' : 'away'
+      const knocks = (r.events ?? []).filter((e) => e.type === 'injury' && e.side === side).length
+      penalty += 0.03 * knocks * weight
+      if (depth === 0 && feeder.winner === teamId && (r.tags ?? []).includes('comeback')) comebackCarry = true
+      break
+    }
+    if (feederMatch === null) break
+    match = feederMatch
+    weight *= 0.55
   }
-  return 1
+  return { freshness: Math.max(1 - penalty, 0.6), comebackCarry }
 }
 
 /** Weighted host lottery: 1–3 hosts, plausibility-weighted by rating, for "surprise me". */
@@ -407,7 +466,7 @@ export const useStore = create<TournamentState>()(
         const home = groups[f.group][f.homePos - 1]
         const away = groups[f.group][f.awayPos - 1]
         if (!home || !away) return
-        const ctx = contextFor(n, home, away, hosts, null, masterSeed, format)
+        const ctx = contextFor(n, home, away, hosts, null, masterSeed, format, { groups, results: get().results })
         const r = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${n}:${Date.now() % 100000}`))
         get().setResult(n, r)
       },
@@ -422,7 +481,8 @@ export const useStore = create<TournamentState>()(
           const home = groups[g][f.homePos - 1]
           const away = groups[g][f.awayPos - 1]
           if (!home || !away) continue
-          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed, format)
+          // matchday-ordered: stakes and suspensions read the results simulated so far
+          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed, format, { groups, results: next })
           next[f.number] = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${f.number}`))
         }
         set({ results: next })
@@ -438,7 +498,7 @@ export const useStore = create<TournamentState>()(
           const home = groups[f.group][f.homePos - 1]
           const away = groups[f.group][f.awayPos - 1]
           if (!home || !away) continue
-          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed, format)
+          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed, format, { groups, results: next })
           next[f.number] = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${f.number}`))
         }
         set({ results: next })
@@ -451,7 +511,7 @@ export const useStore = create<TournamentState>()(
         const { bracket } = bracketState(groups, results, masterSeed, format)
         const m = bracket[n]
         if (!m?.home || !m.away) return
-        const ctx = contextFor(n, m.home, m.away, hosts, bracket, masterSeed, format)
+        const ctx = contextFor(n, m.home, m.away, hosts, bracket, masterSeed, format, { groups, results })
         const r = simulateMatch(m.home, m.away, ctx, chaos.match, stream(masterSeed, `match:${n}:${Date.now() % 100000}`))
         r.enteredFor = [m.home, m.away]
         get().setResult(n, r)
@@ -540,14 +600,14 @@ export const useStore = create<TournamentState>()(
         for (const f of groupFixturesFor(format)) {
           const home = groups[f.group][f.homePos - 1]!
           const away = groups[f.group][f.awayPos - 1]!
-          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed, format)
+          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed, format, { groups, results })
           results[f.number] = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${f.number}`))
         }
         const [koFrom, koTo] = koRangeFor(format)
         for (let n = koFrom; n <= koTo; n++) {
           const { bracket } = bracketState(groups, results, masterSeed, format)
           const m = bracket[n]!
-          const ctx = contextFor(n, m.home!, m.away!, hosts, bracket, undefined, format)
+          const ctx = contextFor(n, m.home!, m.away!, hosts, bracket, masterSeed, format, { groups, results })
           const r = simulateMatch(m.home!, m.away!, ctx, chaos.match, stream(masterSeed, `match:${n}`))
           r.enteredFor = [m.home!, m.away!]
           results[n] = r

@@ -1,7 +1,7 @@
 import NumberFlow from '@number-flow/react'
 import confetti from 'canvas-confetti'
 import { motion } from 'framer-motion'
-import { CloudRain, CloudSun, Dices, FlaskConical, Maximize2, Mountain, NotebookText, Play, RotateCcw, Save, Sun, Timer, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { CloudRain, CloudSun, Crown, Dices, FlaskConical, Maximize2, Medal, Mountain, NotebookText, Play, RotateCcw, Save, Sun, Timer, Trophy, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { MatchReport } from '../../components/MatchReport'
@@ -25,7 +25,7 @@ import {
 } from '../../engine/schedule'
 import { detailedOdds, koWinner, stageOfMatchFor, type MatchContext } from '../../engine/simulate'
 import { allGroupsComplete, bracketState } from '../../engine/tournament'
-import { groupsOf, useStore } from '../../store/store'
+import { contextFor, groupsOf, useStore } from '../../store/store'
 import type { Format, KoSource, MatchEvent, MatchResult } from '../../engine/types'
 
 /**
@@ -100,6 +100,24 @@ export function KnockoutScreen() {
     } else {
       setFitMode(true)
     }
+  }, [format])
+
+  // 95 · the bracket zooms from the keyboard
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return
+      if (e.key === '+' || e.key === '=') {
+        setFitMode(false)
+        setZoom((z) => Math.min(1.25, +(z + 0.05).toFixed(2)))
+      }
+      if (e.key === '-') {
+        setFitMode(false)
+        setZoom((z) => Math.max(0.45, +(z - 0.05).toFixed(2)))
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [format])
 
   const fitZoom = () => {
@@ -533,8 +551,15 @@ function KoNode({
       <span className="meta">
         <span className={`mtag stage-${ko.stage.toLowerCase()}`}>
           <i className="mdot" />
+          {ko.stage === 'FINAL' && <Trophy size={9} />}
+          {ko.stage === 'THIRD' && <Medal size={9} />}
           {STAGE_FULL[ko.stage]}
         </span>
+        {node.result?.tags?.[0] && node.result.tags[0] !== 'derby' && (
+          <span className={`tag-chip t-${node.result.tags[0]}`} role="img" aria-label={node.result.tags[0]}>
+            {node.result.tags[0].replace(/-/g, ' ')}
+          </span>
+        )}
         <span className="mnum tnum">Match {node.number}</span>
       </span>
     </button>
@@ -545,9 +570,13 @@ function KoNode({
 function ShootoutBoard({ r, home, away }: { r: MatchResult; home: string; away: string }) {
   if (!r.pens || r.pens.home === null || r.pens.away === null || r.pens.home === r.pens.away) return null
   const winSide = r.pens.home > r.pens.away ? 'home' : 'away'
+  const sudden = (r.pensDetail?.home.length ?? 0) > 5
   return (
     <div className="shootout">
-      <div className="shootout-title">Penalty shoot-out</div>
+      <div className="shootout-title">
+        Penalty shoot-out
+        {sudden && <span className="sd-label">· sudden death after kick 5</span>}
+      </div>
       {(['home', 'away'] as const).map((side) => {
         const id = side === 'home' ? home : away
         const seq = r.pensDetail?.[side] ?? null
@@ -558,20 +587,24 @@ function ShootoutBoard({ r, home, away }: { r: MatchResult; home: string; away: 
             <span className="so-name display">{NATION_BY_ID.get(id)?.name}</span>
             <span className="so-kicks">
               {seq
-                ? seq.map((scored, i) => (
-                    <i
-                      key={i}
-                      className={`so-kick${scored ? ' scored' : ' missed'}${i === 5 ? ' sd-start' : ''}`}
-                      style={{ animationDelay: `${i * 90}ms` }}
-                      title={`Kick ${i + 1} — ${scored ? 'scored' : 'missed'}`}
-                    >
-                      {scored ? '' : '×'}
-                    </i>
-                  ))
+                ? seq.map((scored, i) => {
+                    // the keeper is hot: consecutive saves get the flame
+                    const hot = !scored && i > 0 && !seq[i - 1]
+                    return (
+                      <i
+                        key={i}
+                        className={`so-kick${scored ? ' scored' : ' missed'}${i >= 5 ? ' sd' : ''}${i === 5 ? ' sd-start' : ''}${hot ? ' hot' : ''}`}
+                        style={{ animationDelay: `${i * 90}ms` }}
+                        title={`Kick ${i + 1} — ${scored ? 'scored' : hot ? 'saved — the keeper is on fire' : 'missed'}`}
+                      >
+                        {scored ? '' : '×'}
+                      </i>
+                    )
+                  })
                 : Array.from({ length: Math.max(5, total) }, (_, i) => (
                     <i
                       key={i}
-                      className={`so-kick${i < total ? ' scored' : ' blank'}${i === 5 ? ' sd-start' : ''}`}
+                      className={`so-kick${i < total ? ' scored' : ' blank'}${i >= 5 ? ' sd' : ''}${i === 5 ? ' sd-start' : ''}`}
                       style={{ animationDelay: `${i * 90}ms` }}
                     />
                   ))}
@@ -584,13 +617,53 @@ function ShootoutBoard({ r, home, away }: { r: MatchResult; home: string; away: 
   )
 }
 
+/** 45+2′ / 90+3′ stamps for stoppage-time events. */
+function stamp(e: MatchEvent): string {
+  return e.plus ? `${e.min}+${e.plus}′` : `${e.min}′`
+}
+
+/** Live tournament form, shown when the drift is loud enough to matter. */
+function FormArrow({ value }: { value?: number }) {
+  if (value === undefined || Math.abs(value) < 8) return null
+  return (
+    <i
+      className={`form-arrow ${value > 0 ? 'up' : 'down'}`}
+      role="img"
+      aria-label={value > 0 ? 'In tournament form' : 'Out of tournament form'}
+      title={`Live form ${value > 0 ? '+' : ''}${Math.round(value)}`}
+    >
+      {value > 0 ? '▲' : '▼'}
+    </i>
+  )
+}
+
+/** The match's momentum log as a worm — home storms rise, away storms sink. */
+function MomentumWorm({ momentum }: { momentum?: number[] }) {
+  if (!momentum || momentum.length < 4) return null
+  const W = 220
+  const H = 34
+  const pts = momentum
+    .map((m, i) => `${((i / (momentum.length - 1)) * W).toFixed(1)},${(H / 2 - m * (H / 2 - 3)).toFixed(1)}`)
+    .join(' ')
+  return (
+    <div className="mom-worm" role="img" aria-label="Momentum across the match">
+      <span className="low">momentum</span>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <line x1={0} y1={H / 2} x2={W} y2={H / 2} className="mw-axis" />
+        <polyline points={pts} className="mw-line" />
+      </svg>
+    </div>
+  )
+}
+
 /** The minute engine's story on a true minute axis — goals ride above the line, cards hang below. */
 function MatchTimeline({ r, home, away }: { r: MatchResult; home: string; away: string }) {
   if (!r.events || r.events.length === 0) return null
   const total = r.et ? 120 : 90
   const label = (e: MatchEvent) => (e.side === 'home' ? home : away)
-  const above = r.events.filter((e) => e.type === 'goal' || e.type === 'penmiss')
-  const below = r.events.filter((e) => e.type !== 'goal' && e.type !== 'penmiss')
+  const ABOVE = new Set(['goal', 'penmiss', 'var'])
+  const above = r.events.filter((e) => ABOVE.has(e.type))
+  const below = r.events.filter((e) => !ABOVE.has(e.type))
   const x = (min: number) => `${Math.min((min / total) * 100, 100)}%`
   const gridEvery = 15
   const gridLines = Array.from({ length: Math.floor(total / gridEvery) + 1 }, (_, i) => i * gridEvery)
@@ -621,19 +694,19 @@ function MatchTimeline({ r, home, away }: { r: MatchResult; home: string; away: 
           <span
             key={`a${i}`}
             className={`ma-event above ${e.type}${e.side === 'away' ? ' away' : ''}`}
-            style={{ left: x(e.min) }}
-            title={`${e.min}′ ${e.type === 'goal' ? 'Goal' : 'Penalty missed'} — ${label(e)}`}
+            style={{ left: x(e.min + (e.plus ?? 0) / 10) }}
+            title={`${stamp(e)} ${e.type === 'goal' ? 'Goal' : e.type === 'var' ? 'VAR — no goal' : 'Penalty missed'} — ${label(e)}`}
           >
             <i className={`tl-ico ${e.type}`} />
-            <b className="tnum">{e.min}′</b>
+            <b className="tnum">{stamp(e)}</b>
           </span>
         ))}
         {below.map((e, i) => (
           <span
             key={`b${i}`}
             className={`ma-event below ${e.type}${e.side === 'away' ? ' away' : ''}`}
-            style={{ left: x(e.min) }}
-            title={`${e.min}′ ${e.type} — ${label(e)}`}
+            style={{ left: x(e.min + (e.plus ?? 0) / 10) }}
+            title={`${stamp(e)} ${e.type} — ${label(e)}`}
           >
             <i className={`tl-ico ${e.type}`} />
           </span>
@@ -663,14 +736,22 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
   const home = node.home!
   const away = node.away!
 
-  const ctx: MatchContext = useMemo(
-    () => ({
+  const drawTrace = useStore((s) => s.drawTrace)
+  const results = useStore((s) => s.results)
+  const masterSeed = useStore((s) => s.masterSeed)
+  const ctx: MatchContext = useMemo(() => {
+    // the full campaign context: live form, suspensions, rivalry, host surge — priced into the market
+    const groups = groupsOf(drawTrace, format)
+    if (groups) {
+      const { bracket } = bracketState(groups, results, masterSeed, format)
+      return contextFor(node.number, home, away, hosts, bracket, masterSeed, format, { groups, results })
+    }
+    return {
       stage: stageOfMatchFor(node.number, format),
       homeHost: hosts.includes(home),
       awayHost: hosts.includes(away),
-    }),
-    [node.number, home, away, hosts, format],
-  )
+    }
+  }, [node.number, home, away, hosts, format, drawTrace, results, masterSeed])
   const odds = useMemo(
     () => detailedOdds(home, away, ctx, chaos.match),
     [home, away, ctx, chaos.match, modelParams, ratingOverrides],
@@ -713,8 +794,20 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
         <div className={`match-hero stage-${ko.stage.toLowerCase()}`}>
           <div className="team">
             <Flag id={home} size={64} ringed={hosts.includes(home)} />
-            <span className="nm display">{NATION_BY_ID.get(home)?.name}</span>
-            {hosts.includes(home) && <span className="chip gold">Host nation</span>}
+            <span className="nm display">
+              {NATION_BY_ID.get(home)?.name}
+              <FormArrow value={ctx.formHome} />
+            </span>
+            {hosts.includes(home) && (
+              <span className="chip gold">
+                <Crown size={10} /> Host nation
+              </span>
+            )}
+            {(ctx.suspHome ?? 0) > 0 && (
+              <span className="susp-chip" role="img" aria-label={`${ctx.suspHome} suspended`}>
+                −{ctx.suspHome} suspended
+              </span>
+            )}
           </div>
           <div className="display low" style={{ fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
             Match {node.number}
@@ -723,8 +816,20 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
           </div>
           <div className="team">
             <Flag id={away} size={64} ringed={hosts.includes(away)} />
-            <span className="nm display">{NATION_BY_ID.get(away)?.name}</span>
-            {hosts.includes(away) && <span className="chip gold">Host nation</span>}
+            <span className="nm display">
+              {NATION_BY_ID.get(away)?.name}
+              <FormArrow value={ctx.formAway} />
+            </span>
+            {hosts.includes(away) && (
+              <span className="chip gold">
+                <Crown size={10} /> Host nation
+              </span>
+            )}
+            {(ctx.suspAway ?? 0) > 0 && (
+              <span className="susp-chip" role="img" aria-label={`${ctx.suspAway} suspended`}>
+                −{ctx.suspAway} suspended
+              </span>
+            )}
           </div>
         </div>
         <div className="match-panel-body">
@@ -733,6 +838,7 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
               <i className="mdot" />
               {STAGE_FULL[ko.stage]}
             </span>
+            {ctx.rivalry && <span className="derby-ribbon" role="img" aria-label="A derby with history">DERBY</span>}
             <span className="mnum tnum">Match {node.number}</span>
             <span className={`env-chip wx-${env.weather}`}>
               {env.weather === 'rain' ? (
@@ -750,7 +856,8 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
           <div className={`odds-card capsule${oddsOpen ? ' open' : ''}`}>
             <div className="row spread" style={{ fontSize: 12, fontWeight: 600 }}>
               <span>
-                {shortName(home)}{' '}
+                {shortName(home)}
+                <FormArrow value={ctx.formHome} />{' '}
                 <NumberFlow
                   className="gold-text tnum"
                   value={odds.advHome}
@@ -767,6 +874,7 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
                   format={{ style: 'percent', maximumFractionDigits: 0 }}
                 />{' '}
                 {shortName(away)}
+                <FormArrow value={ctx.formAway} />
               </span>
             </div>
             <div className="odds-bar big">
@@ -910,6 +1018,7 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
           )}
           {r && <ShootoutBoard r={r} home={home} away={away} />}
           {r && <MatchTimeline r={r} home={home} away={away} />}
+          {r && <MomentumWorm momentum={r.momentum} />}
           {decided && (
             <div className="verdict-bar" role="status">
               <Flag id={decided} size={22} />
@@ -989,7 +1098,17 @@ function ChampionScene({
     const canvas = canvasRef.current
     if (!canvas || matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const fire = confetti.create(canvas, { resize: true, useWorker: false })
-    const gold = ['#e5c87f', '#d2b064', '#f2efe6', '#8a7443']
+    // the confetti leans toward the champion's confederation color
+    const confedTint: Record<string, string> = {
+      UEFA: '#6ea8d8',
+      CONMEBOL: '#4ca96e',
+      CONCACAF: '#d2b064',
+      CAF: '#c9973f',
+      AFC: '#d06a5c',
+      OFC: '#8a7cc9',
+    }
+    const tint = confedTint[NATION_BY_ID.get(champion)?.confed ?? ''] ?? '#e5c87f'
+    const gold = ['#e5c87f', '#d2b064', '#f2efe6', '#8a7443', tint]
     // the cup is lifted: one great burst beneath the name
     fire({ particleCount: 160, spread: 80, startVelocity: 52, origin: { y: 0.62 }, colors: gold, scalar: 1.05 })
     const t1 = setTimeout(() => {
@@ -1096,7 +1215,12 @@ function ChampionScene({
               >
                 <span className="glory-stage">{STAGE_FULL[koByNumberFor(format)[n]!.stage]}</span>
                 <Flag id={opp} size={26} />
-                <span className="glory-opp">{NATION_BY_ID.get(opp)?.name}</span>
+                <span className="glory-opp">
+                  {NATION_BY_ID.get(opp)?.name}
+                  {mr.tags?.[0] && mr.tags[0] !== 'derby' && (
+                    <em className={`tag-chip t-${mr.tags[0]}`}>{mr.tags[0].replace(/-/g, ' ')}</em>
+                  )}
+                </span>
                 <span className="glory-score display tnum">
                   {mine}–{theirs}
                   {note && <em>{note}</em>}

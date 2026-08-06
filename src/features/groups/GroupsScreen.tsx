@@ -142,8 +142,10 @@ export function GroupsScreen() {
               (f) => m === 0 || f.matchday === m,
             )
             const mdDone = mdFixtures.filter((f) => results[f.number] && isScored(results[f.number]!)).length
+            const live = m !== 0 && mdDone > 0 && mdDone < mdFixtures.length
             return (
               <button key={m} className={md === m ? 'on' : ''} onClick={() => setMd(m as 0 | 1 | 2 | 3)}>
+                {live && <i className="md-live" role="img" aria-label="Matchday in play" />}
                 {m === 0 ? 'All' : `MD${m}`}
                 <span className="md-count tnum">{mdDone}/{mdFixtures.length}</span>
                 <i
@@ -307,11 +309,33 @@ function GroupCard(props: {
   const fixtures = fixturesOfGroupFor(g, format).filter((f) => md === 0 || f.matchday === md)
   const sealed = standings.length === 4 && standings.every((r) => r.played === 3)
 
+  // 69 · the form guide: W/D/L per team in matchday order
+  const formGuide = (id: string): ('W' | 'D' | 'L')[] => {
+    const out: ('W' | 'D' | 'L')[] = []
+    for (const f of fixturesOfGroupFor(g, format)) {
+      const home = slots[f.homePos - 1]
+      const away = slots[f.awayPos - 1]
+      if (home !== id && away !== id) continue
+      const r = results[f.number]
+      if (!r || !isScored(r)) continue
+      const mine = home === id ? r.score.home! : r.score.away!
+      const theirs = home === id ? r.score.away! : r.score.home!
+      out.push(mine > theirs ? 'W' : mine === theirs ? 'D' : 'L')
+    }
+    return out
+  }
+
   return (
     <div className={`card ghub-card${sealed ? ' sealed' : ''}`}>
       <h4 className="display">
         <span className="gmedal tnum">{g}</span>
         Group {g}
+        {sealed && (
+          <span className="sealed-flags" role="img" aria-label="Qualified: top two">
+            <Flag id={standings[0]!.id} size={15} />
+            <Flag id={standings[1]!.id} size={15} />
+          </span>
+        )}
         <span
           className="gprog"
           title="Fixtures entered"
@@ -382,6 +406,13 @@ function GroupCard(props: {
                     <span className="posn tnum">{row.position}</span>
                     <Flag id={row.id} size={22} />
                     <span className="nm">{shortName(row.id)}</span>
+                    {row.played > 0 && (
+                      <span className="form-dots" role="img" aria-label={`Form: ${formGuide(row.id).join(' ')}`}>
+                        {formGuide(row.id).map((x, i) => (
+                          <i key={i} className={`fd-${x.toLowerCase()}`} />
+                        ))}
+                      </span>
+                    )}
                     {badge}
                     {row.played > 0 && row.decidedBy && row.decidedBy !== 'points' && (
                       <span className={`tiebreak-note tb-${row.decidedBy}`} title={`Separated by ${RUNG_COPY[row.decidedBy]}`}>
@@ -400,7 +431,9 @@ function GroupCard(props: {
                   {row.gd > 0 ? `+${row.gd}` : row.gd}
                 </td>
                 <td className="tnum">
-                  <span className="ptsv">{row.points}</span>
+                  <span className="ptsv">
+                    <NumberFlow value={row.points} />
+                  </span>
                 </td>
               </>
             )
@@ -446,6 +479,11 @@ function GroupCard(props: {
           return (
             <div key={f.number} className={`fixture${r?.simulated ? ' simmed' : ''}`}>
               <span className="mtag tnum ftag">Match {f.number}</span>
+              {r?.tags?.[0] && (
+                <span className={`tag-chip t-${r.tags[0]}`} role="img" aria-label={r.tags[0]}>
+                  {r.tags[0].replace(/-/g, ' ')}
+                </span>
+              )}
               <span className="side">
                 <Flag id={home} size={26} />
                 <span className="fx-name">{shortName(home)}</span>

@@ -45,22 +45,29 @@ const REFEREES: { name: string; country: string; strict: number }[] = [
   { name: 'Y. Haddad', country: 'MAR', strict: 1.0 },
 ]
 
-export function matchEnvironment(masterSeed: string, matchNumber: number): MatchEnvironment {
+export function matchEnvironment(masterSeed: string, matchNumber: number, knockout = false): MatchEnvironment {
   const rng = makeRng(`env:${masterSeed}:${matchNumber}`)
   const w = rng()
   let weather: Weather
-  if (w < 0.52) weather = 'temperate'
+  // knockout nights run later and cooler — heat recedes, storms roll in
+  if (knockout) {
+    if (w < 0.5) weather = 'temperate'
+    else if (w < 0.62) weather = 'heat'
+    else if (w < 0.88) weather = 'rain'
+    else weather = 'altitude'
+  } else if (w < 0.52) weather = 'temperate'
   else if (w < 0.74) weather = 'heat'
   else if (w < 0.9) weather = 'rain'
   else weather = 'altitude'
+  const nightShift = knockout ? 3 : 0
   const tempC =
-    weather === 'heat'
+    (weather === 'heat'
       ? 30 + Math.round(rng() * 7)
       : weather === 'rain'
         ? 14 + Math.round(rng() * 6)
         : weather === 'altitude'
           ? 16 + Math.round(rng() * 6)
-          : 19 + Math.round(rng() * 7)
+          : 19 + Math.round(rng() * 7)) - nightShift
   const ref = REFEREES[Math.floor(rng() * REFEREES.length)]!
   return { weather, tempC, refName: ref.name, refCountry: ref.country, refStrictness: ref.strict }
 }

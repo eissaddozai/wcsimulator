@@ -1,6 +1,7 @@
 import { RotateCcw, Sparkles, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Flag } from './Flag'
+import { starOf } from '../engine/campaign'
 import { NATION_BY_ID, overrideOf, rankOf, ratingOf } from '../data/nations'
 import { BOOSTERS, combinedFx, type Booster } from '../engine/boosters'
 import { useStore } from '../store/store'
@@ -54,6 +55,9 @@ export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
                   <span className="name">
                     <span>
                       {n.name}
+                      {starOf(id) > 0.55 && (
+                        <span className="star-mark" title="Carries a world-class talisman"> ★</span>
+                      )}
                       {o && <span className="gold-text" title="Modified"> ●</span>}
                     </span>
                     <i
@@ -95,7 +99,9 @@ export function TeamStudioBody({ maxHeight }: { maxHeight?: string | number }) {
                     />
                   </label>
                   <button
-                    className={`btn small${boosts.length > 0 ? ' gold-line' : ' ghost'}`}
+                    className={`btn small${boosts.length > 0 ? ' gold-line' : ' ghost'}${
+                      boosts.some((x) => BOOSTERS.find((b) => b.id === x)?.group === 'Burden') ? ' burden-tint' : ''
+                    }`}
                     onClick={() => setOpen(expanded ? null : id)}
                     aria-expanded={expanded}
                   >

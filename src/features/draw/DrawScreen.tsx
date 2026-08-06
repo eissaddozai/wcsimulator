@@ -167,7 +167,9 @@ export function DrawScreen() {
                     transition={{ type: 'spring', stiffness: 260, damping: 22 }}
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}
                   >
-                  <div className={`reveal-ball${phase === 'ball' ? ' thinking' : ''}`}>
+                  <div
+                    className={`reveal-ball${phase === 'ball' ? ' thinking' : ''} ball-${(NATION_BY_ID.get(current.teamId)?.confed ?? 'uefa').toLowerCase()}`}
+                  >
                     <motion.div
                       key={phase === 'ball' ? 'b' : 'f'}
                       initial={{ rotateY: 90 }}
@@ -262,6 +264,13 @@ export function DrawScreen() {
               <h4 className={`display${skippedNow ? ' flash' : ''}`}>
                 <span className="gmedal tnum">{g}</span>
                 Group {g}
+                {boardGroups[g].every((p) => p !== null) && (
+                  <span className="div-strip" role="img" aria-label="Confederation mix">
+                    {boardGroups[g].map((p, i) => (
+                      <i key={i} className={`c-${(NATION_BY_ID.get(p!.teamId)?.confed ?? '').toLowerCase()}`} />
+                    ))}
+                  </span>
+                )}
               </h4>
               {([1, 2, 3, 4] as PotNumber[]).map((pot) => {
                 const pos = POT_TO_POSITION[pot]

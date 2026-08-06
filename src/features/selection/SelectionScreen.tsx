@@ -6,6 +6,7 @@ import { HostPicker } from '../../components/HostPicker'
 import { PlayoffTournament } from '../../components/PlayoffTournament'
 import { TeamStudio } from '../../components/TeamStudio'
 import { CONFEDS, NATIONS, NATION_BY_ID, byConfed, shortName } from '../../data/nations'
+import { starOf } from '../../engine/campaign'
 import { playoffState, playoff64State } from '../../engine/playoffs'
 import { QUAL_MODES } from '../../engine/qualification'
 import {
@@ -186,6 +187,11 @@ export function SelectionScreen() {
                 strokeDasharray={RING_C}
                 strokeDashoffset={RING_C * (1 - Math.min(ringTotal / ringTarget, 1))}
               />
+              {!simulated && (
+                <g transform={`rotate(${(directTotal / ringTarget) * 360 - 90} 50 50)`}>
+                  <line x1="92" y1="50" x2="100" y2="50" className="ring-tick" />
+                </g>
+              )}
             </svg>
             <div className="ring-center">
               <div className="ring-num display tnum">
@@ -297,6 +303,13 @@ export function SelectionScreen() {
                   className={`${tab === c && !query ? 'on' : ''}${status.counts[c] === quotas[c] ? ' filled' : ''}`}
                   onClick={() => { setTab(c); setQuery('') }}
                 >
+                  <i
+                    className="tab-ring"
+                    aria-hidden
+                    style={{
+                      background: `conic-gradient(var(--gold) ${Math.min(status.counts[c] / Math.max(quotas[c], 1), 1) * 360}deg, var(--line-2) 0)`,
+                    }}
+                  />
                   {c}
                   <span className={`seg-count tnum${status.counts[c] === quotas[c] ? ' full' : ''}`}>
                     {status.counts[c]}/{quotas[c]}
@@ -399,9 +412,29 @@ export function SelectionScreen() {
                   )}
                   <Flag id={n.id} size={26} ringed={on} />
                   <span className="nm-wrap">
-                    <span className="name">{n.name}</span>
+                    <span className="name">
+                      {query.trim()
+                        ? (() => {
+                            const q = query.trim().toLowerCase()
+                            const idx = n.name.toLowerCase().indexOf(q)
+                            if (idx < 0) return n.name
+                            return (
+                              <>
+                                {n.name.slice(0, idx)}
+                                <mark>{n.name.slice(idx, idx + q.length)}</mark>
+                                {n.name.slice(idx + q.length)}
+                              </>
+                            )
+                          })()
+                        : n.name}
+                    </span>
                     <i className="power" style={{ width: `${Math.min(Math.max((n.rating - 1000) / 1150, 0.04), 1) * 100}%` }} />
                   </span>
+                  {starOf(n.id) > 0.55 && (
+                    <span className="star-mark" role="img" aria-label="Carries a world-class talisman" title="Carries a world-class talisman">
+                      ★
+                    </span>
+                  )}
                   {isHost ? <Lock size={12} className="gold-text" aria-label="Host — locked in" /> : (
                     <span className="rank tnum">#{n.rank}</span>
                   )}

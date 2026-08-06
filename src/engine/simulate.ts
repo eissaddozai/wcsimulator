@@ -1,9 +1,10 @@
 import { NATION_BY_ID, ratingOf } from '../data/nations'
 import { combinedFx, type CombinedFx } from './boosters'
+import { starOf } from './campaign'
 import type { Rng } from './rng'
 import { makeRng } from './rng'
 import type { Weather } from './environment'
-import type { MatchEvent, MatchResult } from './types'
+import type { MatchEvent, MatchResult, MatchTag } from './types'
 
 /**
  * The match engine, in two layers:
@@ -34,6 +35,20 @@ export interface MatchContext {
   /** deterministic per-match conditions from engine/environment */
   weather?: Weather
   refStrictness?: number
+  /* — campaign systems (engine/campaign): all optional, all derived — */
+  /** live tournament form drift in rating points (±35) */
+  formHome?: number
+  formAway?: number
+  /** suspended-starter count from accumulated cards (0–3) */
+  suspHome?: number
+  suspAway?: number
+  /** MD3 desperation: −1 dead rubber … +1 must-win */
+  stakesHome?: number
+  stakesAway?: number
+  /** a derby from the rivalry table — bite, cards, and variance */
+  rivalry?: boolean
+  /** host-advantage multiplier that grows round by round */
+  hostSurge?: number
 }
 
 export const GROUP_CTX: MatchContext = { stage: 'group' }
@@ -217,9 +232,9 @@ function poissonPmf(lambda: number, k: number): number {
   return p
 }
 
-/** Dixon–Coles τ correction for the four low-score cells. */
-function tau(h: number, a: number, lh: number, la: number): number {
-  const r = rho()
+/** Dixon–Coles τ correction for the four low-score cells; knockout tension firms the draw tail. */
+function tau(h: number, a: number, lh: number, la: number, knockout = false): number {
+  const r = rho() * (knockout ? 1.18 : 1)
   if (h === 0 && a === 0) return Math.max(1 - lh * la * r, 0.05)
   if (h === 1 && a === 0) return Math.max(1 + la * r, 0.05)
   if (h === 0 && a === 1) return Math.max(1 + lh * r, 0.05)
@@ -237,6 +252,20 @@ export function expectedGoals(
   const awayBase = ratingOf(awayId)
   const H = effRatings(homeId, ctx.homeHost ?? false, ctx.homeFreshness ?? 1, awayBase, ctx.stage)
   const A = effRatings(awayId, ctx.awayHost ?? false, ctx.awayFreshness ?? 1, homeBase, ctx.stage)
+  // campaign systems: live form drift lifts or drags; suspensions dent a starting XI
+  const campaign = (S: SideRatings, form: number | undefined, susp: number | undefined, host: boolean) => {
+    const adj = (form ?? 0) - 14 * (susp ?? 0)
+    S.att += adj
+    S.def += adj
+    // the host surge: home advantage grows round by round
+    if (host && ctx.hostSurge && ctx.hostSurge > 1) {
+      const extra = MODEL.homeBoost * (ctx.hostSurge - 1) * S.fx.homeAmp
+      S.att += extra
+      S.def += extra
+    }
+  }
+  campaign(H, ctx.formHome, ctx.suspHome, ctx.homeHost ?? false)
+  campaign(A, ctx.formAway, ctx.suspAway, ctx.awayHost ?? false)
   // combined Elo-style edge from attack-vs-defense matchups
   const delta = ((H.att - A.def) + (H.def - A.att)) / 2
   const T = Math.pow(3, Math.min(Math.max(theta, 0), 2) - 1)
@@ -304,7 +333,7 @@ export function matchOdds(homeId: string, awayId: string, ctx: MatchContext, the
   const cap = goalCap()
   for (let h = 0; h <= cap; h++) {
     for (let a = 0; a <= cap; a++) {
-      const p = poissonPmf(lamHome, h) * poissonPmf(lamAway, a) * tau(h, a, lamHome, lamAway)
+      const p = poissonPmf(lamHome, h) * poissonPmf(lamAway, a) * tau(h, a, lamHome, lamAway, ctx.stage !== 'group')
       if (h > a) home += p
       else if (h === a) draw += p
       else away += p
@@ -329,7 +358,7 @@ export function detailedOdds(homeId: string, awayId: string, ctx: MatchContext, 
   const cap = goalCap()
   for (let h = 0; h <= cap; h++) {
     for (let a = 0; a <= cap; a++) {
-      const p = poissonPmf(lamHome, h) * poissonPmf(lamAway, a) * tau(h, a, lamHome, lamAway)
+      const p = poissonPmf(lamHome, h) * poissonPmf(lamAway, a) * tau(h, a, lamHome, lamAway, ctx.stage !== 'group')
       total += p
       lines.push({ h, a, p })
       if (h > a) home += p
@@ -388,15 +417,17 @@ function timeCurve(min: number): number {
   return 0.82 + (half / 45) * 0.36
 }
 
-/** How the goal arrived — weighted like real tournament football. */
-function goalDetail(rng: Rng, diff: number): import('./types').GoalDetail {
+/** How the goal arrived — weighted like real tournament football. Pressure breeds own goals. */
+function goalDetail(rng: Rng, diff: number, underPressure = false): import('./types').GoalDetail {
   const r = rng()
   const counterW = diff > 0 ? 0.1 + 0.1 * MODEL.counterTendency : 0.1
-  if (r < 0.035) return 'og'
-  if (r < 0.035 + 0.19) return 'header'
-  if (r < 0.035 + 0.19 + 0.12) return 'setpiece'
-  if (r < 0.035 + 0.19 + 0.12 + 0.09) return 'longrange'
-  if (r < 0.035 + 0.19 + 0.12 + 0.09 + counterW) return 'counter'
+  const ogW = underPressure ? 0.06 : 0.03
+  if (r < ogW) return 'og'
+  if (r < ogW + 0.18) return 'header'
+  if (r < ogW + 0.18 + 0.1) return 'setpiece'
+  if (r < ogW + 0.18 + 0.1 + 0.05) return 'freekick'
+  if (r < ogW + 0.18 + 0.1 + 0.05 + 0.09) return 'longrange'
+  if (r < ogW + 0.18 + 0.1 + 0.05 + 0.09 + counterW) return 'counter'
   return 'openplay'
 }
 
@@ -406,6 +437,12 @@ interface SideState {
   red: boolean
   xg: number
   shots: number
+  /** knocks suffered — each one saps the legs a little */
+  knocks: number
+  /** substitutions made (max 3) — fresh legs slow the late fade */
+  subs: number
+  /** minutes at which this side conceded — feeds the panic response */
+  concededAt: number[]
 }
 
 /**
@@ -431,63 +468,116 @@ export function simulateMatch(
     if (lamHome < lamAway) lamHome *= 1.6
     else lamAway *= 1.6 // the underdog catches fire
   }
+  // a derby carries its own weather — bite, noise, variance
+  if (ctx.rivalry) {
+    const tilt = 0.96 + rng() * 0.08
+    lamHome *= 1.04 * tilt
+    lamAway *= 1.04 * (2 - tilt)
+  }
+  // giant nerves, auto-contextual: colossal knockout favorites tighten on their own
+  if (knockout && Math.abs(edge) > 1.0) {
+    if (edge > 0) lamHome *= 0.97
+    else lamAway *= 0.97
+  }
+  // MD3 stakes: a must-win side pushes; a safe side rotates
+  const stakeMood = (s: number | undefined) => (s === undefined ? 1 : 1 + 0.1 * s)
+  lamHome *= stakeMood(ctx.stakesHome)
+  lamAway *= stakeMood(ctx.stakesAway)
 
   const events: MatchEvent[] = []
-  const home: SideState = { goals: 0, yellows: new Set(), red: false, xg: 0, shots: 0 }
-  const away: SideState = { goals: 0, yellows: new Set(), red: false, xg: 0, shots: 0 }
+  const home: SideState = { goals: 0, yellows: new Set(), red: false, xg: 0, shots: 0, knocks: 0, subs: 0, concededAt: [] }
+  const away: SideState = { goals: 0, yellows: new Set(), red: false, xg: 0, shots: 0, knocks: 0, subs: 0, concededAt: [] }
   const cap = goalCap()
+  const starH = starOf(homeId)
+  const starA = starOf(awayId)
 
   // hazards per side-minute: intrinsic cards, the referee's temperament, the Lab's dial
   const refTemper = 1 + ((ctx.refStrictness ?? 1) - 1) * MODEL.refInfluence
-  const yellowHazard = MODEL.yellowRate * refTemper
+  const baseYellowHazard = MODEL.yellowRate * refTemper * (ctx.rivalry ? 1.35 : 1)
   const directRedHazard = (MODEL.redCardRate / 95) * refTemper // per-match probability, spread over the minutes
 
-  const playMinute = (min: number, intensity: number) => {
-    const curve = timeCurve(Math.min(min, 90)) * intensity
-    for (const [side, opp, lam, st, ost, fx] of [
-      ['home', 'away', lamHome, home, away, H.fx],
-      ['away', 'home', lamAway, away, home, A.fx],
+  // the match's moving parts: momentum, referee flashpoints, red-card shock
+  let mom = 0 // −1 away storm … +1 home storm
+  const momLog: number[] = []
+  let heatUntil = 0 // cards breed cards for a spell
+  let shockUntil = 0 // a red chills the game for five minutes
+  const flashpoint = (min: number) => {
+    heatUntil = min + 8
+  }
+
+  const playMinute = (min: number, intensity: number, plus = 0) => {
+    mom *= 0.93
+    let curve = timeCurve(Math.min(min, 90)) * intensity
+    if (min < shockUntil) curve *= 0.85 // the shock of a sending-off
+    const cardHeat = min < heatUntil ? (refTemper > 1 ? 1.7 : 1.25) : 1
+    for (const [side, lam, st, ost, fx, star] of [
+      ['home', lamHome, home, away, H.fx, starH],
+      ['away', lamAway, away, home, A.fx, starA],
     ] as const) {
-      // score-state momentum: chasers push, leaders shell and counter
+      const sideSign = side === 'home' ? 1 : -1
+      // score-state mood: chasers push, leaders shell and counter
       const diff = st.goals - ost.goals
       let mood = 1
       if (diff < 0) {
-        // one or two down: chase. Three or more down: heads drop.
         mood =
           -diff <= 2
             ? 1 + (min > 60 ? 0.3 : 0.15) * MODEL.chaseIntensity
             : 1 - 0.15 * MODEL.demoralization
       } else if (diff > 0) {
-        // game management: the bigger the lead, the harder the foot comes off the gas
         const eased = [1, 0.85, 0.7, 0.56, 0.45][Math.min(diff, 4)]!
         mood = 1 - (1 - eased) * MODEL.mercyRule
       }
+      // momentum rides with the side that's storming
+      mood *= Math.min(Math.max(1 + 0.22 * mom * sideSign, 0.75), 1.3)
+      // the panic response: two conceded inside ten minutes rattles the defense
+      const oppPanicked = ost.concededAt.filter((m) => min - m <= 10).length >= 2
+      if (oppPanicked) mood *= 1.15
       // numbers down
       let numbers = 1
       if (st.red) numbers *= 1 - 0.32 * MODEL.redImpact
       if (ost.red) numbers *= 1 + 0.18 * MODEL.redImpact
-      // legs: after the hour, tired sides fade unless the bench is deep
-      let legs = min > 60 ? 1 - 0.1 * (1 - Math.max(fx.stamina, 0)) * ((min - 60) / 30) : 1
+      // legs: fatigue, knocks, and the bench — subs slow the fade
+      const bench = Math.max(fx.stamina, 0) + st.subs * 0.05
+      let legs = min > 60 ? 1 - 0.1 * (1 - Math.min(bench, 0.9)) * ((min - 60) / 30) : 1
+      legs *= 1 - 0.05 * st.knocks
       if (min > 90) legs *= 1 - 0.15 * MODEL.etFatigue * ((min - 90) / 30)
-      const pShot = (lam / 93) * 3.1 * curve * mood * numbers * legs
+      // late rain: the pitch slickens after the hour
+      const slick = ctx.weather === 'rain' && min > 60 ? 1.05 * MODEL.weatherInfluence ** 0.5 : 1
+      const pShot = (lam / 93) * 3.1 * curve * mood * numbers * legs * slick
       if (rng() < pShot) {
         st.shots++
         let chanceQuality = Math.min(0.08 + -Math.log(1 - rng()) * 0.14, 0.85) // sampled xG
-        // leading sides sharpen on the break
         if (diff > 0) chanceQuality = Math.min(chanceQuality * (1 + 0.08 * MODEL.counterTendency), 0.88)
+        // the talisman decides late moments
+        if (min >= 78) chanceQuality = Math.min(chanceQuality * (1 + 0.12 * star), 0.9)
         st.xg += chanceQuality
-        // conversion follows chance quality, calibrated so E[goals] tracks λ;
-        // conversion fatigue: past a third goal the box packs and finishing regresses
         const convFade = Math.pow(1 - 0.12 * MODEL.convFatigue, Math.max(0, st.goals - 2))
-        if (st.goals < cap && rng() < Math.min(chanceQuality * 1.48 * convFade, 0.9)) {
-          st.goals++
-          events.push({ min, side, type: 'goal', detail: goalDetail(rng, diff) })
+        const slickConv = ctx.weather === 'rain' && min > 60 ? 0.96 : 1
+        if (st.goals < cap && rng() < Math.min(chanceQuality * 1.48 * convFade * slickConv, 0.9)) {
+          // VAR: some of these don't survive the review
+          if (rng() < 0.035) {
+            events.push({ min, plus: plus || undefined, side, type: 'var', xg: Math.round(chanceQuality * 100) / 100 })
+          } else {
+            st.goals++
+            ost.concededAt.push(min)
+            mom = Math.min(Math.max(mom + 0.6 * sideSign, -1), 1)
+            events.push({
+              min,
+              plus: plus || undefined,
+              side,
+              type: 'goal',
+              detail: goalDetail(rng, diff, oppPanicked),
+              xg: Math.round(chanceQuality * 100) / 100,
+            })
+          }
         } else {
-          // the one that didn't go in — worth remembering?
           const miss = rng()
-          if (miss < MODEL.woodworkRate) events.push({ min, side, type: 'woodwork' })
-          else if (chanceQuality > 0.3 && miss < MODEL.woodworkRate + 0.5 * MODEL.saveDrama)
-            events.push({ min, side, type: 'bigsave' })
+          if (miss < MODEL.woodworkRate) events.push({ min, plus: plus || undefined, side, type: 'woodwork' })
+          else if (chanceQuality > 0.42 && miss < MODEL.woodworkRate + 0.35) {
+            mom = Math.min(Math.max(mom - 0.12 * sideSign, -1), 1) // the big one that got away
+            events.push({ min, plus: plus || undefined, side, type: 'miss', xg: Math.round(chanceQuality * 100) / 100 })
+          } else if (chanceQuality > 0.3 && miss < MODEL.woodworkRate + 0.35 + 0.5 * MODEL.saveDrama)
+            events.push({ min, plus: plus || undefined, side, type: 'bigsave' })
         }
       }
       // an in-game penalty: won in the box, taken from the spot
@@ -497,31 +587,68 @@ export function simulateMatch(
         const conv = Math.min(Math.max(MODEL.penBase + fx.pens, 0.5), 0.95)
         if (st.goals < cap && rng() < conv) {
           st.goals++
-          events.push({ min, side, type: 'goal', detail: 'pen' })
+          ost.concededAt.push(min)
+          mom = Math.min(Math.max(mom + 0.6 * sideSign, -1), 1)
+          events.push({ min, plus: plus || undefined, side, type: 'goal', detail: 'pen', xg: 0.78 })
         } else {
-          events.push({ min, side, type: 'penmiss' })
+          mom = Math.min(Math.max(mom - 0.15 * sideSign, -1), 1)
+          events.push({ min, plus: plus || undefined, side, type: 'penmiss' })
         }
       }
-      // discipline
-      if (rng() < yellowHazard) {
+      // knocks: heavy legs invite injuries, and every knock saps the side
+      if (rng() < 0.0011 * (min > 55 ? 1.4 : 1)) {
+        st.knocks++
+        events.push({ min, plus: plus || undefined, side, type: 'injury' })
+      }
+      // the bench: half-time changes, the hour, and the final roll
+      if (st.subs < 3 && plus === 0) {
+        const window =
+          (min === 46 && rng() < 0.5) || (min === 64 && rng() < 0.8) || (min === 82 && rng() < 0.65)
+        if (window) {
+          st.subs++
+          events.push({ min, side, type: 'sub' })
+        }
+      }
+      // discipline — flashpoints breed cards
+      if (rng() < baseYellowHazard * cardHeat) {
         const player = 1 + Math.floor(rng() * 11)
+        flashpoint(min)
         if (st.yellows.has(player) && !st.red) {
           st.red = true
-          events.push({ min, side, type: 'red' }) // second yellow — off he goes
+          shockUntil = min + 5
+          mom = Math.min(Math.max(mom - 0.4 * sideSign, -1), 1)
+          events.push({ min, plus: plus || undefined, side, type: 'red' }) // second yellow — off he goes
         } else {
           st.yellows.add(player)
-          events.push({ min, side, type: 'yellow' })
+          events.push({ min, plus: plus || undefined, side, type: 'yellow' })
         }
       } else if (!st.red && rng() < directRedHazard) {
         st.red = true
-        events.push({ min, side, type: 'red' })
+        flashpoint(min)
+        shockUntil = min + 5
+        mom = Math.min(Math.max(mom - 0.4 * sideSign, -1), 1)
+        events.push({ min, plus: plus || undefined, side, type: 'red' })
       }
-      void opp
-      void side
     }
+    if (min % 5 === 0 && plus === 0) momLog.push(Math.round(mom * 100) / 100)
   }
 
-  for (let min = 1; min <= 90; min++) playMinute(min, 1)
+  // the ninety, with real stoppage time at the end of each half
+  const eventCountAt = () => events.length
+  let firstHalfEvents = 0
+  for (let min = 1; min <= 90; min++) {
+    playMinute(min, 1)
+    if (min === 45) {
+      firstHalfEvents = eventCountAt()
+      const added = Math.min(1 + Math.floor(firstHalfEvents / 4) + (rng() < 0.4 ? 1 : 0), 5)
+      for (let k = 1; k <= added; k++) playMinute(45, 1, k)
+    }
+    if (min === 90) {
+      const secondHalfEvents = eventCountAt() - firstHalfEvents
+      const added = Math.min(2 + Math.floor(secondHalfEvents / 4) + (rng() < 0.5 ? 1 : 0), 7)
+      for (let k = 1; k <= added; k++) playMinute(90, 1, k)
+    }
+  }
 
   const result: MatchResult = {
     score: { home: home.goals, away: away.goals },
@@ -544,7 +671,12 @@ export function simulateMatch(
     result.score = { home: h0, away: a0 }
     decided = home.goals !== away.goals
     if (!decided) {
-      const so = shootout(edge, H, A, rng)
+      const so = shootout(edge, H, A, rng, {
+        starH,
+        starA,
+        hostH: ctx.homeHost ?? false,
+        hostA: ctx.awayHost ?? false,
+      })
       result.pens = { home: so.home, away: so.away }
       result.pensDetail = { home: so.seqHome, away: so.seqAway }
     }
@@ -559,7 +691,61 @@ export function simulateMatch(
     shotsAway: away.shots,
     possHome: Math.round((0.5 + (possBase - 0.5) * 0.72) * 100) / 100,
   }
+  result.momentum = momLog
+  result.tags = computeTags(result, home, away, edge, ctx.rivalry ?? false, events)
   return result
+}
+
+/** The match labels itself: rout, thriller, comeback, shock, smash-and-grab, siege… */
+function computeTags(
+  r: MatchResult,
+  home: SideState,
+  away: SideState,
+  edge: number,
+  rivalry: boolean,
+  events: MatchEvent[],
+): MatchTag[] {
+  const tags: MatchTag[] = []
+  const h = (r.score.home ?? 0) + (r.et?.home ?? 0)
+  const a = (r.score.away ?? 0) + (r.et?.away ?? 0)
+  const margin = Math.abs(h - a)
+  const total = h + a
+  const winnerSide: 'home' | 'away' | null =
+    h > a ? 'home' : a > h ? 'away' : r.pens && r.pens.home !== r.pens.away ? (r.pens.home! > r.pens.away! ? 'home' : 'away') : null
+
+  // replay the goals to find the winner's deepest deficit and the decisive minute
+  let hs = 0
+  let as = 0
+  let deepest = 0
+  let lastGoalMin = 0
+  for (const e of events) {
+    if (e.type !== 'goal') continue
+    if (e.side === 'home') hs++
+    else as++
+    lastGoalMin = e.min + (e.plus ?? 0) / 10
+    if (winnerSide === 'home') deepest = Math.max(deepest, as - hs)
+    if (winnerSide === 'away') deepest = Math.max(deepest, hs - as)
+  }
+
+  if (rivalry) tags.push('derby')
+  if (margin >= 4) tags.push('rout')
+  if (winnerSide && deepest >= 2) tags.push('comeback')
+  if (winnerSide && margin === 1 && lastGoalMin >= 85) tags.push('late-show')
+  if (total >= 5 && margin <= 1) tags.push('thriller')
+  if (winnerSide && Math.abs(edge) > 0.55) {
+    const favorite = edge > 0 ? 'home' : 'away'
+    if (winnerSide !== favorite) tags.push('shock')
+  }
+  if (winnerSide) {
+    const wXg = winnerSide === 'home' ? home.xg : away.xg
+    const lXg = winnerSide === 'home' ? away.xg : home.xg
+    const wShots = winnerSide === 'home' ? home.shots : away.shots
+    const lShots = winnerSide === 'home' ? away.shots : home.shots
+    if (lXg - wXg > 0.8) tags.push('smash-and-grab')
+    else if (lShots - wShots >= 8) tags.push('siege')
+  }
+  if (r.pensDetail && r.pensDetail.home.length >= 8) tags.push('marathon')
+  return tags.slice(0, 3)
 }
 
 function shootout(
@@ -567,33 +753,54 @@ function shootout(
   H: SideRatings,
   A: SideRatings,
   rng: Rng,
+  opts: { starH: number; starA: number; hostH: boolean; hostA: boolean } = {
+    starH: 0,
+    starA: 0,
+    hostH: false,
+    hostA: false,
+  },
 ): { home: number; away: number; seqHome: boolean[]; seqAway: boolean[] } {
-  const clamp = (x: number) => Math.min(Math.max(x, 0.5), 0.95)
+  const clamp = (x: number) => Math.min(Math.max(x, 0.45), 0.96)
   const keeperH = MODEL.penKeeperWeight * Math.tanh((H.att - A.def) / 175)
   const keeperA = MODEL.penKeeperWeight * Math.tanh((A.att - H.def) / 175)
-  const pHome = clamp(MODEL.penBase + MODEL.penPressure * Math.tanh(edge) + H.fx.pens + keeperH)
-  const pAway = clamp(MODEL.penBase - MODEL.penPressure * Math.tanh(edge) + A.fx.pens + keeperA)
+  const baseHome =
+    MODEL.penBase + MODEL.penPressure * Math.tanh(edge) + H.fx.pens + keeperH + (opts.hostH ? 0.015 : 0)
+  const baseAway =
+    MODEL.penBase - MODEL.penPressure * Math.tanh(edge) + A.fx.pens + keeperA + (opts.hostA ? 0.015 : 0)
   const seqHome: boolean[] = []
   const seqAway: boolean[] = []
+  // kick psychology: the star opens above base, kicks 4–5 sag, sudden death decays,
+  // and a keeper who just saved flies for the next one
+  const kickP = (base: number, kick: number, star: number, keeperJustSaved: boolean): number => {
+    let p = base
+    if (kick === 1) p += 0.04 + 0.03 * star
+    if (kick === 4 || kick === 5) p -= 0.05
+    if (kick > 5) p -= 0.012 * (kick - 5)
+    if (keeperJustSaved) p -= 0.04
+    return clamp(p)
+  }
   let h = 0
   let a = 0
-  for (let round = 1; round <= 5; round++) {
-    const sh = rng() < pHome
-    const sa = rng() < pAway
+  let keeperHomeHot = false // the away keeper saved home's last kick
+  let keeperAwayHot = false
+  const kick = (round: number): { sh: boolean; sa: boolean } => {
+    const sh = rng() < kickP(baseHome, round, opts.starH, keeperHomeHot)
+    const sa = rng() < kickP(baseAway, round, opts.starA, keeperAwayHot)
+    keeperHomeHot = !sh
+    keeperAwayHot = !sa
     seqHome.push(sh)
     seqAway.push(sa)
     if (sh) h++
     if (sa) a++
+    return { sh, sa }
+  }
+  for (let round = 1; round <= 5; round++) {
+    kick(round)
     const remaining = 5 - round
     if (h > a + remaining || a > h + remaining) return { home: h, away: a, seqHome, seqAway }
   }
-  for (let round = 0; round < 30; round++) {
-    const sh = rng() < pHome
-    const sa = rng() < pAway
-    seqHome.push(sh)
-    seqAway.push(sa)
-    if (sh) h++
-    if (sa) a++
+  for (let round = 6; round < 36; round++) {
+    const { sh, sa } = kick(round)
     if (sh !== sa) return { home: h, away: a, seqHome, seqAway }
   }
   if (rng() < 0.5) {

@@ -1,4 +1,5 @@
 import { BASE_QUOTA, NATIONS, NATION_BY_ID, byConfed, rankOf, ratingOf } from '../data/nations'
+import { QUAL_FLAVOR } from './campaign'
 import { PLAYOFF64_SPEC, seatCanExist } from './playoffs'
 import type { Rng } from './rng'
 import { beta, gumbel } from './rng'
@@ -87,7 +88,7 @@ export function completeQualification(
 ): QualificationOutcome {
   const picked = new Set(partial)
   for (const h of hosts) picked.add(h)
-  const log: string[] = []
+  const log: string[] = [QUAL_FLAVOR[mode] ?? '']
   const quotas = quotasFor(format)
   const name = (id: string | undefined) => (id ? NATION_BY_ID.get(id)?.name ?? id : '?')
 

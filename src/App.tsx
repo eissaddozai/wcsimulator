@@ -13,6 +13,7 @@ import { LabScreen } from './features/lab/LabScreen'
 import { LandingScreen } from './features/landing/LandingScreen'
 import { SeedingScreen } from './features/seeding/SeedingScreen'
 import { SelectionScreen } from './features/selection/SelectionScreen'
+import { groupMatchCountFor, koRangeFor } from './engine/schedule'
 import { STEP_ORDER, stepGates, useStore, type Step } from './store/store'
 
 const STEP_LABELS: Record<Step, string> = {
@@ -99,6 +100,21 @@ export default function App() {
   }, [theme])
 
   const gates = stepGates({ entries, playoffTeams, playoffResults, hosts, pots, drawTrace, results, format })
+
+  // 75 · the active step shows how far along it is
+  const stepProgress = useMemo((): number | null => {
+    if (step === 'groups') {
+      const total = groupMatchCountFor(format)
+      const done = Object.keys(results).filter((k) => Number(k) <= total).length
+      return total ? done / total : null
+    }
+    if (step === 'knockout') {
+      const [from, to] = koRangeFor(format)
+      const done = Object.keys(results).filter((k) => Number(k) >= from && Number(k) <= to).length
+      return done / (to - from + 1)
+    }
+    return null
+  }, [step, results, format])
   const gateFor = (s: Step): boolean => {
     if (s === 'landing' || s === 'lab' || s === 'teams') return true
     if (s === 'pots') return gates.pots
@@ -179,7 +195,14 @@ export default function App() {
                 title={open ? STEP_LABELS[s] : 'Complete the earlier steps first'}
               >
                 <span className="disc tnum">{done ? '✓' : i + 1}</span>
-                <span className="lbl">{STEP_LABELS[s]}</span>
+                <span className="lbl">
+                  {STEP_LABELS[s]}
+                  {active && stepProgress !== null && (
+                    <i className="step-prog" aria-hidden>
+                      <b style={{ transform: `scaleX(${stepProgress})` }} />
+                    </i>
+                  )}
+                </span>
                 {i < STEP_ORDER.length - 1 && <i className={`step-link${done ? ' filled' : ''}`} aria-hidden />}
               </button>
             )
@@ -241,6 +264,11 @@ export default function App() {
                 </div>
                 <button className="btn ghost small" style={{ justifyContent: 'flex-start' }} onClick={saveCurrentRun}>
                   <Save size={14} /> Save run as…
+                  {crowned && (
+                    <span style={{ marginLeft: 'auto' }} title="A champion is crowned — worth saving">
+                      <Flag id={currentChampion()!} size={15} />
+                    </span>
+                  )}
                 </button>
                 {runs.length > 0 && (
                   <div className="archive">

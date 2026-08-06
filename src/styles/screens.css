@@ -5602,3 +5602,286 @@ table.standings td:nth-child(7) {
   stroke: color-mix(in srgb, var(--gold) 35%, transparent);
   stroke-width: 1.5;
 }
+
+/* ————— Round Three: surfacing the simulation systems ————— */
+/* confederation palette */
+:root {
+  --c-uefa: #6ea8d8;
+  --c-conmebol: #4ca96e;
+  --c-concacaf: #d2b064;
+  --c-caf: #c9973f;
+  --c-afc: #d06a5c;
+  --c-ofc: #8a7cc9;
+}
+.c-uefa { background: var(--c-uefa); }
+.c-conmebol { background: var(--c-conmebol); }
+.c-concacaf { background: var(--c-concacaf); }
+.c-caf { background: var(--c-caf); }
+.c-afc { background: var(--c-afc); }
+.c-ofc { background: var(--c-ofc); }
+
+/* 55/56/78 · result tags */
+.tag-chip {
+  font-size: 7.5px;
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--line-2);
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+.tag-chip.t-shock { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
+.tag-chip.t-comeback { color: var(--pos-adv); border-color: color-mix(in srgb, var(--pos-adv) 55%, transparent); }
+.tag-chip.t-thriller,
+.tag-chip.t-late-show { color: var(--pos-third); border-color: color-mix(in srgb, var(--pos-third) 55%, transparent); }
+.tag-chip.t-rout { color: var(--gold); border-color: var(--gold-dim); }
+.tag-chip.t-smash-and-grab,
+.tag-chip.t-siege,
+.tag-chip.t-marathon { color: var(--c-uefa); border-color: color-mix(in srgb, var(--c-uefa) 55%, transparent); }
+
+/* 52/53/54 · new minute-axis markers */
+.tl-ico.injury { background: var(--danger); clip-path: polygon(40% 0, 60% 0, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0 60%, 0 40%, 40% 40%); border-radius: 0; }
+.tl-ico.sub { background: var(--pos-adv); clip-path: polygon(50% 0, 100% 50%, 65% 50%, 65% 100%, 35% 100%, 35% 50%, 0 50%); border-radius: 0; }
+.tl-ico.var { background: var(--pos-third); border-radius: 2px; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--pos-third) 50%, transparent); }
+.tl-ico.miss { background: transparent; border: 1.5px dashed var(--text-low); }
+.ma-event.var::after {
+  content: 'VAR';
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--pos-third);
+}
+
+/* 57 · suspension burden */
+.susp-chip {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+/* 58/81 · live form arrows */
+.form-arrow {
+  font-style: normal;
+  font-size: 9px;
+  margin-left: 4px;
+  vertical-align: 2px;
+}
+.form-arrow.up { color: var(--pos-adv); }
+.form-arrow.down { color: var(--danger); }
+/* 59 · the momentum worm */
+.mom-worm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-1);
+  border-radius: 10px;
+}
+.mom-worm .low { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; }
+.mom-worm svg { flex: 1; height: 30px; }
+.mw-axis { stroke: var(--line-1); stroke-width: 1; }
+.mw-line { fill: none; stroke: var(--gold); stroke-width: 1.6; stroke-linejoin: round; opacity: 0.85; }
+/* 60 · the talisman */
+.star-mark { color: var(--gold); font-size: 11px; flex: none; text-shadow: 0 0 8px color-mix(in srgb, var(--gold) 50%, transparent); }
+/* 61 · derby ribbon */
+.derby-ribbon {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border-radius: 3px;
+  padding: 2px 7px;
+}
+/* 63/64 · report ledger: new icons + xG chips */
+.rc-ico.injury { background: var(--danger); }
+.rc-ico.sub { background: var(--pos-adv); }
+.rc-ico.var { background: var(--pos-third); }
+.rc-ico.miss { background: transparent; border: 1.5px dashed var(--text-low); }
+.rc-line.var .rc-text { text-decoration: line-through color-mix(in srgb, var(--pos-third) 65%, transparent); }
+.rc-xg {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--text-low);
+  border: 1px solid var(--line-1);
+  border-radius: 999px;
+  padding: 0 6px;
+  margin-left: auto;
+}
+.rc-title { display: flex; align-items: baseline; gap: 10px; }
+.rc-range { margin-left: auto; font-size: 10px; color: var(--text-low); }
+/* 92 · the standfirst opens like print */
+.report-standfirst::first-letter {
+  font-size: 34px;
+  float: left;
+  line-height: 0.9;
+  padding-right: 6px;
+  color: var(--gold);
+  font-style: normal;
+}
+/* 65/66 · shootout: sudden death + the hot keeper */
+.sd-label { font-size: 9px; letter-spacing: 0.14em; color: var(--pos-third); margin-left: 8px; }
+.so-kick.sd { filter: saturate(1.2); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pos-third) 35%, transparent); }
+.so-kick.hot { box-shadow: 0 0 8px var(--danger), inset 0 0 0 1px var(--danger); }
+/* 67/68/93 · theater additions */
+.clock-plus { color: var(--pos-third); }
+.th-goal-toast {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  text-shadow: 0 0 14px var(--gold);
+  animation: footer-rise 300ms both;
+}
+.theater-board { position: relative; }
+.th-mom {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-1);
+  margin: 4px 12px 0;
+  overflow: hidden;
+}
+.th-mom i {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 26%;
+  margin-left: -13%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  transition: transform 400ms cubic-bezier(0.2, 0, 0, 1);
+}
+/* 69 · form guide dots */
+.form-dots { display: inline-flex; gap: 2px; margin-left: 4px; flex: none; }
+.form-dots i { width: 5px; height: 5px; border-radius: 999px; }
+.form-dots .fd-w { background: var(--pos-adv); }
+.form-dots .fd-d { background: var(--text-low); }
+.form-dots .fd-l { background: var(--danger); }
+/* 71 · openable nodes advertise it */
+.ko-node:not(.ghost):hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent), 0 8px 24px -14px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+/* 72 · the ball wears its confederation */
+.reveal-ball.ball-uefa { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-uefa) 55%, transparent); }
+.reveal-ball.ball-conmebol { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-conmebol) 55%, transparent); }
+.reveal-ball.ball-concacaf { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-concacaf) 55%, transparent); }
+.reveal-ball.ball-caf { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-caf) 55%, transparent); }
+.reveal-ball.ball-afc { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-afc) 55%, transparent); }
+.reveal-ball.ball-ofc { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-ofc) 55%, transparent); }
+/* 73 · tab progress rings */
+.tab-ring {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  margin-right: 6px;
+  -webkit-mask: radial-gradient(circle, transparent 40%, #000 42%);
+  mask: radial-gradient(circle, transparent 40%, #000 42%);
+}
+/* 74 · medallion glint */
+.setup-card .icon { position: relative; overflow: hidden; }
+.setup-card:hover .icon::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.25) 50%, transparent 58%);
+  animation: glint 700ms ease-out;
+}
+@keyframes glint { from { transform: translateX(-70%); } to { transform: translateX(70%); } }
+/* 75 · the active step's micro progress */
+.step-prog {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line-1);
+  margin-top: 2px;
+  overflow: hidden;
+}
+.step-prog b { display: block; height: 100%; background: var(--gold); transform-origin: left; transition: transform 300ms; }
+/* 76 · matchday in play */
+.md-live {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pos-adv);
+  margin-right: 5px;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+/* 77 · the trophy column halo */
+.bcenter { position: relative; }
+.bcenter::before {
+  content: '';
+  position: absolute;
+  inset: -20px 8px;
+  background: radial-gradient(50% 40% at 50% 30%, color-mix(in srgb, var(--gold) 7%, transparent), transparent 75%);
+  pointer-events: none;
+}
+/* 80 · fixture side accents */
+.fixture .side { border-left: 2px solid color-mix(in srgb, var(--line-2) 60%, transparent); padding-left: 6px; }
+.fixture .side.away { border-left: none; border-right: 2px solid color-mix(in srgb, var(--line-2) 60%, transparent); padding-right: 6px; }
+/* 82 · burdened boosters */
+.burden-tint { border-color: color-mix(in srgb, var(--danger) 45%, transparent) !important; }
+/* 84 · quota boundary tick on the ring */
+.ring-tick { stroke: var(--pos-third); stroke-width: 2; }
+/* 85 · search matches light up */
+.team-card mark {
+  background: color-mix(in srgb, var(--gold) 30%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+/* 86 · confed micro-dots */
+.confed-dot { width: 7px; height: 7px; border-radius: 999px; flex: none; opacity: 0.8; }
+/* 87 · draw-board diversity strip */
+.div-strip { display: inline-flex; gap: 3px; margin-left: 8px; }
+.div-strip i { width: 6px; height: 6px; border-radius: 999px; }
+/* 88 · sealed groups show their qualified pair */
+.sealed-flags { display: inline-flex; gap: 3px; margin-left: 8px; }
+/* 94 · thirds group chips tint gold */
+.thirds-row .chip { border-color: var(--gold-dim); color: var(--gold); }
+/* 96 · the pulse rides along */
+.pulse-strip.tiles { position: sticky; top: 8px; z-index: 7; backdrop-filter: blur(8px); }
+/* 97 · ghost nodes shimmer while they wait */
+.ko-node.ghost { position: relative; overflow: hidden; }
+.ko-node.ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 44%, color-mix(in srgb, var(--text-hi) 3.5%, transparent) 50%, transparent 56%);
+  animation: ghost-shimmer 3.6s ease-in-out infinite;
+}
+@keyframes ghost-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+/* 98 · light theme keeps the LED and axis legible */
+:root[data-theme='light'] .report-led,
+:root[data-theme='light'] .score-plate input { color: #74591f; text-shadow: none; }
+:root[data-theme='light'] .ma-grid i { background: #d5d0c0; }
+:root[data-theme='light'] .mw-line { stroke: #8a6d2f; }
+/* 99 · reduced motion stills every new animation */
+@media (prefers-reduced-motion: reduce) {
+  .md-live,
+  .live-dot,
+  .th-mom i,
+  .ko-node.ghost::after,
+  .trophy-medal:not(.won)::before,
+  .trophy-medal:not(.won)::after,
+  .champion::after,
+  .thirds-row.provisional,
+  .reveal-idle,
+  .landing-globe,
+  .setup-card:hover .icon::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

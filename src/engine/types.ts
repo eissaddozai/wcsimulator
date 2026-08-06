@@ -43,14 +43,30 @@ export function isScored(r: MatchResult): boolean {
   return r.score.home !== null && r.score.away !== null
 }
 
-export type GoalDetail = 'openplay' | 'header' | 'setpiece' | 'counter' | 'longrange' | 'pen' | 'og'
+export type GoalDetail = 'openplay' | 'header' | 'setpiece' | 'freekick' | 'counter' | 'longrange' | 'pen' | 'og'
+
+/** Self-computed labels a simulated match wears — routs, comebacks, shocks, sieges. */
+export type MatchTag =
+  | 'rout'
+  | 'thriller'
+  | 'comeback'
+  | 'late-show'
+  | 'shock'
+  | 'smash-and-grab'
+  | 'siege'
+  | 'derby'
+  | 'marathon'
 
 export interface MatchEvent {
   min: number
+  /** stoppage-time offset: min 45 + plus 2 renders as 45+2′ */
+  plus?: number
   side: 'home' | 'away'
-  type: 'goal' | 'yellow' | 'red' | 'bigsave' | 'woodwork' | 'penmiss'
+  type: 'goal' | 'yellow' | 'red' | 'bigsave' | 'woodwork' | 'penmiss' | 'injury' | 'sub' | 'var' | 'miss'
   /** how a goal arrived — feeds the match report's prose */
   detail?: GoalDetail
+  /** chance quality of a goal or big miss — the 0.06 screamer vs the 0.90 tap-in */
+  xg?: number
 }
 
 export interface MatchStats {
@@ -72,6 +88,10 @@ export interface MatchResult {
   /** minute-engine output: goals and cards with minutes (simulated matches only) */
   events?: MatchEvent[]
   stats?: MatchStats
+  /** self-computed story labels (rout, comeback, shock, …) */
+  tags?: MatchTag[]
+  /** momentum samples every five minutes, −1 (away storm) … +1 (home storm) */
+  momentum?: number[]
   /** participant snapshot when the score was entered — knockout invalidation (stale detection) */
   enteredFor?: [string, string]
 }

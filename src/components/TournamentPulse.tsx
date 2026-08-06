@@ -27,11 +27,17 @@ export function TournamentPulse({
     let aet = 0
     let pens = 0
     let upsets = 0
+    let vars = 0
+    let injuries = 0
     let biggest: { margin: number; label: string; home: string; away: string } | null = null
 
     const consume = (home: string, away: string, r: MatchResult) => {
       if (!isScored(r)) return
       played++
+      for (const e of r.events ?? []) {
+        if (e.type === 'var') vars++
+        if (e.type === 'injury') injuries++
+      }
       const h = r.score.home! + (r.et?.home ?? 0)
       const a = r.score.away! + (r.et?.away ?? 0)
       goals += h + a
@@ -65,6 +71,8 @@ export function TournamentPulse({
       aet,
       pens,
       upsets,
+      vars,
+      injuries,
       biggest: biggest as { margin: number; label: string; home: string; away: string } | null,
     }
   }, [groups, bracket, results, format])
@@ -110,6 +118,22 @@ export function TournamentPulse({
         </b>
         <i>shootout{pulse.pens === 1 ? '' : 's'}</i>
       </span>
+      {pulse.vars > 0 && (
+        <span className="pulse-tile tnum">
+          <b>
+            <NumberFlow value={pulse.vars} />
+          </b>
+          <i>VAR reversal{pulse.vars === 1 ? '' : 's'}</i>
+        </span>
+      )}
+      {pulse.injuries > 0 && (
+        <span className="pulse-tile tnum">
+          <b>
+            <NumberFlow value={pulse.injuries} />
+          </b>
+          <i>injur{pulse.injuries === 1 ? 'y' : 'ies'}</i>
+        </span>
+      )}
       {pulse.biggest && (
         <span className="pulse-tile record">
           <i>record win</i>
