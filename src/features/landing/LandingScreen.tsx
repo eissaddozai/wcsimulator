@@ -34,6 +34,30 @@ export function LandingScreen() {
         Pick the qualifiers confederation by confederation, seed the pots, run a rule-perfect draw, and play every
         match from the group stage to the Final — with the real FIFA format at every step.
       </p>
+      <div className="fact-ticker" aria-hidden>
+        <div className="ft-track">
+          {[0, 1].map((dup) => (
+            <span key={dup} className="ft-set">
+              {[
+                '48 nations',
+                '12 groups',
+                '104 matches',
+                '211 eligible teams',
+                'A hand-played play-off tournament',
+                '34 boosters',
+                '31 laboratory dials',
+                '5 seeding strategies',
+                'Every FIFA rule',
+              ].map((f) => (
+                <span key={f} className="ft-item">
+                  {f}
+                  <i />
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
       <div className="setup-cards">
         <button className="card setup-card" onClick={loadPreset}>
           <span className="icon">
@@ -77,6 +101,7 @@ export function LandingScreen() {
           <span className="btn gold-line">Roll the universe</span>
         </button>
       </div>
+      <div className="landing-foot serif-accent">An open-source love letter to the beautiful game.</div>
     </section>
   )
 }

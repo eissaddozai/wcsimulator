@@ -1,7 +1,7 @@
 # 150 High-Impact UI Improvements — the GitHub Excavation List
 
 Compiled after mining the open-source landscape (each cited library is MIT/OFL/ISC unless
-noted). Items marked ✦ have been executed (30 of 150 so far, across two rounds).
+noted). Items marked ✦ have been executed (33 of 150 so far, across three rounds).
 
 ## I. The Play-off Tournament (1–12)
 1. ✦ Lift the play-off bracket out of the page into a ceremony pop-up of its own.
@@ -40,9 +40,9 @@ noted). Items marked ✦ have been executed (30 of 150 so far, across two rounds
 32. Balance text everywhere with text-wrap: balance on headings and captions.
 
 ## III. Landing & Laboratory (33–48)
-33. Globe marker pulses on the three host cities (cobe custom render loop).
+33. ✦ Globe marker pulses on the three host cities (cobe custom render loop).
 34. Globe drag-to-spin with inertia (cobe pointer interaction pattern).
-35. Landing cards stagger-rise on first paint (framer-motion variants).
+35. ✦ Landing cards stagger-rise on first paint (framer-motion variants).
 36. A live "last tournament" memory chip — champion flag + seed — if a save exists.
 37. ✦ Keyboard hints (1/2/3) on the landing cards.
 38. Lab preset cards preview their physics as micro-sparklines (goals curve per preset).
@@ -100,7 +100,7 @@ noted). Items marked ✦ have been executed (30 of 150 so far, across two rounds
 84. GD sparkline per team across their three matches on hover.
 85. "Best third" watermark stripe on third-placed rows currently in the top eight.
 86. Contention badges get tooltips explaining the exact clinch/elimination math.
-87. Simulate-remaining animates group by group (staggered) instead of popping all.
+87. ✦ Simulate-remaining animates group by group (staggered) instead of popping all.
 88. Clear-group undo window (10s) with sonner toast.
 89. Head-to-head mini-table popover on tiebreak ⓘ icons.
 90. ✦ Group completion seals the card with a brief gold rim sweep.

@@ -66,6 +66,7 @@ interface TournamentState {
 
   setResult: (n: number, r: MatchResult | null) => void
   simulateGroupMatch: (n: number) => void
+  simulateGroup: (g: GroupId) => void
   simulateRemainingGroups: () => void
   simulateKoMatch: (n: number) => void
 
@@ -338,6 +339,22 @@ export const useStore = create<TournamentState>()(
         const ctx = contextFor(n, home, away, hosts, null, masterSeed)
         const r = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${n}:${Date.now() % 100000}`))
         get().setResult(n, r)
+      },
+
+      simulateGroup: (g) => {
+        const { drawTrace, masterSeed, chaos, results, hosts } = get()
+        const groups = groupsOf(drawTrace)
+        if (!groups) return
+        const next = { ...results }
+        for (const f of fixturesOfGroup(g)) {
+          if (next[f.number]) continue
+          const home = groups[g][f.homePos - 1]
+          const away = groups[g][f.awayPos - 1]
+          if (!home || !away) continue
+          const ctx = contextFor(f.number, home, away, hosts, null, masterSeed)
+          next[f.number] = simulateMatch(home, away, ctx, chaos.match, stream(masterSeed, `match:${f.number}`))
+        }
+        set({ results: next })
       },
 
       simulateRemainingGroups: () => {

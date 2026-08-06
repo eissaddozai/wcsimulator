@@ -1,7 +1,7 @@
 import NumberFlow from '@number-flow/react'
 import confetti from 'canvas-confetti'
 import { motion } from 'framer-motion'
-import { CloudRain, CloudSun, Dices, FlaskConical, Mountain, RotateCcw, Sun, X } from 'lucide-react'
+import { CloudRain, CloudSun, Dices, FlaskConical, Mountain, RotateCcw, Sun, Timer, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { MatchTheater } from '../../components/MatchTheater'
@@ -85,6 +85,19 @@ export function KnockoutScreen() {
   const champion = bracket[104]?.winner ?? null
   const finalMatch = bracket[104]
 
+  const liveStage = (() => {
+    for (const st of ['R32', 'R16', 'QF', 'SF', 'FINAL'] as const) {
+      const open = KO_MATCHES.some((m) => {
+        if (m.stage !== st) return false
+        const nd = bracket[m.number]
+        return Boolean(nd?.home && nd.away && !nd.winner)
+      })
+      if (open) return st
+    }
+    return null
+  })()
+  const headClass = (st: string) => `bhead${liveStage === st ? ' live' : ''}`
+
   const node = (n: number, row: string, col: number, compact = false) => (
     <div key={n} data-m={n} style={{ gridRow: row, gridColumn: col, display: 'flex', alignItems: 'center', minWidth: 0 }}>
       <KoNode node={bracket[n]!} compact={compact} onOpen={() => setOpenMatch(n)} />
@@ -139,15 +152,15 @@ export function KnockoutScreen() {
         <div className="bracket2">
           <ChampionThread champion={champion} bracket={bracket} />
           {/* round headers */}
-          <div className="bhead" style={{ gridColumn: 1 }}>Round of 32</div>
-          <div className="bhead" style={{ gridColumn: 3 }}>Round of 16</div>
-          <div className="bhead" style={{ gridColumn: 5 }}>Quarterfinal</div>
-          <div className="bhead" style={{ gridColumn: 7 }}>Semifinal</div>
-          <div className="bhead gold-text" style={{ gridColumn: 9 }}>Final</div>
-          <div className="bhead" style={{ gridColumn: 11 }}>Semifinal</div>
-          <div className="bhead" style={{ gridColumn: 13 }}>Quarterfinal</div>
-          <div className="bhead" style={{ gridColumn: 15 }}>Round of 16</div>
-          <div className="bhead" style={{ gridColumn: 17 }}>Round of 32</div>
+          <div className={headClass('R32')} style={{ gridColumn: 1 }}>Round of 32</div>
+          <div className={headClass('R16')} style={{ gridColumn: 3 }}>Round of 16</div>
+          <div className={headClass('QF')} style={{ gridColumn: 5 }}>Quarterfinal</div>
+          <div className={headClass('SF')} style={{ gridColumn: 7 }}>Semifinal</div>
+          <div className={`${headClass('FINAL')} gold-text`} style={{ gridColumn: 9 }}>Final</div>
+          <div className={headClass('SF')} style={{ gridColumn: 11 }}>Semifinal</div>
+          <div className={headClass('QF')} style={{ gridColumn: 13 }}>Quarterfinal</div>
+          <div className={headClass('R16')} style={{ gridColumn: 15 }}>Round of 16</div>
+          <div className={headClass('R32')} style={{ gridColumn: 17 }}>Round of 32</div>
 
           {/* left wing */}
           {LEFT.r32.map((n, i) => node(n, `${2 * i + 2} / span 2`, 1, true))}
@@ -319,16 +332,11 @@ function KoNode({
   const upset = Boolean(node.winner && loser && rankOf(node.winner) > rankOf(loser))
   return (
     <button
-      className={`card ko-node${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}${compact ? ' compact' : ''}${final ? ' final-node' : ''}${node.number === 103 ? ' bronze' : ''}`}
+      className={`card ko-node ks-${ko.stage.toLowerCase()}${ghost ? ' ghost' : ''}${node.winner ? ' done' : ''}${compact ? ' compact' : ''}${final ? ' final-node' : ''}${node.number === 103 ? ' bronze' : ''}`}
       onClick={onOpen}
       disabled={ghost}
       aria-label={`Match ${node.number}`}
     >
-      {node.stale ? (
-        <span className="ribbon stale">set aside</span>
-      ) : note ? (
-        <span className={`ribbon${note.startsWith('pens') ? ' pens' : ''}`}>{note}</span>
-      ) : null}
       <span className={`side${node.winner && node.winner === node.home ? ' winner' : ''}`}>
         {node.home ? (
           <>
@@ -361,6 +369,26 @@ function KoNode({
         )}
         <span className="score tnum">{as_}</span>
       </span>
+      {(note || node.stale) && (
+        <span
+          className={`verdict${node.stale ? ' stale' : note!.startsWith('pens') ? ' pens' : ' aet'}`}
+          aria-label={node.stale ? 'Result set aside' : note!.startsWith('pens') ? 'Decided on penalties' : 'Decided in extra time'}
+        >
+          {node.stale ? (
+            'Set aside'
+          ) : note!.startsWith('pens') ? (
+            <>
+              <i className="v-ball" />
+              Penalties <b className="tnum">{note!.slice(5)}</b>
+            </>
+          ) : (
+            <>
+              <Timer size={9} />
+              After extra time
+            </>
+          )}
+        </span>
+      )}
       <span className="meta">
         <span className={`mtag stage-${ko.stage.toLowerCase()}`}>
           <i className="mdot" />

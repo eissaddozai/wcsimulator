@@ -69,7 +69,7 @@ await shot('08-draw-complete')
 await page.click('text=Continue to the Group Stage')
 await page.waitForSelector('.groups-grid')
 await page.click('text=Simulate remaining')
-await page.waitForTimeout(700)
+await page.waitForTimeout(2400) // the twelve groups cascade in one by one
 await shot('09-groups-scored')
 
 // —— partial score: type one side only ——

@@ -50,9 +50,13 @@ export function WorldGlobe({ size = 640 }: { size?: number }) {
         opacity: light ? 0.7 : 0.85,
       })
     }
+    let t = 0
     const spin = () => {
       phi += 0.0016
-      globe?.update({ phi })
+      t += 0.035
+      // the host cities breathe
+      const pulse = 0.055 + (Math.sin(t) + 1) * 0.014
+      globe?.update({ phi, markers: HOST_MARKERS.map((m) => ({ ...m, size: pulse })) })
       raf = requestAnimationFrame(spin)
     }
     build()

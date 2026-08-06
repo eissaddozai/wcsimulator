@@ -209,7 +209,7 @@ function PlayoffMatchCard({
 
   return (
     <div className={`card pom${decided ? ' done' : ''}`}>
-      {note && <span className={`ribbon${note.startsWith('pens') ? ' pens' : ''}`}>{note}</span>}
+
       {seeded && <span className="po-bye">seed</span>}
       <div className="pom-head">
         <span className="mtag">
@@ -227,6 +227,18 @@ function PlayoffMatchCard({
       </div>
       {teamRow(home, decided === home, hs)}
       {teamRow(away, decided !== null && decided === away, as_)}
+      {note && (
+        <span className={`verdict${note.startsWith('pens') ? ' pens' : ' aet'}`}>
+          {note.startsWith('pens') ? (
+            <>
+              <i className="v-ball" />
+              Penalties <b className="tnum">{note.slice(5)}</b>
+            </>
+          ) : (
+            'After extra time'
+          )}
+        </span>
+      )}
       {odds && (
         <div className="pom-odds" title="Chance to advance">
           <i style={{ width: `${Math.round(odds.advHome * 100)}%` }} />

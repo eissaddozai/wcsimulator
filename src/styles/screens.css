@@ -2995,3 +2995,180 @@ table.standings td:nth-child(7) {
   opacity: 0.45;
   filter: none;
 }
+
+/* ————— execution batch three: verdict tickers, warmth-graded bracket, landing life ————— */
+
+/* aet / pens / set-aside live INSIDE the plate now — a ticker strip of their own */
+.verdict {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 1px 2px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: var(--font-text);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.verdict b {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+.verdict.aet {
+  color: var(--pos-third);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--pos-third) 11%, transparent) 18% 82%,
+    transparent
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--pos-third) 22%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--pos-third) 22%, transparent);
+}
+.verdict.pens {
+  color: var(--gold);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--gold) 12%, transparent) 18% 82%,
+    transparent
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--gold) 26%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--gold) 26%, transparent);
+}
+.verdict.stale {
+  color: var(--text-low);
+  background: color-mix(in srgb, var(--bg-3) 55%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-2) 60%, transparent);
+}
+.verdict .v-ball {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, var(--gold-hi), var(--gold) 72%);
+  box-shadow: 0 0 6px -2px var(--gold);
+  flex: none;
+}
+
+/* the bracket warms as it approaches the trophy */
+.ko-node.ks-r16:not(.done):not(.ghost) {
+  border-color: color-mix(in srgb, var(--gold) 10%, var(--line-2));
+}
+.ko-node.ks-qf:not(.done):not(.ghost) {
+  border-color: color-mix(in srgb, var(--gold) 17%, var(--line-2));
+}
+.ko-node.ks-sf:not(.done):not(.ghost) {
+  border-color: color-mix(in srgb, var(--gold) 26%, var(--line-2));
+  box-shadow:
+    0 10px 26px -18px rgba(0, 0, 0, 0.65),
+    0 0 22px -14px color-mix(in srgb, var(--gold) 45%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--text-hi) 5%, transparent);
+}
+
+/* winner's flag takes the ring; score pills catch the light */
+.ko-node .side.winner .flag {
+  box-shadow:
+    inset 0 0 0 1px var(--flag-ring),
+    0 0 0 1.5px var(--gold),
+    0 0 10px -3px var(--gold);
+}
+.ko-node .side .score {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-hi) 8%, transparent);
+}
+
+/* the round being played right now announces itself */
+.bhead.live {
+  color: var(--gold);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.bhead.live::before,
+.bhead.live::after {
+  background: linear-gradient(90deg, transparent, var(--gold-dim));
+}
+.bhead.live::after {
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+
+/* decided connectors breathe */
+.bconn.won::before,
+.bconn.won::after {
+  animation: conn-breathe 4s ease-in-out infinite alternate;
+}
+@keyframes conn-breathe {
+  to {
+    box-shadow: 0 0 24px -4px color-mix(in srgb, var(--gold) 75%, transparent);
+  }
+}
+
+/* ————— landing: the fact ticker, breathing cities, staggered arrival ————— */
+.fact-ticker {
+  width: min(720px, 90vw);
+  overflow: hidden;
+  margin: -26px auto 40px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12% 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12% 88%, transparent);
+}
+.ft-track {
+  display: flex;
+  width: max-content;
+  animation: ticker 30s linear infinite;
+}
+.ft-set {
+  display: flex;
+}
+.ft-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding-right: 16px;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-low);
+}
+.ft-item i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+}
+@keyframes ticker {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.setup-card {
+  animation: rise 520ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+.setup-card:nth-child(2) {
+  animation-delay: 90ms;
+}
+.setup-card:nth-child(3) {
+  animation-delay: 180ms;
+}
+.landing-foot {
+  margin-top: 44px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+  color: var(--text-low);
+}
+.landing-foot::before,
+.landing-foot::after {
+  content: '';
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-2));
+}
+.landing-foot::after {
+  background: linear-gradient(90deg, var(--line-2), transparent);
+}

@@ -31,7 +31,7 @@ export function GroupsScreen() {
   const results = useStore((s) => s.results)
   const setResult = useStore((s) => s.setResult)
   const simulateGroupMatch = useStore((s) => s.simulateGroupMatch)
-  const simulateRemainingGroups = useStore((s) => s.simulateRemainingGroups)
+  const simulateGroup = useStore((s) => s.simulateGroup)
   const masterSeed = useStore((s) => s.masterSeed)
   const setStep = useStore((s) => s.setStep)
 
@@ -153,7 +153,13 @@ export function GroupsScreen() {
         >
           <Move size={14} /> {editGroups ? 'Done moving' : 'Edit groups'}
         </button>
-        <button className="btn small gold-line" onClick={simulateRemainingGroups}>
+        <button
+          className="btn small gold-line"
+          onClick={() => {
+            // groups fall one by one — the tables glide as each lands
+            GROUP_IDS.forEach((g, i) => setTimeout(() => simulateGroup(g), i * 140))
+          }}
+        >
           <Dices size={14} /> Simulate remaining
         </button>
         <button
