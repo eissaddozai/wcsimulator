@@ -20,7 +20,7 @@ function ensureBoardFont() {
  * The Match Theater: replays the minute engine's story in ~7 seconds — the clock runs,
  * the scoreboard catches goals as they land, cards flash, the rail fills with markers.
  */
-export function MatchTheater({ r, home, away }: { r: MatchResult; home: string; away: string }) {
+export function MatchTheater({ r, home, away, autoplay = false }: { r: MatchResult; home: string; away: string; autoplay?: boolean }) {
   const total = r.et ? 120 : 90
   const [minute, setMinute] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -31,6 +31,8 @@ export function MatchTheater({ r, home, away }: { r: MatchResult; home: string; 
 
   useEffect(() => {
     ensureBoardFont()
+    if (autoplay && !matchMedia('(prefers-reduced-motion: reduce)').matches) setPlaying(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

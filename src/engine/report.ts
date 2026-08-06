@@ -130,9 +130,7 @@ export function buildReport(
   else headline = `${home} and ${away} share the spoils`
 
   // standfirst
-  const conditions = env
-    ? ` Played in ${WEATHER_LABEL[env.weather].toLowerCase()} at ${env.tempC}°C, ${env.refName} (${env.refCountry}) with the whistle.`
-    : ''
+  const conditions = env ? ` Played in ${WEATHER_LABEL[env.weather].toLowerCase()} at ${env.tempC}°C.` : ''
   const scoreline = `${home} ${hFT}–${aFT} ${away}${r.pens ? ` (${r.pens.home}–${r.pens.away} on penalties)` : r.et ? ' after extra time' : ''}`
   const standfirst = `${stageLabel} · Match ${matchNo} — ${scoreline}.${conditions}`
 

@@ -1,7 +1,7 @@
 import NumberFlow from '@number-flow/react'
 import confetti from 'canvas-confetti'
 import { motion } from 'framer-motion'
-import { CloudRain, CloudSun, Dices, FlaskConical, Maximize2, Mountain, NotebookText, RotateCcw, Sun, Timer, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { CloudRain, CloudSun, Dices, FlaskConical, Maximize2, Mountain, NotebookText, Play, RotateCcw, Sun, Timer, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
 import { MatchReport } from '../../components/MatchReport'
@@ -550,6 +550,8 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
   const ratingOverrides = useStore((s) => s.ratingOverrides)
   const [labOpen, setLabOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [oddsOpen, setOddsOpen] = useState(false)
+  const [theaterOpen, setTheaterOpen] = useState(false)
   const ko = KO_BY_NUMBER[node.number]!
   const r = node.result && !node.stale ? node.result : null
   const home = node.home!
@@ -632,12 +634,8 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
               )}
               {WEATHER_LABEL[env.weather]} · {env.tempC}°C
             </span>
-            <span className="env-chip" title={env.refStrictness > 1.15 ? 'Books everything' : env.refStrictness < 0.9 ? 'Lets play flow' : 'Even-tempered'}>
-              Referee {env.refName} ({env.refCountry})
-              {env.refStrictness > 1.15 ? ' · strict' : env.refStrictness < 0.9 ? ' · lenient' : ''}
-            </span>
           </div>
-          <div className="odds-card">
+          <div className={`odds-card capsule${oddsOpen ? ' open' : ''}`}>
             <div className="row spread" style={{ fontSize: 12, fontWeight: 600 }}>
               <span>
                 {shortName(home)}{' '}
@@ -673,6 +671,12 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
               <span>draw {pct(odds.draw)}</span>
               <span>win {pct(odds.away)}</span>
             </div>
+            <button className="odds-toggle" onClick={() => setOddsOpen((o) => !o)} aria-expanded={oddsOpen}>
+              {oddsOpen ? 'Hide the full market' : 'Open the full market'}
+              <i className="chev" aria-hidden />
+            </button>
+            {oddsOpen && (
+            <div className="odds-more">
             <div className="market-row tnum">
               <span title="Expected goals">
                 xG <b>{odds.lamHome.toFixed(2)}–{odds.lamAway.toFixed(2)}</b>
@@ -711,6 +715,8 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
             <button className="btn ghost small" style={{ alignSelf: 'center' }} onClick={() => setLabOpen(true)}>
               <FlaskConical size={13} /> Tune the model
             </button>
+            </div>
+            )}
           </div>
 
           <div className="row" style={{ justifyContent: 'center', gap: 16 }}>
@@ -782,13 +788,15 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
 
           {r && r.events && r.events.length > 0 && (
             <div className="row" style={{ justifyContent: 'center' }}>
+              <button className="btn gold-line small" onClick={() => setTheaterOpen(true)}>
+                <Play size={14} /> Watch replay
+              </button>
               <button className="btn gold-line small" onClick={() => setReportOpen(true)}>
-                <NotebookText size={14} /> Full match report
+                <NotebookText size={14} /> Match report
               </button>
             </div>
           )}
           {r && <ShootoutBoard r={r} home={home} away={away} />}
-          {r && r.events && r.events.length > 0 && <MatchTheater r={r} home={home} away={away} />}
           {r && <MatchTimeline r={r} home={home} away={away} />}
           {recap && <p className="recap serif-accent">{recap}</p>}
 
@@ -814,6 +822,27 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
         </div>
       </aside>
       {labOpen && <ModelLab onClose={() => setLabOpen(false)} />}
+      {theaterOpen && r && (
+        <div
+          className="overlay"
+          role="dialog"
+          aria-modal
+          aria-label="Match replay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setTheaterOpen(false)
+          }}
+        >
+          <div className="dialog theater-dialog">
+            <button className="btn icon ghost host-close" onClick={() => setTheaterOpen(false)} aria-label="Close">
+              <X size={16} />
+            </button>
+            <div className="kicker serif-accent" style={{ textAlign: 'center' }}>
+              The match, replayed
+            </div>
+            <MatchTheater r={r} home={home} away={away} autoplay />
+          </div>
+        </div>
+      )}
       {reportOpen && r && (
         <MatchReport
           r={r}

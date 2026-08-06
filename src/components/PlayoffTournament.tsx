@@ -231,12 +231,8 @@ function PlayoffMatchCard({
           {PO_LABEL[k]}
         </span>
         <span className="mnum tnum">Match {PO_NUMBER[k]}</span>
-        <span
-          className={`env-chip wx-${env.weather}`}
-          style={{ marginLeft: 'auto' }}
-          title={`Referee ${env.refName} (${env.refCountry})`}
-        >
-          {WEATHER_LABEL[env.weather]} · {env.tempC}°C · {env.refName}
+        <span className={`env-chip wx-${env.weather}`} style={{ marginLeft: 'auto' }}>
+          {WEATHER_LABEL[env.weather]} · {env.tempC}°C
         </span>
       </div>
       {teamRow(home, decided === home, hs)}
