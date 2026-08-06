@@ -1,9 +1,10 @@
 import NumberFlow from '@number-flow/react'
 import confetti from 'canvas-confetti'
 import { motion } from 'framer-motion'
-import { CloudRain, CloudSun, Dices, FlaskConical, Maximize2, Mountain, RotateCcw, Sun, Timer, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { CloudRain, CloudSun, Dices, FlaskConical, Maximize2, Mountain, NotebookText, RotateCcw, Sun, Timer, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Flag } from '../../components/Flag'
+import { MatchReport } from '../../components/MatchReport'
 import { MatchTheater } from '../../components/MatchTheater'
 import { TrophyMark } from '../../components/TrophyMark'
 import { ModelLab } from '../../components/ModelLab'
@@ -548,6 +549,7 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
   const modelParams = useStore((s) => s.modelParams)
   const ratingOverrides = useStore((s) => s.ratingOverrides)
   const [labOpen, setLabOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const ko = KO_BY_NUMBER[node.number]!
   const r = node.result && !node.stale ? node.result : null
   const home = node.home!
@@ -778,6 +780,13 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
             </div>
           )}
 
+          {r && r.events && r.events.length > 0 && (
+            <div className="row" style={{ justifyContent: 'center' }}>
+              <button className="btn gold-line small" onClick={() => setReportOpen(true)}>
+                <NotebookText size={14} /> Full match report
+              </button>
+            </div>
+          )}
           {r && <ShootoutBoard r={r} home={home} away={away} />}
           {r && r.events && r.events.length > 0 && <MatchTheater r={r} home={home} away={away} />}
           {r && <MatchTimeline r={r} home={home} away={away} />}
@@ -805,6 +814,16 @@ function MatchPanel({ node, onClose, onDice }: { node: ResolvedKo; onClose: () =
         </div>
       </aside>
       {labOpen && <ModelLab onClose={() => setLabOpen(false)} />}
+      {reportOpen && r && (
+        <MatchReport
+          r={r}
+          home={home}
+          away={away}
+          matchNo={node.number}
+          stageLabel={STAGE_FULL[ko.stage] ?? ko.stage}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </>
   )
 }

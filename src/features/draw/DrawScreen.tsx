@@ -233,9 +233,10 @@ export function DrawScreen() {
                 <span className="gmedal tnum">{g}</span>
                 Group {g}
               </h4>
-              {[1, 2, 3, 4].map((pos) => {
+              {([1, 2, 3, 4] as PotNumber[]).map((pot) => {
+                const pos = POT_TO_POSITION[pot]
                 const pick = boardGroups[g][pos - 1]
-                const potForPos = ([1, 3, 2, 4] as PotNumber[]).find((p) => POT_TO_POSITION[p] === pos)!
+                const potForPos = pot
                 return pick ? (
                   <div
                     key={pos}

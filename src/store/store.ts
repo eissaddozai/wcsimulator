@@ -22,6 +22,8 @@ export const STEP_ORDER: Step[] = ['landing', 'lab', 'teams', 'pots', 'draw', 'g
 interface TournamentState {
   step: Step
   theme: 'dark' | 'light'
+  /** app-wide interface zoom (0.7–1.3) */
+  uiZoom: number
   masterSeed: string
   chaos: ChaosKnobs
   strategy: StrategyId
@@ -44,6 +46,7 @@ interface TournamentState {
 
   setStep: (s: Step) => void
   setTheme: (t: 'dark' | 'light') => void
+  setUiZoom: (z: number) => void
   setSeed: (s: string) => void
   setChaos: (k: keyof ChaosKnobs, v: number) => void
   setStrategy: (s: StrategyId) => void
@@ -174,6 +177,7 @@ export const useStore = create<TournamentState>()(
     (set, get) => ({
       step: 'landing',
       theme: 'dark',
+      uiZoom: 1,
       masterSeed: mintSeed(),
       chaos: { qualification: 1, seeding: 1, match: 1 },
       strategy: 'official',
@@ -192,6 +196,7 @@ export const useStore = create<TournamentState>()(
 
       setStep: (s) => set({ step: s }),
       setTheme: (t) => set({ theme: t }),
+      setUiZoom: (z) => set({ uiZoom: Math.min(1.3, Math.max(0.7, z)) }),
       setSeed: (s) => set({ masterSeed: s.trim() || mintSeed() }),
       setChaos: (k, v) => set((st) => ({ chaos: { ...st.chaos, [k]: v } })),
       setStrategy: (s) => set({ strategy: s }),
@@ -515,7 +520,7 @@ export const useStore = create<TournamentState>()(
     }),
     {
       name: 'wcsim:tournament',
-      version: 5,
+      version: 6,
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown>
         if (version < 2) {
@@ -528,6 +533,7 @@ export const useStore = create<TournamentState>()(
           s.playoffTeams = []
           s.playoffResults = {}
         }
+        if (version < 6) s.uiZoom = 1
         return s
       },
       onRehydrateStorage: () => (state) => {
@@ -539,6 +545,7 @@ export const useStore = create<TournamentState>()(
       partialize: (s) => ({
         step: s.step,
         theme: s.theme,
+        uiZoom: s.uiZoom,
         masterSeed: s.masterSeed,
         chaos: s.chaos,
         strategy: s.strategy,

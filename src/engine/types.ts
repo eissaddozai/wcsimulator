@@ -40,10 +40,14 @@ export function isScored(r: MatchResult): boolean {
   return r.score.home !== null && r.score.away !== null
 }
 
+export type GoalDetail = 'openplay' | 'header' | 'setpiece' | 'counter' | 'longrange' | 'pen' | 'og'
+
 export interface MatchEvent {
   min: number
   side: 'home' | 'away'
-  type: 'goal' | 'yellow' | 'red'
+  type: 'goal' | 'yellow' | 'red' | 'bigsave' | 'woodwork' | 'penmiss'
+  /** how a goal arrived — feeds the match report's prose */
+  detail?: GoalDetail
 }
 
 export interface MatchStats {

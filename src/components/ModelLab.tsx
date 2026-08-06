@@ -63,7 +63,7 @@ export function ModelLab({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <p className="low" style={{ margin: '0 0 4px', fontSize: 12 }}>
-        Thirty-three live dials — every move re-rolls the odds beside you instantly.
+        Forty-three live dials — every move re-rolls the odds beside you instantly.
       </p>
       <div className="lab-drawer-body">
         {LAB_GROUPS.map((g) => (

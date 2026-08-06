@@ -1,4 +1,4 @@
-import { Download, Moon, Plus, Save, Sun, Trash2, Upload } from 'lucide-react'
+import { Download, Moon, Plus, Save, Sun, Trash2, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Flag } from './components/Flag'
 import { TrophyMark } from './components/TrophyMark'
@@ -35,6 +35,8 @@ export default function App() {
   const pots = useStore((s) => s.pots)
   const drawTrace = useStore((s) => s.drawTrace)
   const results = useStore((s) => s.results)
+  const uiZoom = useStore((s) => s.uiZoom)
+  const setUiZoom = useStore((s) => s.setUiZoom)
   const [menuOpen, setMenuOpen] = useState(false)
   const [runs, setRuns] = useState<SavedRun[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
@@ -140,6 +142,17 @@ export default function App() {
           })}
         </nav>
         <div className="appbar-actions">
+          <span className="ui-zoom" role="group" aria-label="Interface zoom" title="Interface zoom — every screen scales">
+            <button className="dice-btn" onClick={() => setUiZoom(+(uiZoom - 0.05).toFixed(2))} aria-label="Zoom out">
+              <ZoomOut size={13} />
+            </button>
+            <button className="zoom-pct tnum" onClick={() => setUiZoom(1)} title="Reset to 100%">
+              {Math.round(uiZoom * 100)}%
+            </button>
+            <button className="dice-btn" onClick={() => setUiZoom(+(uiZoom + 0.05).toFixed(2))} aria-label="Zoom in">
+              <ZoomIn size={13} />
+            </button>
+          </span>
           <button
             className="btn icon ghost"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -247,7 +260,7 @@ export default function App() {
           </div>
         </div>
       </header>
-      <main>
+      <main style={{ zoom: uiZoom }}>
         {step === 'landing' && <LandingScreen />}
         {step === 'lab' && <LabScreen />}
         {step === 'teams' && <SelectionScreen />}

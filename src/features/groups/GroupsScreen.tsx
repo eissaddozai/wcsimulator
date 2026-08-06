@@ -1,8 +1,9 @@
 import NumberFlow from '@number-flow/react'
 import { motion } from 'framer-motion'
-import { Dices, Info, ListOrdered, Move, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Dices, Info, ListOrdered, Move, NotebookText, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Flag } from '../../components/Flag'
+import { MatchReport } from '../../components/MatchReport'
 import { ScoreInput } from '../../components/ScoreInput'
 import { TeamStudio } from '../../components/TeamStudio'
 import { shortName } from '../../data/nations'
@@ -41,6 +42,7 @@ export function GroupsScreen() {
   const [editGroups, setEditGroups] = useState(false)
   const [dragSlot, setDragSlot] = useState<SlotRef | null>(null)
   const [pendingEdit, setPendingEdit] = useState<{ n: number; r: MatchResult | null; casualties: number[] } | null>(null)
+  const [reportFor, setReportFor] = useState<{ n: number; home: string; away: string; label: string } | null>(null)
   const swapGroupSlots = useStore((s) => s.swapGroupSlots)
 
   const groups = useMemo(() => groupsOf(drawTrace), [drawTrace])
@@ -193,6 +195,7 @@ export function GroupsScreen() {
             contention={contention?.[g] ?? null}
             onScore={commitScore}
             onDice={simulateGroupMatch}
+            onReport={(n, home, away, label) => setReportFor({ n, home, away, label })}
             editMode={editGroups}
             dragSlot={dragSlot}
             setDragSlot={setDragSlot}
@@ -216,6 +219,16 @@ export function GroupsScreen() {
 
       {thirdsOpen && <ThirdsPanel thirds={thirds} onClose={() => setThirdsOpen(false)} />}
       {studioOpen && <TeamStudio onClose={() => setStudioOpen(false)} />}
+      {reportFor && results[reportFor.n] && (
+        <MatchReport
+          r={results[reportFor.n]!}
+          home={reportFor.home}
+          away={reportFor.away}
+          matchNo={reportFor.n}
+          stageLabel={reportFor.label}
+          onClose={() => setReportFor(null)}
+        />
+      )}
 
       {pendingEdit && (
         <div className="overlay" role="dialog" aria-modal>
@@ -259,12 +272,13 @@ function GroupCard(props: {
   contention: Map<string, { outOfTop2: boolean; outOfTop3: boolean; securedTop2: boolean }> | null
   onScore: (n: number, r: MatchResult | null) => void
   onDice: (n: number) => void
+  onReport: (n: number, home: string, away: string, label: string) => void
   editMode: boolean
   dragSlot: SlotRef | null
   setDragSlot: (s: SlotRef | null) => void
   onSwap: (a: SlotRef, b: SlotRef) => void
 }) {
-  const { g, slots, md, results, standings, thirds, contention, onScore, onDice, editMode, dragSlot, setDragSlot, onSwap } = props
+  const { g, slots, md, results, standings, thirds, contention, onScore, onDice, onReport, editMode, dragSlot, setDragSlot, onSwap } = props
   const fixtures = fixturesOfGroup(g).filter((f) => md === 0 || f.matchday === md)
   const sealed = standings.length === 4 && standings.every((r) => r.played === 3)
 
@@ -439,6 +453,16 @@ function GroupCard(props: {
               >
                 <Dices size={14} />
               </button>
+              {r?.events && r.events.length > 0 && (
+                <button
+                  className="dice-btn"
+                  title="Full match report"
+                  onClick={() => onReport(f.number, home, away, `Group ${g} · Matchday ${f.matchday}`)}
+                  aria-label={`Match report: ${home} vs ${away}`}
+                >
+                  <NotebookText size={13} />
+                </button>
+              )}
             </div>
           )
         })}

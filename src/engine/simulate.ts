@@ -84,9 +84,20 @@ export interface ModelParams {
   // — realism governors —
   mercyRule: number // how hard big leads take the foot off the gas (default 1)
   lamCeiling: number // soft ceiling that pulls monster expected-goal counts to earth (default 2.6)
+  convFatigue: number // finishing regression once a side is three up (default 1)
+  demoralization: number // how far heads drop three or more down (default 1)
+  chaseIntensity: number // how hard sides a goal or two down push (default 1)
+  redImpact: number // how much ten men change a match (default 1)
+  counterTendency: number // leading sides sharpen on the break (default 1)
+  etFatigue: number // how hard legs go in extra time (default 1)
   // — randomness & drama —
   varianceBoost: number // chance of a wild end-to-end classic (default 0)
   redCardRate: number // per-match chance of a sending-off (default 0.09)
+  yellowRate: number // per-side-per-minute booking hazard (default 0.021)
+  stoppageDrama: number // how much the 45th and 90th minutes boil (default 1)
+  penAwardRate: number // per-match rate of in-game penalty awards (default 0.22)
+  saveDrama: number // how many saves are worth remembering (default 1)
+  woodworkRate: number // share of near-misses that rattle the frame (default 0.03)
   miracleRate: number // chance the underdog catches divine fire (default 0)
   // — the elements —
   weatherInfluence: number // how much heat, rain, and altitude bend matches (default 1)
@@ -119,8 +130,19 @@ export const DEFAULT_MODEL: ModelParams = {
   penKeeperWeight: 0,
   mercyRule: 1,
   lamCeiling: 2.6,
+  convFatigue: 1,
+  demoralization: 1,
+  chaseIntensity: 1,
+  redImpact: 1,
+  counterTendency: 1,
+  etFatigue: 1,
   varianceBoost: 0,
   redCardRate: 0.09,
+  yellowRate: 0.021,
+  stoppageDrama: 1,
+  penAwardRate: 0.22,
+  saveDrama: 1,
+  woodworkRate: 0.03,
   miracleRate: 0,
   weatherInfluence: 1,
   refInfluence: 1,
@@ -361,9 +383,21 @@ export function detailedOdds(homeId: string, awayId: string, ctx: MatchContext, 
 
 /** Per-minute time curve: halves heat up as they age; 45' and 90' are stoppage drama. */
 function timeCurve(min: number): number {
-  if (min === 45 || min === 90) return 1.7
+  if (min === 45 || min === 90) return 1 + 0.7 * MODEL.stoppageDrama
   const half = min > 45 ? min - 45 : min
   return 0.82 + (half / 45) * 0.36
+}
+
+/** How the goal arrived — weighted like real tournament football. */
+function goalDetail(rng: Rng, diff: number): import('./types').GoalDetail {
+  const r = rng()
+  const counterW = diff > 0 ? 0.1 + 0.1 * MODEL.counterTendency : 0.1
+  if (r < 0.035) return 'og'
+  if (r < 0.035 + 0.19) return 'header'
+  if (r < 0.035 + 0.19 + 0.12) return 'setpiece'
+  if (r < 0.035 + 0.19 + 0.12 + 0.09) return 'longrange'
+  if (r < 0.035 + 0.19 + 0.12 + 0.09 + counterW) return 'counter'
+  return 'openplay'
 }
 
 interface SideState {
@@ -405,7 +439,7 @@ export function simulateMatch(
 
   // hazards per side-minute: intrinsic cards, the referee's temperament, the Lab's dial
   const refTemper = 1 + ((ctx.refStrictness ?? 1) - 1) * MODEL.refInfluence
-  const yellowHazard = 0.021 * refTemper
+  const yellowHazard = MODEL.yellowRate * refTemper
   const directRedHazard = (MODEL.redCardRate / 95) * refTemper // per-match probability, spread over the minutes
 
   const playMinute = (min: number, intensity: number) => {
@@ -419,7 +453,10 @@ export function simulateMatch(
       let mood = 1
       if (diff < 0) {
         // one or two down: chase. Three or more down: heads drop.
-        mood = -diff <= 2 ? (min > 60 ? 1.3 : 1.15) : 0.85
+        mood =
+          -diff <= 2
+            ? 1 + (min > 60 ? 0.3 : 0.15) * MODEL.chaseIntensity
+            : 1 - 0.15 * MODEL.demoralization
       } else if (diff > 0) {
         // game management: the bigger the lead, the harder the foot comes off the gas
         const eased = [1, 0.85, 0.7, 0.56, 0.45][Math.min(diff, 4)]!
@@ -427,22 +464,42 @@ export function simulateMatch(
       }
       // numbers down
       let numbers = 1
-      if (st.red) numbers *= 0.68
-      if (ost.red) numbers *= 1.18
+      if (st.red) numbers *= 1 - 0.32 * MODEL.redImpact
+      if (ost.red) numbers *= 1 + 0.18 * MODEL.redImpact
       // legs: after the hour, tired sides fade unless the bench is deep
-      const legs = min > 60 ? 1 - 0.1 * (1 - Math.max(fx.stamina, 0)) * ((min - 60) / 30) : 1
+      let legs = min > 60 ? 1 - 0.1 * (1 - Math.max(fx.stamina, 0)) * ((min - 60) / 30) : 1
+      if (min > 90) legs *= 1 - 0.15 * MODEL.etFatigue * ((min - 90) / 30)
       const pShot = (lam / 93) * 3.1 * curve * mood * numbers * legs
       if (rng() < pShot) {
         st.shots++
-        const chanceQuality = Math.min(0.08 + -Math.log(1 - rng()) * 0.14, 0.85) // sampled xG
+        let chanceQuality = Math.min(0.08 + -Math.log(1 - rng()) * 0.14, 0.85) // sampled xG
+        // leading sides sharpen on the break
+        if (diff > 0) chanceQuality = Math.min(chanceQuality * (1 + 0.08 * MODEL.counterTendency), 0.88)
         st.xg += chanceQuality
-        // conversion follows chance quality, calibrated so E[goals] tracks λ
-        // conversion fatigue: past a third goal the opposition packs the box,
-        // the keeper grows, and finishing regresses
-        const convFade = Math.pow(0.88, Math.max(0, st.goals - 2))
+        // conversion follows chance quality, calibrated so E[goals] tracks λ;
+        // conversion fatigue: past a third goal the box packs and finishing regresses
+        const convFade = Math.pow(1 - 0.12 * MODEL.convFatigue, Math.max(0, st.goals - 2))
         if (st.goals < cap && rng() < Math.min(chanceQuality * 1.48 * convFade, 0.9)) {
           st.goals++
-          events.push({ min, side, type: 'goal' })
+          events.push({ min, side, type: 'goal', detail: goalDetail(rng, diff) })
+        } else {
+          // the one that didn't go in — worth remembering?
+          const miss = rng()
+          if (miss < MODEL.woodworkRate) events.push({ min, side, type: 'woodwork' })
+          else if (chanceQuality > 0.3 && miss < MODEL.woodworkRate + 0.5 * MODEL.saveDrama)
+            events.push({ min, side, type: 'bigsave' })
+        }
+      }
+      // an in-game penalty: won in the box, taken from the spot
+      if (MODEL.penAwardRate > 0 && rng() < (MODEL.penAwardRate / 190) * curve) {
+        st.shots++
+        st.xg += 0.78
+        const conv = Math.min(Math.max(MODEL.penBase + fx.pens, 0.5), 0.95)
+        if (st.goals < cap && rng() < conv) {
+          st.goals++
+          events.push({ min, side, type: 'goal', detail: 'pen' })
+        } else {
+          events.push({ min, side, type: 'penmiss' })
         }
       }
       // discipline
